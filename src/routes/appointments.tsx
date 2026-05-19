@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { AppShell } from "@/components/app-shell";
 import { AppointmentForm } from "@/components/appointment-form";
 
@@ -12,11 +12,18 @@ function AppointmentsPage() {
     <AppShell title="Schedule appointment">
       <div className="mx-auto max-w-[720px]">
         <div className="pulse-card p-6">
-          <h2 className="text-[16px] font-semibold text-navy">New appointment</h2>
+          <h2 className="text-[16px] font-semibold text-navy">
+            New appointment
+          </h2>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Book a new visit for any patient. Open the{" "}
-            <button onClick={() => navigate({ to: "/calendar" })} className="text-blue underline">calendar</button>
-            {" "}to see day, week, month, and agenda views.
+            <button
+              onClick={() => navigate({ to: "/calendar" })}
+              className="text-blue underline"
+            >
+              calendar
+            </button>{" "}
+            to see day, week, month, and agenda views.
           </p>
           <div className="mt-6">
             <AppointmentForm

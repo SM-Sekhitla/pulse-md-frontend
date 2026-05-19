@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@/lib/router-compat";
 import {
   LayoutDashboard, Calendar, Users, UserPlus, Stethoscope, Pill,
   FileText, Package, Wrench, Receipt, BarChart3, UserCog, Settings,

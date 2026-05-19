@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@/lib/router-compat";
 import { LayoutDashboard, Building2, Clock, Users, CreditCard, ScrollText, Settings, LogOut, ChevronLeft, Mail, SlidersHorizontal } from "lucide-react";
 import { PulseLogoOnDark } from "@/components/brand";
 import { cn } from "@/lib/utils";
