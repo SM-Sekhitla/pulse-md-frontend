@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock, Stethoscope, User as UserIcon, MapPin, FileText } from "lucide-react";
-import { createAppointment, store, type Appointment, type AppointmentType } from "@/lib/store";
+import { createAppointment, myScopedStore, store, type Appointment, type AppointmentType } from "@/lib/store";
 
 interface Props {
   defaultDate?: Date;
@@ -14,10 +14,11 @@ const ROOMS = ["Room 1", "Room 2", "Room 3", "Telehealth"];
 const DURATIONS = [10, 15, 20, 30, 45, 60];
 
 export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
-  const s = store.get();
+  const s = myScopedStore();
+  const fullStore = store.get();
   const patients = useMemo(() => s.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)), [s.patients]);
-  const gp = s.users.find(u => u.role === "owner" && u.tenantId === s.user?.tenantId);
-  const gpName = gp ? `${gp.title} ${gp.firstName[0]}. ${gp.lastName}` : "Dr. M. Naidoo";
+  const gp = fullStore.users.find(u => u.role === "owner" && u.tenantId === fullStore.user?.tenantId);
+  const gpName = gp ? `${gp.title} ${gp.firstName[0]}. ${gp.lastName}` : "Dr.";
 
   const initial = defaultDate || new Date();
   const [patientId, setPatientId] = useState<string>(patients[0]?.id || "");

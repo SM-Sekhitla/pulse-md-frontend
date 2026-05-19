@@ -2,7 +2,7 @@ import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, formatZAR } from "@/lib/store";
+import { store, formatZAR, myScopedStore } from "@/lib/store";
 import { format, parseISO } from "date-fns";
 import { Plus, Search } from "lucide-react";
 
@@ -11,9 +11,9 @@ export const Route = createFileRoute("/billing")({
 });
 
 function Billing() {
-  const [data, setData] = useState(() => store.get());
+  const [data, setData] = useState(() => myScopedStore());
   useEffect(() => {
-    setData(store.get());
+    setData(myScopedStore());
   }, []);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");

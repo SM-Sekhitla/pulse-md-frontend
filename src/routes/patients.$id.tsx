@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, formatZAR, type Patient } from "@/lib/store";
+import { store, formatZAR, type Patient,myScopedStore } from "@/lib/store";
 import { differenceInYears, format, parseISO } from "date-fns";
 import {
   Calendar,
@@ -29,9 +29,9 @@ const TABS = [
 
 function PatientDetail() {
   const { id } = useParams({ from: "/patients/$id" });
-  const [data, setData] = useState(() => store.get());
+  const [data, setData] = useState(() => myScopedStore());
   useEffect(() => {
-    setData(store.get());
+    setData(myScopedStore());
   }, []);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
 

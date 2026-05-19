@@ -96,6 +96,7 @@ export type AppointmentType =
 
 export interface Appointment {
   id: string;
+  tenantId?: string;
   patientId: string;
   patientName: string;
   type: AppointmentType;
@@ -109,6 +110,7 @@ export interface Appointment {
 
 export interface InventoryItem {
   id: string;
+  tenantId?: string;
   name: string;
   category: string;
   sku: string;
@@ -122,6 +124,7 @@ export interface InventoryItem {
 
 export interface Invoice {
   id: string;
+  tenantId?: string;
   number: string;
   patientId: string;
   patientName: string;
@@ -197,7 +200,7 @@ export interface PlatformSettings {
   maintenanceMode: boolean;
 }
 
-const KEY = "pulsemd:v4";
+const KEY = "pulsemd:v5";
 
 interface Store {
   user: User | null;
@@ -366,6 +369,7 @@ function seed(): Store {
       const end = new Date(start.getTime() + 20 * 60000);
       appointments.push({
         id: rid("ap_"),
+        tenantId: demoTenantId,
         patientId: p.id,
         patientName: `${p.firstName} ${p.lastName}`,
         type: types[i % types.length],
@@ -380,18 +384,19 @@ function seed(): Store {
   }
 
   const inventory: InventoryItem[] = [
-    { id: rid("in_"), name: "Amoxicillin 500mg", category: "Prescription medication", sku: "AMX-500", stock: 124, reorderLevel: 50, unitCost: 1.2, sellingPrice: 4.5, expiry: format(addDays(today, 180), "yyyy-MM-dd"), supplier: "MediSupply SA" },
-    { id: rid("in_"), name: "Paracetamol 500mg", category: "OTC medication", sku: "PCM-500", stock: 8, reorderLevel: 100, unitCost: 0.4, sellingPrice: 1.5, expiry: format(addDays(today, 45), "yyyy-MM-dd"), supplier: "Pharma Direct" },
-    { id: rid("in_"), name: "Surgical gloves (M)", category: "PPE", sku: "GLV-M", stock: 320, reorderLevel: 100, unitCost: 0.8, sellingPrice: 0, expiry: format(addDays(today, 730), "yyyy-MM-dd"), supplier: "MediSupply SA" },
-    { id: rid("in_"), name: "Influenza vaccine", category: "Vaccine", sku: "FLU-22", stock: 14, reorderLevel: 30, unitCost: 65, sellingPrice: 180, expiry: format(addDays(today, 22), "yyyy-MM-dd"), supplier: "VaxCo" },
-    { id: rid("in_"), name: "Disposable syringe 5ml", category: "Consumable", sku: "SYR-5", stock: 540, reorderLevel: 200, unitCost: 0.6, sellingPrice: 0, expiry: format(addDays(today, 900), "yyyy-MM-dd"), supplier: "MediSupply SA" },
-    { id: rid("in_"), name: "Multivitamin tablets", category: "Supplement", sku: "MVT-90", stock: 60, reorderLevel: 25, unitCost: 35, sellingPrice: 85, expiry: format(addDays(today, 365), "yyyy-MM-dd"), supplier: "Pharma Direct" },
-    { id: rid("in_"), name: "Surgical mask (50pk)", category: "PPE", sku: "MSK-50", stock: 18, reorderLevel: 40, unitCost: 25, sellingPrice: 0, expiry: format(addDays(today, 540), "yyyy-MM-dd"), supplier: "MediSupply SA" },
-    { id: rid("in_"), name: "Adrenaline 1mg/ml", category: "Prescription medication", sku: "ADR-1", stock: 32, reorderLevel: 10, unitCost: 18, sellingPrice: 65, expiry: format(addDays(today, 14), "yyyy-MM-dd"), supplier: "VaxCo" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Amoxicillin 500mg", category: "Prescription medication", sku: "AMX-500", stock: 124, reorderLevel: 50, unitCost: 1.2, sellingPrice: 4.5, expiry: format(addDays(today, 180), "yyyy-MM-dd"), supplier: "MediSupply SA" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Paracetamol 500mg", category: "OTC medication", sku: "PCM-500", stock: 8, reorderLevel: 100, unitCost: 0.4, sellingPrice: 1.5, expiry: format(addDays(today, 45), "yyyy-MM-dd"), supplier: "Pharma Direct" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Surgical gloves (M)", category: "PPE", sku: "GLV-M", stock: 320, reorderLevel: 100, unitCost: 0.8, sellingPrice: 0, expiry: format(addDays(today, 730), "yyyy-MM-dd"), supplier: "MediSupply SA" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Influenza vaccine", category: "Vaccine", sku: "FLU-22", stock: 14, reorderLevel: 30, unitCost: 65, sellingPrice: 180, expiry: format(addDays(today, 22), "yyyy-MM-dd"), supplier: "VaxCo" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Disposable syringe 5ml", category: "Consumable", sku: "SYR-5", stock: 540, reorderLevel: 200, unitCost: 0.6, sellingPrice: 0, expiry: format(addDays(today, 900), "yyyy-MM-dd"), supplier: "MediSupply SA" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Multivitamin tablets", category: "Supplement", sku: "MVT-90", stock: 60, reorderLevel: 25, unitCost: 35, sellingPrice: 85, expiry: format(addDays(today, 365), "yyyy-MM-dd"), supplier: "Pharma Direct" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Surgical mask (50pk)", category: "PPE", sku: "MSK-50", stock: 18, reorderLevel: 40, unitCost: 25, sellingPrice: 0, expiry: format(addDays(today, 540), "yyyy-MM-dd"), supplier: "MediSupply SA" },
+    { id: rid("in_"), tenantId: demoTenantId, name: "Adrenaline 1mg/ml", category: "Prescription medication", sku: "ADR-1", stock: 32, reorderLevel: 10, unitCost: 18, sellingPrice: 65, expiry: format(addDays(today, 14), "yyyy-MM-dd"), supplier: "VaxCo" },
   ];
 
   const invoices: Invoice[] = patients.slice(0, 14).map((p, i) => ({
     id: rid("iv_"),
+    tenantId: demoTenantId,
     number: `PM-${(2400 + i).toString()}`,
     patientId: p.id,
     patientName: `${p.firstName} ${p.lastName}`,
@@ -763,9 +768,25 @@ export function tenantEnabledModules(tenantId: string | null | undefined): Modul
 // ─── Appointments ──────────────────────────────────
 
 export function createAppointment(input: Omit<Appointment, "id">): Appointment {
-  const a: Appointment = { ...input, id: rid("ap_") };
+  const tid = input.tenantId ?? currentUser()?.tenantId ?? undefined;
+  const a: Appointment = { ...input, tenantId: tid || undefined, id: rid("ap_") };
   store.set((s) => ({ ...s, appointments: [a, ...s.appointments] }));
   return a;
+}
+
+export function createPatient(input: Omit<Patient, "id" | "tenantId" | "lastVisit" | "active"> & { lastVisit?: string; active?: boolean }): Patient {
+  const tid = currentUser()?.tenantId || undefined;
+  const p: Patient = {
+    ...input,
+    id: rid("pt_"),
+    tenantId: tid,
+    lastVisit: input.lastVisit ?? new Date().toISOString().slice(0, 10),
+    active: input.active ?? true,
+    allergies: input.allergies ?? [],
+    chronic: input.chronic ?? [],
+  };
+  store.set((s) => ({ ...s, patients: [p, ...s.patients] }));
+  return p;
 }
 
 // ─── Prescriptions & sick notes ────────────────────
@@ -811,4 +832,41 @@ export function tenantSickNotes(tenantId: string | null | undefined): SickNote[]
 
 export function patientAppointments(patientId: string): Appointment[] {
   return load().appointments.filter((a) => a.patientId === patientId).sort((a, b) => b.start.localeCompare(a.start));
+}
+
+// ─── Tenant-scoped data helpers ────────────────────
+
+export function tenantPatients(tenantId: string | null | undefined): Patient[] {
+  if (!tenantId) return [];
+  return load().patients.filter((p) => p.tenantId === tenantId);
+}
+
+export function tenantAppointments(tenantId: string | null | undefined): Appointment[] {
+  if (!tenantId) return [];
+  return load().appointments.filter((a) => a.tenantId === tenantId);
+}
+
+export function tenantInventory(tenantId: string | null | undefined): InventoryItem[] {
+  if (!tenantId) return [];
+  return load().inventory.filter((i) => i.tenantId === tenantId);
+}
+
+export function tenantInvoices(tenantId: string | null | undefined): Invoice[] {
+  if (!tenantId) return [];
+  return load().invoices.filter((i) => i.tenantId === tenantId);
+}
+
+/** Returns a fresh snapshot of the store with patients/appointments/inventory/invoices
+ *  filtered to the current user's tenant. Other fields are passed through unchanged. */
+export function myScopedStore() {
+  const s = load();
+  const tid = s.user?.tenantId || null;
+  if (!tid) return s;
+  return {
+    ...s,
+    patients: s.patients.filter((p) => p.tenantId === tid),
+    appointments: s.appointments.filter((a) => a.tenantId === tid),
+    inventory: s.inventory.filter((i) => i.tenantId === tid),
+    invoices: s.invoices.filter((i) => i.tenantId === tid),
+  };
 }

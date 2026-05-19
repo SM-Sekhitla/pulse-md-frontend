@@ -7,6 +7,7 @@ import {
   type Appointment,
   type InventoryItem,
   formatZAR,
+  myScopedStore,
 } from "@/lib/store";
 import {
   format,
@@ -64,9 +65,9 @@ const STATUS_VARIANT = (s: string) =>
               : "neutral";
 
 function Dashboard() {
-  const [data, setData] = useState(() => store.get());
+  const [data, setData] = useState(() => myScopedStore());
   useEffect(() => {
-    setData(store.get());
+    setData(myScopedStore());
   }, []);
 
   const today = new Date();

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, type Patient } from "@/lib/store";
+import { store, type Patient, myScopedStore } from "@/lib/store";
 import { differenceInYears, format, parseISO } from "date-fns";
 import { Search, Plus, Download, Filter } from "lucide-react";
 
@@ -11,9 +11,9 @@ export const Route = createFileRoute("/patients/")({
 });
 
 function PatientsList() {
-  const [data, setData] = useState(() => store.get());
+  const [data, setData] = useState(() => myScopedStore());
   useEffect(() => {
-    setData(store.get());
+    setData(myScopedStore());
   }, []);
   const [q, setQ] = useState("");
   const [scheme, setScheme] = useState("");

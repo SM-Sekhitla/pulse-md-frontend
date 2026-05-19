@@ -12,8 +12,10 @@ import {
   createSickNote,
   currentTenant,
   currentUser,
+  myScopedStore,
   patientAppointments,
   store,
+
 } from "@/lib/store";
 
 export const Route = createFileRoute("/sick-notes/new")({
@@ -24,13 +26,14 @@ function NewSickNote() {
   const navigate = useNavigate();
   const tenant = currentTenant();
   const me = currentUser();
-  const s = store.get();
+  const s = myScopedStore();
+  const allUsers = store.get().users;
   const patients = useMemo(
     () =>
       s.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)),
     [s.patients],
   );
-  const owner = s.users.find(
+  const owner = allUsers.find(
     (u) => u.role === "owner" && u.tenantId === tenant?.id,
   );
   const gpName = owner

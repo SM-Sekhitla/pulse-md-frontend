@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, type Appointment, type AppointmentType } from "@/lib/store";
+import { store, type Appointment, type AppointmentType, myScopedStore } from "@/lib/store";
 import {
   addDays,
   addMinutes,
@@ -36,9 +36,9 @@ const START_HOUR = 8;
 const END_HOUR = 18;
 
 function CalendarPage() {
-  const [data, setData] = useState(() => store.get());
+  const [data, setData] = useState(() => myScopedStore());
   useEffect(() => {
-    setData(store.get());
+    setData(myScopedStore());
   }, []);
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [view, setView] = useState<"day" | "week" | "month" | "agenda">("week");

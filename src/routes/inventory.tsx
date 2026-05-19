@@ -2,7 +2,7 @@ import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, formatZAR, type InventoryItem } from "@/lib/store";
+import { store, formatZAR, type InventoryItem,myScopedStore } from "@/lib/store";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { Plus, Search, Package } from "lucide-react";
 
@@ -11,9 +11,9 @@ export const Route = createFileRoute("/inventory")({
 });
 
 function Inventory() {
-  const [data, setData] = useState(() => store.get());
+  const [data, setData] = useState(() => myScopedStore());
   useEffect(() => {
-    setData(store.get());
+    setData(myScopedStore());
   }, []);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
