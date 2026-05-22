@@ -45,6 +45,8 @@ import { Route as AdminAudit } from "./routes/admin.audit";
 import { Route as AdminOutbox } from "./routes/admin.outbox";
 import { Route as AdminSettings } from "./routes/admin.settings";
 
+import VersionBadge from "./components/common/VersionBadge";
+
 import { Link } from "react-router-dom";
 
 const C = (r: { component?: React.ComponentType<any> }) => {
@@ -75,6 +77,7 @@ export default function App() {
   return (
     <>
       <Toaster />
+      <VersionBadge/>
       <Routes>
         <Route path="/" element={<C {...Landing} />} />
         <Route path="/login" element={<C {...Login} />} />
