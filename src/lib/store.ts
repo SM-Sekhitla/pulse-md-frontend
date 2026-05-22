@@ -870,3 +870,74 @@ export function myScopedStore() {
     invoices: s.invoices.filter((i) => i.tenantId === tid),
   };
 }
+
+// ─── Inventory mutations ───────────────────────────
+
+export const INVENTORY_CATEGORIES = [
+  "Prescription medication",
+  "OTC medication",
+  "PPE",
+  "Vaccine",
+  "Consumable",
+  "Supplement",
+  "Equipment",
+  "Other",
+] as const;
+
+export function receiveStock(input: {
+  itemId?: string; // when adding to existing item
+  name?: string;
+  category?: string;
+  sku?: string;
+  quantity: number;
+  unitCost?: number;
+  sellingPrice?: number;
+  reorderLevel?: number;
+  expiry?: string;
+  supplier?: string;
+}): InventoryItem {
+  const tid = currentUser()?.tenantId || undefined;
+  const s = load();
+  if (input.itemId) {
+    const existing = s.inventory.find((i) => i.id === input.itemId);
+    if (existing) {
+      const updated: InventoryItem = {
+        ...existing,
+        stock: existing.stock + input.quantity,
+        unitCost: input.unitCost ?? existing.unitCost,
+        sellingPrice: input.sellingPrice ?? existing.sellingPrice,
+        reorderLevel: input.reorderLevel ?? existing.reorderLevel,
+        expiry: input.expiry ?? existing.expiry,
+        supplier: input.supplier ?? existing.supplier,
+      };
+      store.set((st) => ({ ...st, inventory: st.inventory.map((i) => i.id === existing.id ? updated : i) }));
+      return updated;
+    }
+  }
+  const item: InventoryItem = {
+    id: rid("in_"),
+    tenantId: tid,
+    name: input.name || "Unnamed item",
+    category: input.category || "Other",
+    sku: input.sku || `SKU-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+    stock: input.quantity,
+    reorderLevel: input.reorderLevel ?? 10,
+    unitCost: input.unitCost ?? 0,
+    sellingPrice: input.sellingPrice ?? 0,
+    expiry: input.expiry || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+    supplier: input.supplier || "",
+  };
+  store.set((st) => ({ ...st, inventory: [item, ...st.inventory] }));
+  return item;
+}
+
+export function adjustStock(itemId: string, delta: number, _reason?: string): InventoryItem | null {
+  const s = load();
+  const it = s.inventory.find((i) => i.id === itemId);
+  if (!it) return null;
+  const next = Math.max(0, it.stock + delta);
+  const updated = { ...it, stock: next };
+  store.set((st) => ({ ...st, inventory: st.inventory.map((i) => i.id === itemId ? updated : i) }));
+  return updated;
+}
+
