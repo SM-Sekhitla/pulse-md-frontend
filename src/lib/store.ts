@@ -174,7 +174,9 @@ export interface Prescription {
   diagnosis?: string;
   icd10?: string;
   items: PrescriptionItem[];
-  securityCode: string; // hidden code embedded in QR
+  securityCode: string;
+  qrToken: string;
+  qrHash: string;
 }
 
 export interface SickNote {
