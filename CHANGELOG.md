@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/SM-Sekhitla/pulse-md-frontend/compare/v1.1.0...v1.2.0) (2026-06-08)
+
+
+### Features
+
+* contexts used for connecting ([bf8a445](https://github.com/SM-Sekhitla/pulse-md-frontend/commit/bf8a4459c056f740911522a9c99632ade39b16f4))
+
 # [1.1.0](https://github.com/SM-Sekhitla/pulse-md-frontend/compare/v1.0.0...v1.1.0) (2026-05-29)
 
 
