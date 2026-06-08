@@ -14,13 +14,14 @@ import {
   type User,
 } from "@/lib/store";
 import { format, parseISO } from "date-fns";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/staff")({ component: Staff });
 
 function Staff() {
   const [, refresh] = useState(0);
   const reload = () => refresh((x) => x + 1);
-  const me = currentUser();
+  const { user: me } = useAuth();
   const staff = me?.tenantId ? tenantStaff(me.tenantId) : [];
   const [openAdd, setOpenAdd] = useState(false);
   const [manageId, setManageId] = useState<string | null>(null);

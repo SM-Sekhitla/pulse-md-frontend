@@ -4,35 +4,41 @@ import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import { approveTenant, rejectTenant, store } from "@/lib/store";
 import { format, parseISO } from "date-fns";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/practices/pending")({
   component: Pending,
 });
 
 function Pending() {
+  const { tenant, patient, user, } = useData();
+  
   const [, refresh] = useState(0);
   const reload = () => refresh((x) => x + 1);
-  const s = store.get();
-  const me = s.user!;
-  const rows = s.tenants.filter((t) => t.status === "pending_approval");
+  //const me = .user!;
+  const rows = tenant.tenants.filter((t) => t.status === "pending_approval");
 
-  const approve = (id: string, name: string) => {
+  const approve = async (id: string, name: string) => {
     if (
       confirm(
         `Approve ${name}? A temporary password will be generated and emailed to the GP.`,
       )
     ) {
-      approveTenant(id, me);
+      //approveTenant(id, me);
+      await tenant.approveTenant(id)
+
       reload();
       alert(
         `${name} approved. The approval email with the temporary password is in the Email outbox.`,
       );
     }
   };
-  const reject = (id: string, name: string) => {
+  const reject = async (id: string, name: string) => {
     const reason = prompt(`Reject ${name}? Provide a reason:`);
     if (reason) {
-      rejectTenant(id, reason, me);
+      //rejectTenant(id, reason, me);
+      await tenant.rejectTenant(id, reason)
+
       reload();
     }
   };
@@ -71,7 +77,7 @@ function Pending() {
           </thead>
           <tbody>
             {rows.map((t) => {
-              const owner = s.users.find((u) => u.id === t.gpUserId);
+              const owner = t.owner;
               return (
                 <tr
                   key={t.id}

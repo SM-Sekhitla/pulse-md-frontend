@@ -13,6 +13,7 @@ import {
   Plus,
   ArrowLeft,
 } from "lucide-react";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/patients/$id")({
   component: PatientDetail,
@@ -29,13 +30,39 @@ const TABS = [
 
 function PatientDetail() {
   const { id } = useParams({ from: "/patients/$id" });
-  const [data, setData] = useState(() => myScopedStore());
-  useEffect(() => {
-    setData(myScopedStore());
-  }, []);
+  const { appointment, patient, invoice, } = useData();
+ 
+  
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
 
-  const p = data.patients.find((x) => x.id === id);
+  const [p, setP] = useState<Patient | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+
+    const loadPatient = async () => {
+      try {
+        const result = await patient.getPatient(id);
+
+        if (result) {
+          setP(result);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPatient();
+  }, [id, patient]);
+
+  if (patient.isPatientLoading) {
+    return (
+      <AppShell title="Patient">
+        <div className="p-6">Loading patient...</div>
+      </AppShell>
+    );
+  }
+
   if (!p) {
     return (
       <AppShell title="Patient not found">
@@ -50,10 +77,10 @@ function PatientDetail() {
   }
 
   const age = differenceInYears(new Date(), parseISO(p.dob));
-  const visits = data.appointments
+  const visits = appointment.appointments
     .filter((a) => a.patientId === p.id)
     .sort((a, b) => b.start.localeCompare(a.start));
-  const invoices = data.invoices.filter((i) => i.patientId === p.id);
+  const invoices = invoice.invoices.filter((i) => i.patientId === p.id);
 
   return (
     <AppShell title="Patient">

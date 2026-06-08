@@ -4,6 +4,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import { store, type TenantStatus } from "@/lib/store";
 import { format, parseISO } from "date-fns";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/practices/")({
   component: AllPractices,
@@ -19,15 +20,17 @@ const STATUS_VARIANT = (s: TenantStatus) =>
         : "neutral";
 
 function AllPractices() {
-  const s = store.get();
+  const { tenant, patient, user, } = useData();
+  
   const [statusFilter, setStatusFilter] = useState<TenantStatus | "all">("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [q, setQ] = useState("");
 
-  const rows = s.tenants.filter((t) => {
+  const rows = tenant.tenants.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (planFilter !== "all" && t.plan !== planFilter) return false;
-    const owner = s.users.find((u) => u.id === t.gpUserId);
+    //const owner = user.users.find((u) => u.id === t.gpUserId);
+    const owner = t.owner
     const hay = `${t.name} ${owner?.email || ""}`.toLowerCase();
     if (q && !hay.includes(q.toLowerCase())) return false;
     return true;
@@ -84,7 +87,8 @@ function AllPractices() {
           </thead>
           <tbody>
             {rows.map((t) => {
-              const owner = s.users.find((u) => u.id === t.gpUserId);
+              //const owner = user.users.find((u) => u.id === t.gpUserId);
+              const owner = t.owner
               return (
                 <tr
                   key={t.id}
@@ -119,7 +123,7 @@ function AllPractices() {
                   </Td>
                   <Td className="text-right font-mono">
                     {
-                      s.patients.filter(
+                      patient.patients.filter(
                         (p) => !p.tenantId || p.tenantId === t.id,
                       ).length
                     }

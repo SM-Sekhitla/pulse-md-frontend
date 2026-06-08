@@ -17,6 +17,7 @@ import {
   isToday,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/calendar")({
   component: CalendarPage,
@@ -36,10 +37,8 @@ const START_HOUR = 8;
 const END_HOUR = 18;
 
 function CalendarPage() {
-  const [data, setData] = useState(() => myScopedStore());
-  useEffect(() => {
-    setData(myScopedStore());
-  }, []);
+  const { appointment } = useData();
+  
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [view, setView] = useState<"day" | "week" | "month" | "agenda">("week");
   const [selected, setSelected] = useState<Appointment | null>(null);
@@ -52,10 +51,10 @@ function CalendarPage() {
 
   const inRange = useMemo(
     () =>
-      data.appointments.filter((a) =>
+      appointment.appointments.filter((a) =>
         days.some((d) => isSameDay(parseISO(a.start), d)),
       ),
-    [data.appointments, days],
+    [appointment.appointments, days],
   );
 
   return (
@@ -117,11 +116,11 @@ function CalendarPage() {
         ) : view === "month" ? (
           <MonthGrid
             anchor={anchor}
-            appointments={data.appointments}
+            appointments={appointment.appointments}
             onSelect={setSelected}
           />
         ) : (
-          <AgendaList appointments={data.appointments} onSelect={setSelected} />
+          <AgendaList appointments={appointment.appointments} onSelect={setSelected} />
         )}
       </div>
 

@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock, Stethoscope, User as UserIcon, MapPin, FileText } from "lucide-react";
 import { createAppointment, myScopedStore, store, type Appointment, type AppointmentType } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   defaultDate?: Date;
@@ -14,9 +16,9 @@ const ROOMS = ["Room 1", "Room 2", "Room 3", "Telehealth"];
 const DURATIONS = [10, 15, 20, 30, 45, 60];
 
 export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
-  const s = myScopedStore();
-  const fullStore = store.get();
-  const patients = useMemo(() => s.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)), [s.patients]);
+  const { patient } = useData();
+  const { user } = useAuth();
+  const patients = useMemo(() => patient.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)), [patient.patients]);
   const gp = fullStore.users.find(u => u.role === "owner" && u.tenantId === fullStore.user?.tenantId);
   const gpName = gp ? `${gp.title} ${gp.firstName[0]}. ${gp.lastName}` : "Dr.";
 

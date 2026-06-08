@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { userOutSchema } from "./user";
 
 //
 // -------------------------------------------------
@@ -117,4 +118,33 @@ export const tenantUpdateSchema = z.object({
 // -------------------------------------------------
 // Safe Output
 // -------------------------------------------------
-export const tenantOutSchema = tenantSchema;
+export const tenantOutSchema = z.object({
+  id: z.string(),
+
+  name: z.string().min(1),
+  slug: z.string().min(1),
+
+  address: z.string().optional(),
+  province: z.string().optional(),
+
+  hpcsa: z.string().optional(),
+  vat: z.string().optional(),
+
+  plan: planSchema,
+  gpUserId: z.string(),
+  owner: userOutSchema,
+
+  status: tenantStatusSchema,
+
+  createdAt: z.string().datetime(),
+
+  approvedAt: z.string().datetime().optional(),
+  approvedBy: z.string().optional(),
+
+  rejectionReason: z.string().optional(),
+
+  suspendedAt: z.string().datetime().optional(),
+  suspensionReason: z.string().optional(),
+
+  enabledModules: z.array(moduleKeySchema).optional(),
+});

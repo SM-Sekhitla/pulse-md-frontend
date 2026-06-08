@@ -17,6 +17,8 @@ import {
   store,
 
 } from "@/lib/store";
+import { useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/sick-notes/new")({
   component: NewSickNote,
@@ -24,14 +26,15 @@ export const Route = createFileRoute("/sick-notes/new")({
 
 function NewSickNote() {
   const navigate = useNavigate();
+  const { user: me} = useAuth();
+  const { user, patient } = useData();
   const tenant = currentTenant();
-  const me = currentUser();
-  const s = myScopedStore();
-  const allUsers = store.get().users;
+
+  const allUsers = user.users;
   const patients = useMemo(
     () =>
-      s.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)),
-    [s.patients],
+      patient.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)),
+    [patient.patients],
   );
   const owner = allUsers.find(
     (u) => u.role === "owner" && u.tenantId === tenant?.id,

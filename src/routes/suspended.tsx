@@ -1,14 +1,18 @@
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { PulseLogo } from "@/components/brand";
-import { currentUser, currentTenant, logout, store } from "@/lib/store";
+import { currentUser, currentTenant, logout, } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/suspended")({ component: Suspended });
 
 function Suspended() {
   const navigate = useNavigate();
-  const user = currentUser();
+  const { platformSetting: settings} = useData();
+  const { user } = useAuth();
+  
   const tenant = currentTenant();
-  const support = store.get().settings.supportEmail;
+  const support = settings.platformSettings?.supportEmail;
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-surface">

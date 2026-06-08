@@ -2,12 +2,13 @@ import { createFileRoute } from "@/lib/router-compat";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import { store } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/users")({ component: AdminUsers });
 
 function AdminUsers() {
-  const s = store.get();
-  const users = s.users.filter((u) => !u.deletedAt);
+  const { tenant, patient, user, platformSetting} = useData();
+  const users = user.users.filter((u) => !u.deletedAt);
   return (
     <AdminShell title="Users">
       <div className="pulse-card overflow-hidden">
@@ -23,7 +24,7 @@ function AdminUsers() {
           </thead>
           <tbody>
             {users.map((u) => {
-              const t = s.tenants.find((x) => x.id === u.tenantId);
+              const t = tenant.tenants.find((x) => x.id === u.tenantId);
               return (
                 <tr key={u.id} className="border-t border-border">
                   <td className="px-5 py-3 font-medium text-navy">

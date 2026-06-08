@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { ArrowLeft } from "lucide-react";
 import { createPatient } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/patients/new")({
   component: NewPatient,
@@ -12,6 +13,9 @@ const SCHEMES = ["Discovery Health", "Bonitas", "Momentum Health", "Medihelp", "
 
 function NewPatient() {
   const navigate = useNavigate();
+
+  const { patient, } = useData();
+  
   const [title, setTitle] = useState("Mr");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,14 +31,15 @@ function NewPatient() {
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async(e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!firstName.trim() || !lastName.trim()) { setError("First and last name are required."); return; }
     if (!dob) { setError("Date of birth is required."); return; }
     if (!phone.trim()) { setError("Mobile number is required."); return; }
     if (!consent) { setError("POPIA consent is required."); return; }
-    createPatient({
+
+    await patient.createPatient({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       dob,
@@ -46,6 +51,7 @@ function NewPatient() {
       medicalAidNumber: memberNo.trim(),
       allergies: [],
       chronic: [],
+      active: true
     });
     navigate({ to: "/patients" });
   };

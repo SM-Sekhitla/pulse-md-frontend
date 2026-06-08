@@ -13,8 +13,7 @@ export const auditTypeEnum = z.enum([
 
 export const auditSchema = z.object({
   id: z.string(),
-  timestamp: z.string().transform((val) => new Date(val)),
-  user: z.string(),
+  ts: z.string().transform((val) => new Date(val)),
   action: z.string(),
   detail: z.string(),
   type: auditTypeEnum,

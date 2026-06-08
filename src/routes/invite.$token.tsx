@@ -2,25 +2,27 @@ import { createFileRoute, useNavigate, useParams } from "@/lib/router-compat";
 import { useState } from "react";
 import { PulseLogo } from "@/components/brand";
 import { acceptInvite, store } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/invite/$token")({ component: Invite });
 
 function Invite() {
   const { token } = useParams({ from: "/invite/$token" });
   const navigate = useNavigate();
+  const { tenant: tData, patient, user, } = useData();
+  
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const s = store.get();
-  const inv = s.users.find(
+  const inv = user.users.find(
     (u) => u.inviteToken === token && u.status === "invited",
   );
   const tenant = inv?.tenantId
-    ? s.tenants.find((t) => t.id === inv.tenantId)
+    ? tData.tenants.find((t) => t.id === inv.tenantId)
     : null;
   const inviter = inv?.invitedBy
-    ? s.users.find((u) => u.id === inv.invitedBy)
+    ? user.users.find((u) => u.id === inv.invitedBy)
     : null;
 
   const submit = (e: React.FormEvent) => {

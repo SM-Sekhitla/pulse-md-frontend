@@ -20,6 +20,8 @@ import {
   store,
   type PrescriptionItem,
 } from "@/lib/store";
+import { useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/prescriptions/new")({
   component: NewPrescription,
@@ -27,14 +29,15 @@ export const Route = createFileRoute("/prescriptions/new")({
 
 function NewPrescription() {
   const navigate = useNavigate();
+  const { user: me } = useAuth();
+  const { user: userData, patient, inventory, prescription } = useData();
   const tenant = currentTenant();
-  const me = currentUser();
-  const s = myScopedStore();
-  const allUsers = store.get().users;
+
+  const allUsers = userData.users;
   const patients = useMemo(
     () =>
-      s.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)),
-    [s.patients],
+      patient.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)),
+    [patient.patients],
   );
 
   const owner = allUsers.find(
@@ -71,7 +74,7 @@ function NewPrescription() {
     : [];
   const medications = useMemo(
     () =>
-      s.inventory
+      inventory.inventoryList
         .filter(
           (i) =>
             i.category === "Prescription medication" ||
@@ -113,10 +116,8 @@ function NewPrescription() {
       setError("Add at least one medication.");
       return;
     }
-    const rx = createPrescription({
-      tenantId: tenant?.id || "tn_demo",
+    const rx = prescription.createPrescription({
       patientId: selectedPatient.id,
-      patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
       appointmentId: appointmentId || undefined,
       gpName,
       hpcsa,

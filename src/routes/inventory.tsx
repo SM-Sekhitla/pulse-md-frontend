@@ -22,37 +22,42 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/inventory")({
   component: Inventory,
 });
 
 function Inventory() {
-  const [data, setData] = useState(() => myScopedStore());
-  const refresh = () => setData(myScopedStore());
-  useEffect(() => { refresh(); }, []);
+  const { appointment, invoice, inventory, patient } = useData();
+    const [, refresh] = useState(0);
+
+      const reload = () => refresh((x) => x + 1);
+
+
+  useEffect(() => { reload(); }, []);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
 
-  const items = useMemo(() => data.inventory.filter((i) => {
+  const items = useMemo(() => inventory.inventoryList.filter((i) => {
     return (!q || i.name.toLowerCase().includes(q.toLowerCase()) || i.sku.toLowerCase().includes(q.toLowerCase()))
       && (!cat || i.category === cat);
-  }), [data.inventory, q, cat]);
+  }), [inventory.inventoryList, q, cat]);
 
-  const totalValue = data.inventory.reduce((s, i) => s + i.stock * i.unitCost, 0);
-  const lowStock = data.inventory.filter((i) => i.stock <= i.reorderLevel).length;
-  const expiring = data.inventory.filter((i) => {
+  const totalValue = inventory.inventoryList.reduce((s, i) => s + i.stock * i.unitCost, 0);
+  const lowStock = inventory.inventoryList.filter((i) => i.stock <= i.reorderLevel).length;
+  const expiring = inventory.inventoryList.filter((i) => {
     const d = differenceInDays(parseISO(i.expiry), new Date());
     return d > 0 && d < 60;
   }).length;
-  const cats = Array.from(new Set(data.inventory.map((i) => i.category)));
+  const cats = Array.from(new Set(inventory.inventoryList.map((i) => i.category)));
 
   return (
     <AppShell title="Medical inventory">
       <div className="grid gap-4 md:grid-cols-4">
-        <Stat label="Active SKUs" value={data.inventory.length} />
+        <Stat label="Active SKUs" value={inventory.inventoryList.length} />
         <Stat label="Total stock value" value={formatZAR(totalValue)} />
         <Stat label="Below reorder" value={lowStock} tone={lowStock > 0 ? "warning" : "neutral"} />
         <Stat label="Expiring < 60 days" value={expiring} tone={expiring > 0 ? "danger" : "neutral"} />
@@ -101,13 +106,13 @@ function Inventory() {
       <ReceiveStockDialog
         open={receiveOpen}
         onOpenChange={setReceiveOpen}
-        existing={data.inventory}
-        onDone={() => { refresh(); }}
+        existing={inventory.inventoryList}
+        onDone={() => { reload(); }}
       />
       <AdjustStockDialog
         item={adjustItem}
         onOpenChange={(o) => { if (!o) setAdjustItem(null); }}
-        onDone={() => { refresh(); setAdjustItem(null); }}
+        onDone={() => { reload(); setAdjustItem(null); }}
       />
     </AppShell>
   );

@@ -2,16 +2,18 @@ import { createFileRoute } from "@/lib/router-compat";
 import { useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
 import { store, updateSettings } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettings,
 });
 
 function AdminSettings() {
-  const s = store.get();
-  const [superEmail, setSuperEmail] = useState(s.settings.superAdminEmail);
-  const [supportEmail, setSupportEmail] = useState(s.settings.supportEmail);
-  const [maint, setMaint] = useState(s.settings.maintenanceMode);
+  const { tenant, patient, user, platformSetting} = useData();
+  
+  const [superEmail, setSuperEmail] = useState(platformSetting?.platformSettings?.superAdminEmail!);
+  const [supportEmail, setSupportEmail] = useState(platformSetting?.platformSettings?.supportEmail);
+  const [maint, setMaint] = useState(platformSetting?.platformSettings?.maintenanceMode);
   const [saved, setSaved] = useState(false);
 
   const save = () => {
@@ -41,7 +43,7 @@ function AdminSettings() {
           />
           <Field
             label="Support email (shown to users)"
-            value={supportEmail}
+            value={supportEmail || ""}
             onChange={setSupportEmail}
           />
         </div>

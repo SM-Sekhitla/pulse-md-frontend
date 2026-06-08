@@ -13,6 +13,9 @@ import {
   type TenantStatus,
 } from "@/lib/store";
 import { format, parseISO } from "date-fns";
+import { useData } from "@/context/AppDataProvider";
+import { te } from "date-fns/locale";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/admin/practices/$id")({
   component: PracticeDetail,
@@ -31,9 +34,12 @@ function PracticeDetail() {
   const { id } = useParams({ from: "/admin/practices/$id" });
   const [, refresh] = useState(0);
   const reload = () => refresh((x) => x + 1);
-  const s = store.get();
-  const me = s.user!;
-  const t = s.tenants.find((x) => x.id === id);
+  const { tenant, patient, user, } = useData();
+  const { user: currentUser} = useAuth();
+
+  
+  const me = currentUser!;
+  const t = tenant.tenants.find((x) => x.id === id);
   if (!t)
     return (
       <AdminShell title="Practice not found">
@@ -46,39 +52,46 @@ function PracticeDetail() {
       </AdminShell>
     );
 
-  const owner = s.users.find((u) => u.id === t.gpUserId);
-  const staffCount = s.users.filter(
+  const owner = user.users.find((u) => u.id === t.gpUserId);
+  const staffCount = user.users.filter(
     (u) => u.tenantId === t.id && u.role === "receptionist" && !u.deletedAt,
   ).length;
-  const patientCount = s.patients.filter(
+  const patientCount = patient.patients.filter(
     (p) => !p.tenantId || p.tenantId === t.id,
   ).length;
 
-  const approve = () => {
+  const approve = async () => {
     if (
       confirm(`Approve ${t.name} and send access email to ${owner?.email}?`)
     ) {
-      approveTenant(t.id, me);
+      //approveTenant(t.id, me);
+      await tenant.approveTenant(t.id)
       reload();
     }
   };
-  const reject = () => {
+  const reject = async () => {
     const r = prompt("Reason for rejection:");
     if (r) {
-      rejectTenant(t.id, r, me);
+      //rejectTenant(t.id, r, me);
+      await tenant.rejectTenant(t.id, r)
+
       reload();
     }
   };
-  const suspend = () => {
+  const suspend = async () => {
     const r = prompt("Reason for suspension:");
     if (r) {
-      suspendTenant(t.id, r, me);
+      //suspendTenant(t.id, r, me);
+      await tenant.suspendTenant(t.id, r)
+
       reload();
     }
   };
   const reinstate = () => {
     if (confirm("Reinstate this practice?")) {
       reinstateTenant(t.id, me);
+      //await tenant.rejectTenant(t.id, r)
+
       reload();
     }
   };

@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  use,
   useContext,
   useEffect,
   useMemo,
@@ -53,6 +54,7 @@ import {
 } from "./TenantContext";
 
 import type { DataContextType } from "@/types/dataContextType";
+import { AppointmentProvider, useAppointments } from "./AppointmentContext";
 
 //
 // -------------------------------------------------
@@ -87,6 +89,7 @@ const DataContextBridge = ({
     usePrescriptions();
   const sickNoteCtx = useSickNotes();
   const tenantCtx = useTenants();
+  const appointmentCtx = useAppointments();
 
   //
   // -------------------------------------------------
@@ -273,14 +276,29 @@ const DataContextBridge = ({
         getTenant:
           tenantCtx.getTenant,
 
+        getTenantBySlug:
+          tenantCtx.getTenantBySlug,
+
         createTenant:
           tenantCtx.createTenant,
+
+        updateTenant:
+          tenantCtx.updateTenant,
 
         updateTenantStatus:
           tenantCtx.updateTenantStatus,
 
         updateTenantPlan:
           tenantCtx.updateTenantPlan,
+
+        approveTenant:
+          tenantCtx.approveTenant,
+
+        rejectTenant:
+          tenantCtx.rejectTenant,
+
+        suspendTenant:
+          tenantCtx.suspendTenant,
 
         deleteTenant:
           tenantCtx.deleteTenant,
@@ -335,6 +353,31 @@ const DataContextBridge = ({
         search:
           userCtx.searchUsers,
       },
+
+
+      audit: {
+        audits: auditCtx.audits,
+        isLoading: auditCtx.isLoading,
+        getAudit: auditCtx.getAudit,
+        getAuditsByUser: auditCtx.getAuditsByUser,
+        getAuditsByType: auditCtx.getAuditsByType,
+        createAudit: auditCtx.createAudit,
+        updateAudit: auditCtx.updateAudit,
+        deleteAudit: auditCtx.deleteAudit,
+      },
+
+      appointment: {
+          appointments: appointmentCtx.appointments,
+          isLoading: appointmentCtx.isLoading,
+          getAppointment: appointmentCtx.getAppointment,
+          createAppointment: appointmentCtx.createAppointment,
+          createAppointmentByUser: appointmentCtx.createAppointmentByUser,
+          updateAppointment: appointmentCtx.updateAppointment,
+          deleteAppointment: appointmentCtx.deleteAppointment,
+          updateAppointmentStatus: appointmentCtx.updateAppointmentStatus,
+          getBookedSlots: appointmentCtx.getBookedSlots
+        },
+          
     }),
     [
       isBootstrapping,
@@ -346,6 +389,8 @@ const DataContextBridge = ({
       sickNoteCtx,
       tenantCtx,
       userCtx,
+      auditCtx,
+      appointmentCtx
     ]
   );
 
@@ -370,27 +415,29 @@ export const AppDataProvider = ({
   children,
 }: ProviderProps) => {
   return (
-    <InvoiceProvider>
-      <InventoryProvider>
-        <PrescriptionProvider>
-          <SickNoteProvider>
-            <PatientProvider>
-              <TenantProvider>
-                <AuditProvider>
-                  <UserProvider>
-                    <PlatformSettingsProvider>
-                      <DataContextBridge>
-                        {children}
-                      </DataContextBridge>
-                    </PlatformSettingsProvider>
-                  </UserProvider>
-                </AuditProvider>
-              </TenantProvider>
-            </PatientProvider>
-          </SickNoteProvider>
-        </PrescriptionProvider>
-      </InventoryProvider>
-    </InvoiceProvider>
+    <AppointmentProvider>
+      <InvoiceProvider>
+        <InventoryProvider>
+          <PrescriptionProvider>
+            <SickNoteProvider>
+              <PatientProvider>
+                <TenantProvider>
+                  <AuditProvider>
+                    <UserProvider>
+                      <PlatformSettingsProvider>
+                        <DataContextBridge>
+                          {children}
+                        </DataContextBridge>
+                      </PlatformSettingsProvider>
+                    </UserProvider>
+                  </AuditProvider>
+                </TenantProvider>
+              </PatientProvider>
+            </SickNoteProvider>
+          </PrescriptionProvider>
+        </InventoryProvider>
+      </InvoiceProvider>
+    </AppointmentProvider>
   );
 };
 

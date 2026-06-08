@@ -3,22 +3,25 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { PulseLogo } from "@/components/brand";
 import { loginByEmail, store } from "@/lib/store";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("dr.naidoo@northcliff.health");
   const [password, setPassword] = useState("demo");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const r = loginByEmail(email, password);
-    if (!r.ok || !r.user) {
-      setError(r.error || "Sign-in failed");
+    const r = await login(email, password);
+    console.log(r)
+    if (!r.success || !r.user) {
+      setError(r.message || "Sign-in failed");
       return;
     }
     const u = r.user;
@@ -26,7 +29,7 @@ function LoginPage() {
       navigate({ to: "/change-password" });
       return;
     }
-    if (u.role === "super_admin") {
+    if (u.role === "super-admin") {
       navigate({ to: "/admin" });
       return;
     }

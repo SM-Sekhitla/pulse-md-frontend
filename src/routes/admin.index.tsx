@@ -3,14 +3,16 @@ import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import { store, formatZAR, planPrice, tenantPatientCount } from "@/lib/store";
 import { format, parseISO, isThisMonth } from "date-fns";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 
 function AdminDashboard() {
-  const s = store.get();
-  const active = s.tenants.filter((t) => t.status === "active");
-  const pending = s.tenants.filter((t) => t.status === "pending_approval");
-  const totalPatients = s.patients.length;
+  const { tenant, patient, user, audit } = useData();
+  
+  const active = tenant.tenants.filter((t) => t.status === "active");
+  const pending = tenant.tenants.filter((t) => t.status === "pending_approval");
+  const totalPatients = patient.patients.length;
   const monthRev = active.reduce((sum, t) => sum + planPrice(t.plan), 0);
 
   return (
@@ -45,7 +47,7 @@ function AdminDashboard() {
           </div>
           <div className="mt-4 divide-y divide-[#FCD34D]/40">
             {pending.map((t) => {
-              const owner = s.users.find((u) => u.id === t.gpUserId);
+              const owner = user.users.find((u) => u.id === t.gpUserId);
               return (
                 <div
                   key={t.id}
@@ -78,7 +80,7 @@ function AdminDashboard() {
             Recent activity
           </div>
           <div className="divide-y divide-border">
-            {s.audit.slice(0, 20).map((e) => (
+            {audit.audits.slice(0, 20).map((e) => (
               <div key={e.id} className="px-5 py-3 text-[12.5px]">
                 <div className="text-navy">{e.message}</div>
                 <div className="mt-0.5 text-[11px] text-muted-foreground">
@@ -87,7 +89,7 @@ function AdminDashboard() {
                 </div>
               </div>
             ))}
-            {s.audit.length === 0 && (
+            {audit.audits.length === 0 && (
               <div className="px-5 py-6 text-center text-[12.5px] text-muted-foreground">
                 No activity yet.
               </div>

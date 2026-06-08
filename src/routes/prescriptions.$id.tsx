@@ -3,7 +3,9 @@ import { addDays, format } from "date-fns";
 import { ArrowLeft, Printer, ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DocumentQR } from "@/components/document-qr";
-import { currentTenant, store } from "@/lib/store";
+import { currentTenant, Prescription, store } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/prescriptions/$id")({
   component: PrescriptionDetail,
@@ -11,9 +13,34 @@ export const Route = createFileRoute("/prescriptions/$id")({
 
 function PrescriptionDetail() {
   const { id } = useParams({ from: "/prescriptions/$id" });
-  const s = store.get();
+  const { appointment, patient, invoice, prescription } = useData();
+  const [rx, setX] = useState<Prescription | null>(null);
+  
   const tenant = currentTenant();
-  const rx = (s.prescriptions ?? []).find((p) => p.id === id);
+
+  useEffect(() => {
+
+      const loadPrescription = async () => {
+        try {
+          const result = await prescription.getPrescription(id);
+  
+          if (result) {
+            setX(result);
+          }
+        } finally {
+        }
+      };
+  
+      loadPrescription();
+    }, [id, prescription]);
+  
+    if (patient.isPatientLoading) {
+      return (
+        <AppShell title="Patient">
+          <div className="p-6">Loading prescription...</div>
+        </AppShell>
+      );
+    }
 
   if (!rx) {
     return (

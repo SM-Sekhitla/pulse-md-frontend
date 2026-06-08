@@ -48,6 +48,8 @@ import { Route as AdminSettings } from "./routes/admin.settings";
 import VersionBadge from "./components/common/VersionBadge";
 
 import { Link } from "react-router-dom";
+import { AppDataProvider } from "./context/AppDataProvider";
+import { AuthProvider } from "./context/AuthContext";
 
 const C = (r: { component?: React.ComponentType<any> }) => {
   const Cmp = r.component!;
@@ -78,53 +80,57 @@ export default function App() {
     <>
       <Toaster />
       <VersionBadge/>
-      <Routes>
-        <Route path="/" element={<C {...Landing} />} />
-        <Route path="/login" element={<C {...Login} />} />
-        <Route path="/register" element={<C {...Register} />} />
-        <Route path="/pending" element={<C {...Pending} />} />
-        <Route path="/rejected" element={<C {...Rejected} />} />
-        <Route path="/suspended" element={<C {...Suspended} />} />
-        <Route path="/change-password" element={<C {...ChangePassword} />} />
-        <Route path="/invite/:token" element={<C {...Invite} />} />
+      <AuthProvider>
+        <AppDataProvider> 
+          <Routes>
+            <Route path="/" element={<C {...Landing} />} />
+            <Route path="/login" element={<C {...Login} />} />
+            <Route path="/register" element={<C {...Register} />} />
+            <Route path="/pending" element={<C {...Pending} />} />
+            <Route path="/rejected" element={<C {...Rejected} />} />
+            <Route path="/suspended" element={<C {...Suspended} />} />
+            <Route path="/change-password" element={<C {...ChangePassword} />} />
+            <Route path="/invite/:token" element={<C {...Invite} />} />
 
-        <Route path="/dashboard" element={<C {...Dashboard} />} />
-        <Route path="/calendar" element={<C {...Calendar} />} />
-        <Route path="/appointments" element={<C {...Appointments} />} />
-        <Route path="/appointments/new" element={<C {...AppointmentNew} />} />
+            <Route path="/dashboard" element={<C {...Dashboard} />} />
+            <Route path="/calendar" element={<C {...Calendar} />} />
+            <Route path="/appointments" element={<C {...Appointments} />} />
+            <Route path="/appointments/new" element={<C {...AppointmentNew} />} />
 
-        <Route path="/patients" element={<C {...PatientsList} />} />
-        <Route path="/patients/new" element={<C {...PatientNew} />} />
-        <Route path="/patients/:id" element={<C {...PatientDetail} />} />
+            <Route path="/patients" element={<C {...PatientsList} />} />
+            <Route path="/patients/new" element={<C {...PatientNew} />} />
+            <Route path="/patients/:id" element={<C {...PatientDetail} />} />
 
-        <Route path="/prescriptions" element={<C {...PrescriptionsList} />} />
-        <Route path="/prescriptions/new" element={<C {...PrescriptionNew} />} />
-        <Route path="/prescriptions/:id" element={<C {...PrescriptionDetail} />} />
+            <Route path="/prescriptions" element={<C {...PrescriptionsList} />} />
+            <Route path="/prescriptions/new" element={<C {...PrescriptionNew} />} />
+            <Route path="/prescriptions/:id" element={<C {...PrescriptionDetail} />} />
 
-        <Route path="/sick-notes" element={<C {...SickNotesList} />} />
-        <Route path="/sick-notes/new" element={<C {...SickNoteNew} />} />
-        <Route path="/sick-notes/:id" element={<C {...SickNoteDetail} />} />
+            <Route path="/sick-notes" element={<C {...SickNotesList} />} />
+            <Route path="/sick-notes/new" element={<C {...SickNoteNew} />} />
+            <Route path="/sick-notes/:id" element={<C {...SickNoteDetail} />} />
 
-        <Route path="/billing" element={<C {...Billing} />} />
-        <Route path="/inventory" element={<C {...Inventory} />} />
-        <Route path="/equipment" element={<C {...Equipment} />} />
-        <Route path="/reports" element={<C {...Reports} />} />
-        <Route path="/staff" element={<C {...Staff} />} />
-        <Route path="/settings" element={<C {...Settings} />} />
+            <Route path="/billing" element={<C {...Billing} />} />
+            <Route path="/inventory" element={<C {...Inventory} />} />
+            <Route path="/equipment" element={<C {...Equipment} />} />
+            <Route path="/reports" element={<C {...Reports} />} />
+            <Route path="/staff" element={<C {...Staff} />} />
+            <Route path="/settings" element={<C {...Settings} />} />
 
-        <Route path="/admin" element={<C {...AdminIndex} />} />
-        <Route path="/admin/practices" element={<C {...AdminPracticesIndex} />} />
-        <Route path="/admin/practices/pending" element={<C {...AdminPracticesPending} />} />
-        <Route path="/admin/practices/:id" element={<C {...AdminPracticeDetail} />} />
-        <Route path="/admin/users" element={<C {...AdminUsers} />} />
-        <Route path="/admin/subscriptions" element={<C {...AdminSubscriptions} />} />
-        <Route path="/admin/modules" element={<C {...AdminModules} />} />
-        <Route path="/admin/audit" element={<C {...AdminAudit} />} />
-        <Route path="/admin/outbox" element={<C {...AdminOutbox} />} />
-        <Route path="/admin/settings" element={<C {...AdminSettings} />} />
+            <Route path="/admin" element={<C {...AdminIndex} />} />
+            <Route path="/admin/practices" element={<C {...AdminPracticesIndex} />} />
+            <Route path="/admin/practices/pending" element={<C {...AdminPracticesPending} />} />
+            <Route path="/admin/practices/:id" element={<C {...AdminPracticeDetail} />} />
+            <Route path="/admin/users" element={<C {...AdminUsers} />} />
+            <Route path="/admin/subscriptions" element={<C {...AdminSubscriptions} />} />
+            <Route path="/admin/modules" element={<C {...AdminModules} />} />
+            <Route path="/admin/audit" element={<C {...AdminAudit} />} />
+            <Route path="/admin/outbox" element={<C {...AdminOutbox} />} />
+            <Route path="/admin/settings" element={<C {...AdminSettings} />} />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppDataProvider>
+      </AuthProvider>
     </>
   );
 }

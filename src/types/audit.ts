@@ -9,12 +9,12 @@ export type AuditType =
   | "delete";
 
 export interface Audit {
-  id: string;            // maps from _id
-  timestamp: Date;     // ISO string (datetime)
-  user: string;
-  action: string;
-  detail: string;
+  id: string;
+  ts: string;
   type: AuditType;
+  message: string;
+  tenantId?: string;
+  actorEmail?: string;
 
   createdAt: Date;
   updatedAt: Date;

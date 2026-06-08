@@ -25,7 +25,7 @@ import type {
 // -------------------------------------------------
 export type PrescriptionCreate = Omit<
   Prescription,
-  "id"
+  "id, securityCode, issuedAt"
 >;
 
 export type PrescriptionUpdate = Partial<

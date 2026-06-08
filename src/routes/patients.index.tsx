@@ -5,21 +5,20 @@ import { Badge } from "@/components/badge-pill";
 import { store, type Patient, myScopedStore } from "@/lib/store";
 import { differenceInYears, format, parseISO } from "date-fns";
 import { Search, Plus, Download, Filter } from "lucide-react";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/patients/")({
   component: PatientsList,
 });
 
 function PatientsList() {
-  const [data, setData] = useState(() => myScopedStore());
-  useEffect(() => {
-    setData(myScopedStore());
-  }, []);
+  const { appointment, patient, invoice, } = useData();
+
   const [q, setQ] = useState("");
   const [scheme, setScheme] = useState("");
 
   const filtered = useMemo(() => {
-    return data.patients.filter((p) => {
+    return patient.patients.filter((p) => {
       const matchQ = q
         ? `${p.firstName} ${p.lastName} ${p.idNumber} ${p.phone}`
             .toLowerCase()
@@ -28,9 +27,9 @@ function PatientsList() {
       const matchS = scheme ? p.medicalAid === scheme : true;
       return matchQ && matchS;
     });
-  }, [data.patients, q, scheme]);
+  }, [patient.patients, q, scheme]);
 
-  const schemes = Array.from(new Set(data.patients.map((p) => p.medicalAid)));
+  const schemes = Array.from(new Set(patient.patients.map((p) => p.medicalAid)));
 
   return (
     <AppShell title="Patients">

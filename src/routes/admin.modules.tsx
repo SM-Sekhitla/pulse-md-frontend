@@ -9,6 +9,7 @@ import {
   store,
   type ModuleKey,
 } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/module")({
   component: ModulesPage,
@@ -16,14 +17,17 @@ export const Route = createFileRoute("/admin/module")({
 
 function ModulesPage() {
   const [, refresh] = useState(0);
-  const reload = () => refresh((x) => x + 1);
-  const s = store.get();
-  const tenants = s.tenants.filter(
+  const reload = () => refresh((x) => x + 1)
+  const { tenant, } = useData();
+  
+  
+  
+  const tenants = tenant.tenants.filter(
     (t) => t.status === "active" || t.status === "suspended",
   );
 
   const toggle = (tenantId: string, key: ModuleKey, on: boolean) => {
-    const t = s.tenants.find((x) => x.id === tenantId);
+    const t = tenant.tenants.find((x) => x.id === tenantId);
     const current = new Set<ModuleKey>(t?.enabledModules ?? [...MODULE_KEYS]);
     if (on) current.add(key);
     else current.delete(key);

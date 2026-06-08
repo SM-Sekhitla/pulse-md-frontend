@@ -36,9 +36,12 @@ import { Tenant,
   TenantUpdate,
   TenantStatus,
   Plan,
-  ModuleKey, } from "./tenant";
+  ModuleKey,
+  TenantOut, } from "./tenant";
 
 import { User, UserCreate, UserUpdate } from "./user";
+import { Audit, AuditCreate, AuditUpdate } from "./audit";
+import { Appointment, AppointmentCreate, AppointmentOut } from "./appointment";
 
 export interface DataContextType {
   isBootstrapping: boolean;
@@ -195,30 +198,53 @@ export interface DataContextType {
 
 
   tenant: {
-    tenants: Tenant[];
-      isLoading: boolean;
-    
-      getTenant: (
-        id: string
-      ) => Promise<Tenant | null>;
-    
-      createTenant: (
-        data: TenantCreate
-      ) => Promise<Tenant>;
-    
-      updateTenantStatus: (
-        id: string,
-        status: TenantStatus
-      ) => Promise<Tenant | null>;
-    
-      updateTenantPlan: (
-        id: string,
-        plan: Plan
-      ) => Promise<Tenant | null>;
-    
-      deleteTenant: (
-        id: string
-      ) => Promise<Tenant | null>;
+    tenants: TenantOut[];
+    isLoading: boolean;
+
+    getTenant: (
+      id: string
+    ) => Promise<TenantOut | null>;
+
+    getTenantBySlug: (
+      slug: string
+    ) => Promise<TenantOut | null>;
+
+    createTenant: (
+      data: TenantCreate
+    ) => Promise<Tenant>;
+
+    updateTenant: (
+      id: string,
+      data: TenantUpdate
+    ) => Promise<Tenant | null>;
+
+    updateTenantStatus: (
+      id: string,
+      status: TenantStatus
+    ) => Promise<Tenant | null>;
+
+    updateTenantPlan: (
+      id: string,
+      plan: Plan
+    ) => Promise<Tenant | null>;
+
+    approveTenant: (
+      id: string
+    ) => Promise<Tenant | null>;
+
+    rejectTenant: (
+      id: string,
+      reason: string
+    ) => Promise<Tenant | null>;
+
+    suspendTenant: (
+      id: string,
+      reason: string
+    ) => Promise<Tenant | null>;
+
+    deleteTenant: (
+      id: string
+    ) => Promise<Tenant | null>;
   };
 
   /* ---------------- USERS ---------------- */
@@ -246,5 +272,55 @@ export interface DataContextType {
     changePassword: (id: string, newPassword: string) => Promise<User>;
 
     search: (query: string) => User[];
+  };
+
+
+  audit: {
+    audits: Audit[];
+    isLoading: boolean;
+    getAudit: (id: string) => Promise<Audit | null>;
+    
+      getAuditsByUser: (
+        user: string,
+        skip?: number,
+        limit?: number
+      ) => Promise<Audit[]>;
+    
+      getAuditsByType: (
+        actionType: string,
+        skip?: number,
+        limit?: number
+      ) => Promise<Audit[]>;
+    
+      createAudit: (
+        data: AuditCreate
+      ) => Promise<Audit>;
+    
+      updateAudit: (
+        id: string,
+        data: AuditUpdate
+      ) => Promise<Audit | null>;
+    
+      deleteAudit: (
+        id: string
+      ) => Promise<Audit | null>;
+  };
+
+  appointment: {
+    appointments: AppointmentOut[];
+    isLoading: boolean;
+    getAppointment: (id: string) => Promise<AppointmentOut | null>;
+    createAppointment: (data: AppointmentCreate) => Promise<Appointment>;
+    createAppointmentByUser: (data: AppointmentCreate) => Promise<Appointment>;
+    updateAppointment: (
+      id: string,
+      data: Partial<Appointment>
+    ) => Promise<Appointment | null>;
+    deleteAppointment: (id: string) => Promise<Appointment | null>;
+    updateAppointmentStatus: (
+      id: string,
+      status: Appointment["status"]
+    ) => Promise<Appointment | null>;
+    getBookedSlots: (date: string) => Promise<string[]>;
   };
 }

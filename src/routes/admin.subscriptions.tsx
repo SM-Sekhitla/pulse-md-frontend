@@ -2,14 +2,16 @@ import { createFileRoute } from "@/lib/router-compat";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import { store, planPrice, formatZAR } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/subscriptions")({
   component: Subs,
 });
 
 function Subs() {
-  const s = store.get();
-  const active = s.tenants.filter((t) => t.status === "active");
+  const { tenant, patient, user, platformSetting} = useData();
+  
+  const active = tenant.tenants.filter((t) => t.status === "active");
   const monthly = active.reduce((sum, t) => sum + planPrice(t.plan), 0);
   return (
     <AdminShell title="Subscriptions">
@@ -42,7 +44,7 @@ function Subs() {
             </tr>
           </thead>
           <tbody>
-            {s.tenants.map((t) => (
+            {tenant.tenants.map((t) => (
               <tr key={t.id} className="border-t border-border">
                 <td className="px-5 py-3 font-medium text-navy">{t.name}</td>
                 <td className="px-5 py-3">

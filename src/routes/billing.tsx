@@ -5,20 +5,20 @@ import { Badge } from "@/components/badge-pill";
 import { store, formatZAR, myScopedStore } from "@/lib/store";
 import { format, parseISO } from "date-fns";
 import { Plus, Search } from "lucide-react";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/billing")({
   component: Billing,
 });
 
 function Billing() {
-  const [data, setData] = useState(() => myScopedStore());
-  useEffect(() => {
-    setData(myScopedStore());
-  }, []);
+  const { invoice } = useData();
+  
+  
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
 
-  const filtered = data.invoices.filter((i) => {
+  const filtered = invoice.invoices.filter((i) => {
     return (
       (!q ||
         i.patientName.toLowerCase().includes(q.toLowerCase()) ||

@@ -35,6 +35,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
@@ -65,42 +66,40 @@ const STATUS_VARIANT = (s: string) =>
               : "neutral";
 
 function Dashboard() {
-  const [data, setData] = useState(() => myScopedStore());
-  useEffect(() => {
-    setData(myScopedStore());
-  }, []);
+  const { appointment, invoice, inventory, patient } = useData();
+  
 
   const today = new Date();
   const todays = useMemo(
     () =>
-      data.appointments
+      appointment.appointments
         .filter((a) => isToday(parseISO(a.start)))
         .sort((a, b) => a.start.localeCompare(b.start)),
-    [data.appointments],
+    [appointment.appointments],
   );
-  const seenThisWeek = data.appointments.filter(
+  const seenThisWeek = appointment.appointments.filter(
     (a) => isThisWeek(parseISO(a.start)) && a.status === "Completed",
   ).length;
-  const monthRevenue = data.invoices
+  const monthRevenue = invoice.invoices
     .filter((i) => isThisMonth(parseISO(i.date)) && i.status === "Paid")
     .reduce((s, i) => s + i.amount, 0);
-  const outstanding = data.invoices.filter(
+  const outstanding = invoice.invoices.filter(
     (i) =>
       i.status === "Sent" ||
       i.status === "Overdue" ||
       i.status === "Partially paid",
   );
-  const lowStock: InventoryItem[] = data.inventory.filter(
+  const lowStock: InventoryItem[] = inventory.inventoryList.filter(
     (i) => i.stock <= i.reorderLevel,
   );
-  const expiringSoon = data.inventory.filter((i) => {
+  const expiringSoon = inventory.inventoryList.filter((i) => {
     const d = parseISO(i.expiry).getTime() - Date.now();
     return d > 0 && d < 60 * 24 * 60 * 60 * 1000;
   });
 
   const chartData = Array.from({ length: 30 }, (_, i) => {
     const d = subDays(today, 29 - i);
-    const count = data.appointments.filter(
+    const count = appointment.appointments.filter(
       (a) =>
         format(parseISO(a.start), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"),
     ).length;
@@ -113,7 +112,7 @@ function Dashboard() {
   }));
 
   const typeBreakdown = Object.entries(
-    data.appointments.reduce<Record<string, number>>((acc, a) => {
+    appointment.appointments.reduce<Record<string, number>>((acc, a) => {
       acc[a.type] = (acc[a.type] || 0) + 1;
       return acc;
     }, {}),
@@ -321,7 +320,7 @@ function Dashboard() {
               Next up
             </div>
             <div className="divide-y divide-border">
-              {data.appointments
+              {appointment.appointments
                 .filter((a) => parseISO(a.start) > new Date())
                 .sort((a, b) => a.start.localeCompare(b.start))
                 .slice(0, 5)
@@ -409,7 +408,7 @@ function Dashboard() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Active patients</span>
                 <span className="font-mono font-semibold text-navy">
-                  {data.patients.filter((p) => p.active).length}
+                  {patient.patients.filter((p) => p.active).length}
                 </span>
               </div>
             </div>
