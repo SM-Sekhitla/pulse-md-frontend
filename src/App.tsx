@@ -45,6 +45,15 @@ import { Route as AdminAudit } from "./routes/admin.audit";
 import { Route as AdminOutbox } from "./routes/admin.outbox";
 import { Route as AdminSettings } from "./routes/admin.settings";
 
+import { Route as BookList } from "./routes/book.index";
+import { Route as BookGP } from "./routes/book.$slug";
+import { Route as BookNew } from "./routes/book.new";
+import { Route as BookConfirmation } from "./routes/book.confirmation.$id";
+import { Route as BookingInbox } from "./routes/booking.inbox";
+import { Route as BookingAvailability } from "./routes/booking.availability";
+import { Route as BookingProfile } from "./routes/booking.profile";
+
+
 import VersionBadge from "./components/common/VersionBadge";
 
 import { Link } from "react-router-dom";
@@ -126,6 +135,13 @@ export default function App() {
             <Route path="/admin/audit" element={<C {...AdminAudit} />} />
             <Route path="/admin/outbox" element={<C {...AdminOutbox} />} />
             <Route path="/admin/settings" element={<C {...AdminSettings} />} />
+            <Route path="/book" element={<C {...BookList} />} />
+            <Route path="/book/:slug" element={<C {...BookGP} />} />
+            <Route path="/book/confirmation/:id" element={<C {...BookConfirmation} />} />
+            <Route path="/book/:slug/new" element={<C {...BookNew} />} />
+            <Route path="/booking/inbox" element={<C {...BookingInbox} />} />
+            <Route path="/booking/availability" element={<C {...BookingAvailability} />} />
+            <Route path="/booking/profile" element={<C {...BookingProfile} />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

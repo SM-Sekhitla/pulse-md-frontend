@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Activity,
 } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +37,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const [activeFeature, setActiveFeature] = useState("Smart scheduling");
+  
   return (
     <div className="min-h-screen bg-white">
       {/* Top nav */}
@@ -77,105 +80,163 @@ function Landing() {
         </div>
 
         {/* Hero */}
-        <div className="mx-auto max-w-[1280px] px-8 pb-24 pt-16">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[12px] font-medium text-white/80">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal" /> POPIA &
-                HPCSA compliant
-              </div>
-              <h1 className="mt-6 text-[52px] font-bold leading-[1.05] tracking-tight text-white">
-                Your practice,
-                <br />
-                running at full capacity.
-              </h1>
-              <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-white/70">
-                PulseMD gives South African GPs one intelligent platform for
-                appointments, patients, billing, inventory, and compliance —
-                with zero paper.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-2 rounded-md bg-blue px-5 py-3 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
-                >
-                  Start free 30-day trial <ArrowRight className="h-4 w-4" />
-                </Link>
-                <a
-                  href="#demo"
-                  className="inline-flex items-center rounded-md border border-white/15 bg-transparent px-5 py-3 text-[14px] font-medium text-white hover:bg-white/5"
-                >
-                  Book a live demo
-                </a>
-              </div>
-              <p className="mt-4 text-[12.5px] text-white/40">
-                No credit card required · Setup in under 10 minutes
-              </p>
-            </div>
+        <section className="relative overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 bg-[url('./public/asset/feature_bg.jpg')] bg-cover bg-center" />
 
-            <DashboardMockup />
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/50" />
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/85 to-black/50" />
+
+        {/* Hero Content */}
+        <div className="relative z-10">
+          <div className="mx-auto max-w-[1280px] px-8 pb-24 pt-16">
+            <div className="grid items-center gap-12 lg:grid-cols-2">
+              <div>
+
+                <h1 className="mt-6 text-[52px] font-bold leading-[1.05] tracking-tight text-white">
+                  Your practice,
+                  <br />
+                  running at full capacity.
+                </h1>
+
+                <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-white/75">
+                  PulseMD gives South African GPs one intelligent platform for
+                  appointments, patients, billing, inventory, and compliance —
+                  with zero paper.
+                </p>
+
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center gap-2 rounded-md bg-blue px-5 py-3 text-[14px] font-medium text-white shadow-lg shadow-blue/20 transition hover:bg-blue/90"
+                  >
+                    Start free 30-day trial
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+
+                  <a
+                    href="#demo"
+                    className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-5 py-3 text-[14px] font-medium text-white backdrop-blur transition hover:bg-white/15"
+                  >
+                    Book a live demo
+                  </a>
+                </div>
+
+                <p className="mt-4 text-[12.5px] text-white/50">
+                  No credit card required · Setup in under 10 minutes
+                </p>
+              </div>
+
+              <DashboardMockup />
+            </div>
           </div>
         </div>
+         <div className="absolute bottom-0 left-0 h-1.5 w-full bg-navy" />
+      </section>
       </div>
 
       {/* Features */}
-      <section id="features" className="mx-auto max-w-[1280px] px-8 py-24">
-        <div className="max-w-2xl">
-          <div className="label-caps text-blue">Platform</div>
-          <h2 className="mt-3 text-[36px] font-semibold tracking-tight text-navy">
-            One platform. Every workflow.
-          </h2>
-          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-            Stop juggling paper diaries, spreadsheets, and three different
-            billing systems. PulseMD covers your practice end-to-end.
-          </p>
+      <section
+        id="features"
+        className="relative overflow-hidden bg-navy px-8 py-24"
+      >
+        <div className="absolute inset-0 bg-[url('/images/clinic-feature-bg.jpg')] bg-cover bg-center opacity-45" />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-navy/70 to-black/40" />
+
+        <div className="relative z-10 mx-auto grid max-w-[1280px] gap-12 lg:grid-cols-2 lg:items-center">
+          <div>
+            <div className="label-caps text-blue">Platform</div>
+
+            <h2 className="mt-3 max-w-xl text-[44px] font-semibold leading-tight tracking-tight text-white">
+              One platform. Every <span className="text-blue">workflow.</span>
+            </h2>
+
+            <p className="mt-5 max-w-lg text-[15px] leading-7 text-white/70">
+              PulseMD brings bookings, patients, billing, inventory, staff, and
+              compliance into one simple operating system for modern GP practices.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            {[
+              {
+                icon: Calendar,
+                title: "Smart scheduling",
+                body: "Manage public bookings, working hours, reminders, blocked dates, and patient flow from one calendar.",
+              },
+              {
+                icon: Users,
+                title: "Patient intelligence",
+                body: "Access complete patient records, contact details, history, and clinical notes in one place.",
+              },
+              {
+                icon: Receipt,
+                title: "Billing & payments",
+                body: "Create invoices, track payments, and simplify revenue management for your practice.",
+              },
+              {
+                icon: ShieldCheck,
+                title: "Compliance-ready",
+                body: "Built with POPIA, secure access control, and healthcare privacy in mind.",
+              },
+            ].map((f) => {
+              const active = activeFeature === f.title;
+
+              return (
+                <button
+                  key={f.title}
+                  type="button"
+                  onClick={() =>
+                    setActiveFeature(active ? null : f.title)
+                  }
+                  className={`group w-full rounded-2xl border p-6 text-left shadow-2xl backdrop-blur-md transition-all duration-300 ${
+                    active
+                      ? "border-blue/40 bg-white/15 shadow-blue/10"
+                      : "border-white/10 bg-white/10 hover:border-blue/30 hover:bg-white/15"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-5">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                          active ? "bg-blue text-white" : "bg-white/15 text-white"
+                        }`}
+                      >
+                        <f.icon className="h-5 w-5" />
+                      </div>
+
+                      <div>
+                        <h3 className="text-[18px] font-semibold text-white">
+                          {f.title}
+                        </h3>
+
+                        {active && (
+                          <p className="mt-3 max-w-xl text-[14px] leading-7 text-white/75">
+                            {f.body}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[20px] font-semibold ${
+                        active ? "bg-blue text-white" : "bg-white text-navy"
+                      }`}
+                    >
+                      {active ? "−" : "+"}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              icon: Calendar,
-              title: "Smart scheduling",
-              body: "Drag-and-drop calendar with automated SMS and email reminders.",
-            },
-            {
-              icon: Users,
-              title: "Patient intelligence",
-              body: "Complete longitudinal records, vitals, and clinical history at a glance.",
-            },
-            {
-              icon: Package,
-              title: "Medical inventory",
-              body: "Real-time stock tracking with reorder and expiry alerts.",
-            },
-            {
-              icon: Receipt,
-              title: "Integrated billing",
-              body: "ICD-10 codes, medical aid claims, and Paystack online payment.",
-            },
-            {
-              icon: UserCog,
-              title: "Team management",
-              body: "Granular role-based access for every staff member in your practice.",
-            },
-            {
-              icon: ShieldCheck,
-              title: "Compliance-ready",
-              body: "POPIA, HPCSA, and South African medical aid standards built in.",
-            },
-          ].map((f) => (
-            <div key={f.title} className="bg-white p-7">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-tint">
-                <f.icon className="h-5 w-5 text-blue" />
-              </div>
-              <h3 className="mt-5 text-[16px] font-semibold text-navy">
-                {f.title}
-              </h3>
-              <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                {f.body}
-              </p>
-            </div>
-          ))}
-        </div>
+
+        <div className="absolute bottom-0 left-0 h-1.5 w-full bg-navy" />
       </section>
 
       {/* Testimonials */}
@@ -348,62 +409,100 @@ function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-navy">
-        <div className="mx-auto max-w-[1280px] px-8 py-16">
-          <div className="grid gap-10 md:grid-cols-4">
-            <div>
-              <PulseLogoOnDark size={32} />
-              <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-white/50">
-                Practice intelligence, delivered. Built for South African
-                general practice.
-              </p>
-            </div>
-            {[
-              {
-                title: "Product",
-                links: ["Features", "Pricing", "Patient portal", "Changelog"],
-              },
-              {
-                title: "Company",
-                links: ["About", "Customers", "Contact", "Careers"],
-              },
-              {
-                title: "Legal",
-                links: [
-                  "POPIA notice",
-                  "Terms of service",
-                  "Privacy policy",
-                  "Data processing",
-                ],
-              },
-            ].map((col) => (
-              <div key={col.title}>
-                <div className="label-caps text-white/50">{col.title}</div>
-                <ul className="mt-4 space-y-2.5">
-                  {col.links.map((l) => (
-                    <li key={l}>
-                      <a
-                        href="#"
-                        className="text-[13.5px] text-white/70 hover:text-white"
-                      >
-                        {l}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+    <footer className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-black/55" /> 
+      <div className="absolute inset-0 bg-gradient-to-r from-black via-navy/95 to-black" />
+
+      <div className="relative z-10 mx-auto max-w-[1280px] px-8 py-20">
+        <div className="grid gap-12 md:grid-cols-4">
+          <div>
+            <PulseLogoOnDark size={34} />
+
+            <p className="mt-5 max-w-xs text-[13px] leading-7 text-white/55">
+              Practice intelligence, delivered. Built specifically for South
+              African healthcare providers and modern medical practices.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-white/70">
+                POPIA
               </div>
-            ))}
+
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-white/70">
+                HPCSA
+              </div>
+
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-white/70">
+                South Africa
+              </div>
+            </div>
           </div>
-          <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-8 md:flex-row md:items-center">
+
+          {[
+            {
+              title: "Platform",
+              links: [
+                "Appointments",
+                "Patients",
+                "Billing",
+                "Inventory",
+              ],
+            },
+            {
+              title: "Company",
+              links: [
+                "About",
+                "Contact",
+                "Partners",
+                "Careers",
+              ],
+            },
+            {
+              title: "Legal",
+              links: [
+                "POPIA Notice",
+                "Privacy Policy",
+                "Terms of Service",
+                "Data Processing",
+              ],
+            },
+          ].map((col) => (
+            <div key={col.title}>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                {col.title}
+              </div>
+
+              <ul className="mt-5 space-y-3">
+                {col.links.map((l) => (
+                  <li key={l}>
+                    <a
+                      href="#"
+                      className="text-[13.5px] text-white/65 transition hover:text-white"
+                    >
+                      {l}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-16 border-t border-white/10 pt-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="text-[12px] text-white/40">
               © {new Date().getFullYear()} PulseMD. All rights reserved.
             </div>
-            <div className="text-[12px] text-white/40">
-              POPIA-compliant · Hosted in South Africa
+
+            <div className="flex items-center gap-6 text-[12px] text-white/40">
+              <span>POPIA-compliant</span>
+              <span>Hosted in South Africa</span>
+              <span>Healthcare SaaS Platform</span>
             </div>
           </div>
         </div>
-      </footer>
+      </div>
+    </footer>
     </div>
   );
 }

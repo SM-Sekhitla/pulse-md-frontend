@@ -3,13 +3,16 @@ import API from '@/utils/api';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 const BASE_URL = import.meta.env.VITE_API_URL;
 
+export const isSuperAdminRole = (role?: string | null) =>
+  role === "super-admin";
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string, user?: User }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<{success: boolean; message?: string }>;
   changePassword: (newPassword: string) => Promise<{success: boolean; message?: string }>;
   requestResetWeb: (email: string) => Promise<{success: boolean; message?: string}>;
@@ -25,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
-  const isAdmin = user?.role === "super-admin";
+  const isAdmin = isSuperAdminRole(user?.role);
 
   useEffect(() => {
     checkAuth();
@@ -45,13 +48,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, message: result.detail?.message || "Invalid credentials" };
       }
 
-      
+      let loggedInUser = result.user ?? result.data?.user;
 
-      setUser(result.user);
+      if (!loggedInUser) {
+        const me = await fetch(`${BASE_URL}/auth/me`, { credentials: "include" });
+        if (!me.ok) {
+          return { success: false, message: "Login succeeded, but user profile could not be loaded" };
+        }
+        loggedInUser = await me.json();
+      }
+
+      setUser(loggedInUser);
       setIsAuthenticated(true);
-      localStorage.setItem("user", JSON.stringify(result.user));
 
-      return { success: true, user: result.user };
+      return { success: true, user: loggedInUser };
     } catch (err: any) {
       return { success: false, message: "Login failed" };
     }
@@ -67,12 +77,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const changePassword = async (newPassword: string) => {
-    const storedUser = localStorage.getItem("user");
-    const userId = storedUser ? JSON.parse(storedUser).id : null;
-    if (!userId) return { success: false, message: "User not authenticated" };
+    if (!user?.id) return { success: false, message: "User not authenticated" };
 
     try {
-      const { data } = await API.put(`/user/${userId}/change-password`, { new_password: newPassword });
+      const { data } = await API.put(`/user/${user.id}/change-password`, { new_password: newPassword });
       return { success: data.success, message: data.message };
     } catch (err: any) {
       return { success: false, message: err.message || "Password change failed" };
@@ -136,7 +144,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await fetch(`${BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem("user");
   };
 
   return (

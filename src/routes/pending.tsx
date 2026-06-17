@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useEffect } from "react";
 import { PulseLogo } from "@/components/brand";
 import { currentUser, currentTenant, logout, store } from "@/lib/store";
-import { useAuth } from "@/context/AuthContext";
+import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/pending")({ component: Pending });
 
@@ -16,7 +16,7 @@ function Pending() {
       navigate({ to: "/login" });
       return;
     }
-    if (user?.role === "super-admin") {
+    if (isSuperAdminRole(user?.role)) {
       navigate({ to: "/admin" });
       return;
     }

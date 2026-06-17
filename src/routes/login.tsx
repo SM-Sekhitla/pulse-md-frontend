@@ -2,8 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { PulseLogo } from "@/components/brand";
-import { loginByEmail, store } from "@/lib/store";
-import { useAuth } from "@/context/AuthContext";
+import { store } from "@/lib/store";
+import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -19,7 +19,6 @@ function LoginPage() {
     e.preventDefault();
     setError(null);
     const r = await login(email, password);
-    console.log(r)
     if (!r.success || !r.user) {
       setError(r.message || "Sign-in failed");
       return;
@@ -29,7 +28,7 @@ function LoginPage() {
       navigate({ to: "/change-password" });
       return;
     }
-    if (u.role === "super-admin") {
+    if (isSuperAdminRole(u.role)) {
       navigate({ to: "/admin" });
       return;
     }

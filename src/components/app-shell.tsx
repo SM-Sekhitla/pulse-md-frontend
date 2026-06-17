@@ -3,12 +3,13 @@ import { Link, useNavigate, useRouterState } from "@/lib/router-compat";
 import {
   LayoutDashboard, Calendar, Users, UserPlus, Stethoscope, Pill,
   FileText, Package, Wrench, Receipt, BarChart3, UserCog, Settings,
-  Search, Bell, Plus, LogOut, ChevronLeft,
+  Search, Bell, Plus, LogOut, ChevronLeft,Globe,
 } from "lucide-react";
 import { PulseLogoOnDark } from "@/components/brand";
 import { cn } from "@/lib/utils";
-import { currentUser, currentTenant, logout, tenantEnabledModules, type ModuleKey, type User } from "@/lib/store";
+import { store, tenantEnabledModules, type ModuleKey } from "@/lib/store";
 import { Badge } from "@/components/badge-pill";
+import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
 
 interface NavItem { to: string; label: string; icon: any; module?: ModuleKey; }
 interface NavGroup { label: string; items: NavItem[]; }
@@ -57,33 +58,43 @@ const RECEPTIONIST_NAV: NavGroup[] = [
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const tenant = user?.tenantId
+    ? store.get().tenants.find((t) => t.id === user.tenantId) || null
+    : null;
 
   useEffect(() => {
-    const u = currentUser();
-    if (!u) { navigate({ to: "/login" }); return; }
-    if (u.mustChangePassword) { navigate({ to: "/change-password" }); return; }
-    if (u.role === "super_admin") { navigate({ to: "/admin" }); return; }
-    const t = currentTenant();
-    if (t) {
-      if (t.status === "pending_approval") { navigate({ to: "/pending" }); return; }
-      if (t.status === "suspended") { navigate({ to: "/suspended" }); return; }
-      if (t.status === "rejected") { navigate({ to: "/rejected" }); return; }
+    if (loading) return;
+    if (!user) { navigate({ to: "/login" }); return; }
+    if (user.mustChangePassword) { navigate({ to: "/change-password" }); return; }
+    if (isSuperAdminRole(user.role)) { navigate({ to: "/admin" }); return; }
+    if (tenant) {
+      if (tenant.status === "pending_approval") { navigate({ to: "/pending" }); return; }
+      if (tenant.status === "suspended") { navigate({ to: "/suspended" }); return; }
+      if (tenant.status === "rejected") { navigate({ to: "/rejected" }); return; }
     }
-    setUser(u);
-  }, [navigate, path]);
+  }, [loading, navigate, path, tenant, user]);
 
-  if (!user) return null;
+  if (loading || !user) return null;
 
-  const handleLogout = () => { logout(); navigate({ to: "/" }); };
+  const handleLogout = async () => { await logout(); navigate({ to: "/" }); };
   const baseNav = user.role === "receptionist" ? RECEPTIONIST_NAV : OWNER_NAV;
   const enabled = new Set(tenantEnabledModules(user.tenantId));
-  const NAV: NavGroup[] = baseNav
+  let NAV: NavGroup[] = baseNav
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.module || enabled.has(i.module)) }))
     .filter((g) => g.items.length > 0);
-  const tenant = currentTenant();
+  if (tenant?.bookingEnabled) {
+    NAV = [
+      ...NAV,
+      { label: "Public booking", items: [
+        { to: "/booking/inbox", label: "Bookings inbox", icon: Globe },
+        { to: "/booking/availability", label: "Availability", icon: Calendar },
+        ...(user.role !== "receptionist" ? [{ to: "/booking/profile", label: "Public profile", icon: UserCog }] : []),
+      ]},
+    ];
+  }
 
   return (
     <div className="flex min-h-screen bg-surface">

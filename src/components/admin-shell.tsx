@@ -3,8 +3,9 @@ import { Link, useNavigate, useRouterState } from "@/lib/router-compat";
 import { LayoutDashboard, Building2, Clock, Users, CreditCard, ScrollText, Settings, LogOut, ChevronLeft, Mail, SlidersHorizontal } from "lucide-react";
 import { PulseLogoOnDark } from "@/components/brand";
 import { cn } from "@/lib/utils";
-import { currentUser, logout, store, type User } from "@/lib/store";
+import { store } from "@/lib/store";
 import { Badge } from "@/components/badge-pill";
+import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
 
 const NAV = [
   { label: "Overview", items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
@@ -24,21 +25,20 @@ const NAV = [
 
 export function AdminShell({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
-    const u = currentUser();
-    if (!u) { navigate({ to: "/login" }); return; }
-    if (u.role !== "super_admin") { navigate({ to: "/dashboard" }); return; }
-    setUser(u);
-  }, [navigate, path]);
+    if (loading) return;
+    if (!user) { navigate({ to: "/login" }); return; }
+    if (!isSuperAdminRole(user.role)) { navigate({ to: "/dashboard" }); }
+  }, [loading, navigate, path, user]);
 
-  if (!user) return null;
+  if (loading || !user || !isSuperAdminRole(user.role)) return null;
 
   const pending = store.get().tenants.filter(t => t.status === "pending_approval").length;
-  const handleLogout = () => { logout(); navigate({ to: "/" }); };
+  const handleLogout = async () => { await logout(); navigate({ to: "/" }); };
 
   return (
     <div className="flex min-h-screen bg-surface">

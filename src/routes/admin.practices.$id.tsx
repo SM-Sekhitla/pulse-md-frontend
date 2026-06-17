@@ -10,8 +10,12 @@ import {
   store,
   planPrice,
   formatZAR,
+  setTenantBookingEnabled,
   type TenantStatus,
 } from "@/lib/store";
+import { Switch } from "@/components/ui/switch";
+import {toast} from "sonner";
+import {Copy, Check,Globe,NotebookPen} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
 import { te } from "date-fns/locale";
@@ -162,6 +166,8 @@ function PracticeDetail() {
               />
             </div>
           </div>
+
+           <FeaturesCard tenantId={t.id} bookingEnabled={!!t.bookingEnabled} bookingSlug={t.bookingSlug || t.slug} onChange={reload} />
         </div>
 
         <div className="space-y-4">
@@ -244,3 +250,59 @@ function Row({
     </div>
   );
 }
+
+function FeaturesCard({ tenantId, bookingEnabled, bookingSlug, onChange }: { tenantId: string; bookingEnabled: boolean; bookingSlug: string; onChange: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://app.pulsemd.co.za";
+  const link = `${origin}/book`;
+
+  const toggle = (on: boolean) => {
+    setTenantBookingEnabled(tenantId, on);
+    toast.success(on ? "Public booking enabled" : "Public booking disabled");
+    onChange();
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div className="pulse-card p-6">
+      <div className="label-caps mb-3">Features</div>
+      <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-white p-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-md bg-blue/10 p-2 text-navy"><NotebookPen className="h-4 w-4" /></div>
+          <div>
+            <div className="text-[13.5px] font-semibold text-navy">Public booking page</div>
+            <div className="text-[12px] text-muted-foreground mt-0.5 max-w-md">
+              Allows patients to find and book this GP directly from the PulseMD public booking portal.
+            </div>
+          </div>
+        </div>
+        <Switch checked={bookingEnabled} onCheckedChange={toggle} aria-label="Toggle public booking" />
+      </div>
+
+      {bookingEnabled && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-surface px-4 py-3">
+          <div className="min-w-0">
+            <div className="label-caps">Public link</div>
+            <div className="font-mono text-[12.5px] text-navy truncate">{link}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Slug: <span className="font-mono">{bookingSlug}</span></div>
+          </div>
+          <button
+            type="button"
+            onClick={copy}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
+          >
+            {copied ? <><Check className="h-3.5 w-3.5 text-success" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -55,6 +55,7 @@ export interface Tenant {
   slug: string;
   address?: string;
   province?: string;
+  city?: string;
   hpcsa?: string;
   vat?: string;
   plan: Plan;
@@ -67,7 +68,32 @@ export interface Tenant {
   suspendedAt?: string;
   suspensionReason?: string;
   enabledModules?: ModuleKey[];
+  // Public booking module
+  bookingEnabled?: boolean;
+  bookingSlug?: string;
+  gpBio?: string;
+  gpLanguages?: string[];
+  bookingAvailability?: BookingAvailability;
+  bookingHolidays?: string[]; // YYYY-MM-DD
 }
+
+export interface BookingAvailability {
+  workDays: number[]; // 0=Sun … 6=Sat
+  startTime: string;  // "08:00"
+  endTime: string;    // "16:00"
+  slotMinutes: number;
+  breakStart?: string;
+  breakEnd?: string;
+}
+
+export const DEFAULT_AVAILABILITY: BookingAvailability = {
+  workDays: [1, 2, 3, 4, 5],
+  startTime: "08:00",
+  endTime: "16:00",
+  slotMinutes: 20,
+  breakStart: "12:00",
+  breakEnd: "13:00",
+};
 
 export interface Patient {
   id: string;
@@ -106,6 +132,7 @@ export interface Appointment {
   reason: string;
   room: string;
   gp: string;
+  source?: "public" | "internal";
 }
 
 export interface InventoryItem {
@@ -174,9 +201,7 @@ export interface Prescription {
   diagnosis?: string;
   icd10?: string;
   items: PrescriptionItem[];
-  securityCode: string;
-  qrToken: string;
-  qrHash: string;
+  securityCode: string; // hidden code embedded in QR
 }
 
 export interface SickNote {
@@ -942,4 +967,286 @@ export function adjustStock(itemId: string, delta: number, _reason?: string): In
   store.set((st) => ({ ...st, inventory: st.inventory.map((i) => i.id === itemId ? updated : i) }));
   return updated;
 }
+
+// ─── Public booking module ─────────────────────────
+
+export function setTenantBookingEnabled(tenantId: string, enabled: boolean) {
+  store.set((s) => {
+    const t = s.tenants.find((x) => x.id === tenantId);
+    if (!t) return s;
+    const bookingSlug = t.bookingSlug || t.slug;
+    return {
+      ...s,
+      tenants: s.tenants.map((x) => x.id === tenantId ? { ...x, bookingEnabled: enabled, bookingSlug } : x),
+      audit: [{
+        id: rid("ev_"), ts: new Date().toISOString(),
+        type: enabled ? "booking_enabled" : "booking_disabled",
+        message: `Public booking ${enabled ? "enabled" : "disabled"} for ${t.name}`,
+        tenantId, actorEmail: s.user?.email,
+      }, ...s.audit],
+    };
+  });
+}
+
+export function updateTenantBookingProfile(tenantId: string, patch: { gpBio?: string; gpLanguages?: string[] }) {
+  store.set((s) => ({
+    ...s,
+    tenants: s.tenants.map((t) => t.id === tenantId ? { ...t, ...patch } : t),
+  }));
+}
+
+export interface PublicGP {
+  tenant: Tenant;
+  gp: User;
+}
+
+export function publicBookingTenants(): PublicGP[] {
+  const s = load();
+  return s.tenants
+    .filter((t) => t.bookingEnabled && t.status === "active")
+    .map((t) => ({ tenant: t, gp: s.users.find((u) => u.id === t.gpUserId)! }))
+    .filter((x) => !!x.gp);
+}
+
+export function publicGPBySlug(slug: string): PublicGP | null {
+  const s = load();
+  const t = s.tenants.find((x) => (x.bookingSlug || x.slug) === slug && x.bookingEnabled && x.status === "active");
+  if (!t) return null;
+  const gp = s.users.find((u) => u.id === t.gpUserId);
+  if (!gp) return null;
+  return { tenant: t, gp };
+}
+
+export function getTenantAvailability(tenantId: string): BookingAvailability {
+  const s = load();
+  const t = s.tenants.find((x) => x.id === tenantId);
+  return t?.bookingAvailability || DEFAULT_AVAILABILITY;
+}
+
+export function setTenantAvailability(tenantId: string, availability: BookingAvailability) {
+  store.set((s) => ({
+    ...s,
+    tenants: s.tenants.map((t) => t.id === tenantId ? { ...t, bookingAvailability: availability } : t),
+  }));
+}
+
+export function setTenantHolidays(tenantId: string, holidays: string[]) {
+  store.set((s) => ({
+    ...s,
+    tenants: s.tenants.map((t) => t.id === tenantId ? { ...t, bookingHolidays: holidays } : t),
+  }));
+}
+
+function timeToMin(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+function minToTime(n: number): string {
+  return `${Math.floor(n / 60).toString().padStart(2, "0")}:${(n % 60).toString().padStart(2, "0")}`;
+}
+
+/** Real availability based on tenant settings, holidays, and already-booked appointments. */
+export function mockAvailability(tenantId: string, days = 14): { date: string; slots: string[] }[] {
+  const s = load();
+  const tenant = s.tenants.find((x) => x.id === tenantId);
+  const av = tenant?.bookingAvailability || DEFAULT_AVAILABILITY;
+  const holidays = new Set(tenant?.bookingHolidays || []);
+  const out: { date: string; slots: string[] }[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+
+  // Booked times grouped by date for fast lookup
+  const booked: Record<string, Set<string>> = {};
+  for (const a of s.appointments) {
+    if (a.tenantId !== tenantId) continue;
+    if (a.status === "Cancelled" || a.status === "No-show") continue;
+    const d = new Date(a.start);
+    const dateKey = d.toISOString().slice(0, 10);
+    const time = `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+    (booked[dateKey] ||= new Set()).add(time);
+  }
+
+  for (let d = 0; d < days; d++) {
+    const date = new Date(today.getTime() + d * 86400000);
+    const dateKey = date.toISOString().slice(0, 10);
+    const dow = date.getDay();
+    if (!av.workDays.includes(dow) || holidays.has(dateKey)) {
+      out.push({ date: dateKey, slots: [] });
+      continue;
+    }
+    const startM = timeToMin(av.startTime);
+    const endM = timeToMin(av.endTime);
+    const breakS = av.breakStart ? timeToMin(av.breakStart) : -1;
+    const breakE = av.breakEnd ? timeToMin(av.breakEnd) : -1;
+    const slots: string[] = [];
+    for (let m = startM; m + av.slotMinutes <= endM; m += av.slotMinutes) {
+      if (breakS >= 0 && m >= breakS && m < breakE) continue;
+      const time = minToTime(m);
+      if (booked[dateKey]?.has(time)) continue;
+      // skip past times for today
+      if (d === 0) {
+        const slotDate = new Date(date);
+        slotDate.setHours(Math.floor(m / 60), m % 60, 0, 0);
+        if (slotDate <= now) continue;
+      }
+      slots.push(time);
+    }
+    out.push({ date: dateKey, slots });
+  }
+  return out;
+}
+
+export function nextAvailableSlot(tenantId: string): { date: string; time: string } | null {
+  const av = mockAvailability(tenantId, 14);
+  for (const d of av) {
+    if (d.slots.length > 0) return { date: d.date, time: d.slots[0] };
+  }
+  return null;
+}
+
+export function publicBookingsForTenant(tenantId: string): Appointment[] {
+  const s = load();
+  return s.appointments
+    .filter((a) => a.tenantId === tenantId && a.source === "public")
+    .sort((a, b) => b.start.localeCompare(a.start));
+}
+
+export function setAppointmentStatus(id: string, status: AppointmentStatus) {
+  store.set((s) => ({
+    ...s,
+    appointments: s.appointments.map((a) => a.id === id ? { ...a, status } : a),
+  }));
+}
+
+
+// ─── Public booking creation ───────────────────────
+
+export interface PublicBookingInput {
+  tenantId: string;
+  date: string;
+  time: string;
+  appointmentType: AppointmentType;
+  reason: string;
+  patient: {
+    firstName: string;
+    lastName: string;
+    idNumber: string;
+    dob: string;
+    gender: "M" | "F";
+    phone: string;
+    email: string;
+    medicalAid?: string;
+    medicalAidNumber?: string;
+    province?: string;
+    suburb?: string;
+  };
+  consent: boolean;
+}
+
+export interface PublicBookingResult {
+  appointment: Appointment;
+  patient: Patient;
+  reference: string;
+}
+
+export function createPublicBooking(input: PublicBookingInput): PublicBookingResult {
+  const s = load();
+  const tenant = s.tenants.find((t) => t.id === input.tenantId);
+  if (!tenant) throw new Error("Practice not found");
+  const gp = s.users.find((u) => u.id === tenant.gpUserId);
+  const gpName = gp ? `${gp.title} ${gp.firstName} ${gp.lastName}`.trim() : "GP";
+
+  let patient = s.patients.find(
+    (p) => p.tenantId === tenant.id && p.idNumber === input.patient.idNumber,
+  );
+  let createdPatient = false;
+  if (!patient) {
+    patient = {
+      id: rid("pt_"),
+      tenantId: tenant.id,
+      firstName: input.patient.firstName,
+      lastName: input.patient.lastName,
+      dob: input.patient.dob,
+      gender: input.patient.gender,
+      idNumber: input.patient.idNumber,
+      phone: input.patient.phone,
+      email: input.patient.email,
+      medicalAid: input.patient.medicalAid || "Private",
+      medicalAidNumber: input.patient.medicalAidNumber || "",
+      allergies: [],
+      chronic: [],
+      lastVisit: input.date,
+      active: true,
+    };
+    createdPatient = true;
+  }
+
+  const start = new Date(`${input.date}T${input.time}:00`);
+  const end = new Date(start.getTime() + 20 * 60000);
+  const appointment: Appointment = {
+    id: rid("ap_"),
+    tenantId: tenant.id,
+    patientId: patient.id,
+    patientName: `${patient.firstName} ${patient.lastName}`,
+    type: input.appointmentType,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    status: "Booked",
+    reason: input.reason || "Public booking",
+    room: "Room 1",
+    gp: gpName,
+    source: "public",
+  };
+  const reference = `PM-${appointment.id.slice(-6).toUpperCase()}`;
+
+  const niceDate = format(start, "EEEE d MMMM yyyy");
+  const smsBody = `PulseMD: Your booking with ${gpName} at ${tenant.name} is confirmed for ${niceDate} at ${input.time}. Ref ${reference}.`;
+  const emailBody = `Hi ${patient.firstName},
+
+Your appointment is confirmed.
+
+GP: ${gpName}
+Practice: ${tenant.name}
+${tenant.address ? `Address: ${tenant.address}\n` : ""}Date: ${niceDate}
+Time: ${input.time}
+Type: ${input.appointmentType}
+Reason: ${input.reason || "—"}
+Reference: ${reference}
+
+If you need to cancel or reschedule, reply to this email.
+
+— PulseMD`;
+
+  store.set((st) => ({
+    ...st,
+    patients: createdPatient ? [patient!, ...st.patients] : st.patients,
+    appointments: [appointment, ...st.appointments],
+    audit: [{
+      id: rid("ev_"), ts: new Date().toISOString(), type: "public_booking",
+      message: `Public booking ${reference} created for ${patient!.firstName} ${patient!.lastName}`,
+      tenantId: tenant.id,
+    }, ...st.audit],
+    outbox: [
+      { id: rid("em_"), ts: new Date().toISOString(), to: patient!.email, kind: "booking_confirm_email", subject: `Booking confirmed — ${niceDate} at ${input.time}`, body: emailBody },
+      { id: rid("em_"), ts: new Date().toISOString(), to: patient!.phone, kind: "booking_confirm_sms", subject: "SMS", body: smsBody },
+      { id: rid("em_"), ts: new Date().toISOString(), to: gp?.email || "", kind: "booking_gp_alert", subject: `New booking: ${patient!.firstName} ${patient!.lastName}`, body: `A new public booking was made.\n\n${emailBody}` },
+      ...st.outbox,
+    ],
+  }));
+
+  return { appointment, patient, reference };
+}
+
+export function getPublicAppointment(id: string): { appointment: Appointment; patient: Patient; tenant: Tenant; gp: User | null; reference: string } | null {
+  const s = load();
+  const appointment = s.appointments.find((a) => a.id === id);
+  if (!appointment) return null;
+  const patient = s.patients.find((p) => p.id === appointment.patientId);
+  const tenant = s.tenants.find((t) => t.id === appointment.tenantId);
+  if (!patient || !tenant) return null;
+  const gp = s.users.find((u) => u.id === tenant.gpUserId) || null;
+  return { appointment, patient, tenant, gp, reference: `PM-${appointment.id.slice(-6).toUpperCase()}` };
+}
+
 
