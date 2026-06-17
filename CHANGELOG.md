@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/SM-Sekhitla/pulse-md-frontend/compare/v1.2.0...v1.3.0) (2026-06-17)
+
+
+### Features
+
+* fixed login and added a booking module ([e9caaa9](https://github.com/SM-Sekhitla/pulse-md-frontend/commit/e9caaa9feaaea4cbd39b95250605cb027418c1d4))
+
 # [1.2.0](https://github.com/SM-Sekhitla/pulse-md-frontend/compare/v1.1.0...v1.2.0) (2026-06-08)
 
 
