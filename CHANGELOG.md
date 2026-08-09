@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/SM-Sekhitla/pulse-md-frontend/compare/v1.3.0...v1.3.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* error reading and data fix ([6c6c3b0](https://github.com/SM-Sekhitla/pulse-md-frontend/commit/6c6c3b0321b124e5ec2c9d69f4f5be93ab8c86fb))
+
 # [1.3.0](https://github.com/SM-Sekhitla/pulse-md-frontend/compare/v1.2.0...v1.3.0) (2026-06-17)
 
 
