@@ -12,12 +12,8 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import {
-  createPrescription,
   currentTenant,
-  currentUser,
-  myScopedStore,
   patientAppointments,
-  store,
   type PrescriptionItem,
 } from "@/lib/store";
 import { useAuth } from "@/context/AuthContext";
@@ -81,7 +77,7 @@ function NewPrescription() {
             i.category === "OTC medication",
         )
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [s.inventory],
+    [inventory.inventoryList],
   );
 
   const updateItem = (i: number, patch: Partial<PrescriptionItem>) =>
@@ -96,7 +92,7 @@ function NewPrescription() {
   const removeItem = (i: number) =>
     setItems((prev) => prev.filter((_, idx) => idx !== i));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!selectedPatient) {
@@ -116,11 +112,13 @@ function NewPrescription() {
       setError("Add at least one medication.");
       return;
     }
-    const rx = prescription.createPrescription({
+    const rx = await prescription.createPrescription({
       patientId: selectedPatient.id,
+      patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
       appointmentId: appointmentId || undefined,
       gpName,
       hpcsa,
+      reason: diagnosis.trim() || "Medication prescribed",
       diagnosis: diagnosis.trim() || undefined,
       icd10: icd10.trim() || undefined,
       validDays,

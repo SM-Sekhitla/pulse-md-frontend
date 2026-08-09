@@ -12,7 +12,9 @@ import {
 import API from "@/utils/api";
 
 import {
+  auditCreateSchema,
   auditSchema,
+  auditUpdateSchema,
 } from "@/schema/audit";
 
 import type {
@@ -238,7 +240,7 @@ export function AuditProvider({
     data: AuditCreate
   ): Promise<Audit> => {
     const parsedInput =
-      auditSchema.parse(data);
+      auditCreateSchema.parse(data);
 
     const res = await API.post(
       "/audits",
@@ -265,7 +267,7 @@ export function AuditProvider({
   ): Promise<Audit | null> => {
     try {
       const parsedInput =
-        auditSchema.parse(data);
+        auditUpdateSchema.parse(data);
 
       const res = await API.put(
         `/audits/${id}`,

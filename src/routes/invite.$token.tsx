@@ -1,36 +1,40 @@
 import { createFileRoute, useNavigate, useParams } from "@/lib/router-compat";
 import { useState } from "react";
 import { PulseLogo } from "@/components/brand";
-import { acceptInvite, store } from "@/lib/store";
-import { useData } from "@/context/AppDataProvider";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import API from "@/utils/api";
 
 export const Route = createFileRoute("/invite/$token")({ component: Invite });
 
 function Invite() {
   const { token } = useParams({ from: "/invite/$token" });
   const navigate = useNavigate();
-  const { tenant: tData, patient, user, } = useData();
-  
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const inv = user.users.find(
-    (u) => u.inviteToken === token && u.status === "invited",
-  );
-  const tenant = inv?.tenantId
-    ? tData.tenants.find((t) => t.id === inv.tenantId)
-    : null;
-  const inviter = inv?.invitedBy
-    ? user.users.find((u) => u.id === inv.invitedBy)
-    : null;
+  const { data: invite, isLoading } = useQuery({
+    queryKey: ["invite", token],
+    queryFn: async () => {
+      const res = await API.get(`/auth/invite/${token}`);
+      return res.data as { user: any; tenant: any; inviter: any };
+    },
+    retry: false,
+  });
 
-  const submit = (e: React.FormEvent) => {
+  const accept = useMutation({
+    mutationFn: async () => {
+      await API.post("/auth/invite/accept", { token, password: pw });
+    },
+    onSuccess: () => navigate({ to: "/dashboard" }),
+  });
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (pw.length < 8 || !/\d/.test(pw) || !/[A-Z]/.test(pw)) {
+    if (pw.length < 12 || !/\d/.test(pw) || !/[A-Z]/.test(pw) || !/[^A-Za-z0-9]/.test(pw)) {
       setError(
-        "Password must be at least 8 characters with 1 number and 1 uppercase letter.",
+        "Password must be at least 12 characters with 1 number, 1 uppercase letter, and 1 symbol.",
       );
       return;
     }
@@ -38,12 +42,11 @@ function Invite() {
       setError("Passwords don't match.");
       return;
     }
-    const r = acceptInvite(token, pw);
-    if (!r.ok) {
-      setError(r.error || "Invalid token");
-      return;
+    try {
+      await accept.mutateAsync();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "Invalid or expired invite.");
     }
-    navigate({ to: "/dashboard" });
   };
 
   return (
@@ -53,7 +56,16 @@ function Invite() {
       </div>
       <div className="flex flex-1 items-center justify-center px-4 pb-16">
         <div className="w-full max-w-[460px] pulse-card p-8">
-          {!inv ? (
+          {isLoading ? (
+            <>
+              <h1 className="text-[20px] font-semibold text-navy">
+                Checking invite
+              </h1>
+              <p className="mt-3 text-[13.5px] text-muted-foreground">
+                Please wait while we verify your invitation.
+              </p>
+            </>
+          ) : !invite?.user ? (
             <>
               <h1 className="text-[20px] font-semibold text-navy">
                 Invite invalid
@@ -66,7 +78,7 @@ function Invite() {
           ) : (
             <>
               <h1 className="text-[20px] font-semibold text-navy">
-                You've been invited to join {tenant?.name} on PulseMD
+                You've been invited to join {invite.tenant?.name || "PulseMD"} on PulseMD
               </h1>
               <p className="mt-2 text-[13.5px] text-muted-foreground">
                 Role:{" "}
@@ -74,7 +86,7 @@ function Invite() {
                 <br />
                 Invited by:{" "}
                 <span className="font-medium text-navy">
-                  {inviter?.title} {inviter?.firstName} {inviter?.lastName}
+                  {invite.inviter?.title} {invite.inviter?.firstName} {invite.inviter?.lastName}
                 </span>
               </p>
               <form onSubmit={submit} className="mt-6 space-y-4">
@@ -91,7 +103,7 @@ function Invite() {
                   onChange={setPw2}
                 />
                 <p className="text-[11.5px] text-muted-foreground">
-                  Min. 8 characters, 1 number, 1 uppercase letter.
+                  Min. 12 characters, 1 number, 1 uppercase letter, 1 symbol.
                 </p>
                 {error && (
                   <div className="rounded-md bg-[#FEE2E2] px-3 py-2 text-[12.5px] text-[#991B1B]">

@@ -1,13 +1,11 @@
 import { createFileRoute } from "@/lib/router-compat";
 import { AdminShell } from "@/components/admin-shell";
-import { store } from "@/lib/store";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/audit")({ component: Audit });
 
 function Audit() {
-  const s = store.get();
   const { audit } = useData();
   return (
     <AdminShell title="Audit log">
@@ -26,7 +24,7 @@ function Audit() {
             </div>
           </div>
         ))}
-        {s.audit.length === 0 && (
+        {audit.audits.length === 0 && (
           <div className="px-5 py-10 text-center text-muted-foreground">
             No events.
           </div>

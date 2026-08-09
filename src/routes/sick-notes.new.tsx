@@ -9,13 +9,8 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import {
-  createSickNote,
   currentTenant,
-  currentUser,
-  myScopedStore,
   patientAppointments,
-  store,
-
 } from "@/lib/store";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/AppDataProvider";
@@ -27,7 +22,7 @@ export const Route = createFileRoute("/sick-notes/new")({
 function NewSickNote() {
   const navigate = useNavigate();
   const { user: me} = useAuth();
-  const { user, patient } = useData();
+  const { user, patient, sicknote } = useData();
   const tenant = currentTenant();
 
   const allUsers = user.users;
@@ -76,7 +71,7 @@ function NewSickNote() {
     }
   })();
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!selectedPatient) {
@@ -91,7 +86,7 @@ function NewSickNote() {
       setError("End date must be on or after start date.");
       return;
     }
-    const note = createSickNote({
+    const note = await sicknote.createSickNote({
       tenantId: tenant?.id || "tn_demo",
       patientId: selectedPatient.id,
       patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,

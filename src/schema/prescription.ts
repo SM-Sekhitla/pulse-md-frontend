@@ -30,6 +30,8 @@ export const prescriptionSchema = z.object({
   hpcsa: z.string().min(1),
 
   issuedAt: z.string().datetime(),
+  fromDate: z.string().min(1).optional(),
+  toDate: z.string().min(1).optional(),
 
   validDays: z.number().int().min(1),
 
@@ -38,7 +40,8 @@ export const prescriptionSchema = z.object({
 
   items: z.array(prescriptionItemSchema).min(1),
 
-  securityCode: z.string().min(1),
-  qrToken: z.string().min(1),
-  qrHash: z.string().min(1),
+  securityCode: z.string().min(1).optional(),
+  qrToken: z.string().min(1).optional(),
+  qrHash: z.string().min(1).optional(),
+  qrCodeDataUrl: z.string().min(1).optional(),
 });

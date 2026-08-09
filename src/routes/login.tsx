@@ -2,16 +2,16 @@ import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { PulseLogo } from "@/components/brand";
-import { store } from "@/lib/store";
 import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [email, setEmail] = useState("dr.naidoo@northcliff.health");
-  const [password, setPassword] = useState("demo");
+  const { login, requestResetWeb } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,15 +32,20 @@ function LoginPage() {
       navigate({ to: "/admin" });
       return;
     }
-    const tenant = store.get().tenants.find((t) => t.id === u.tenantId);
-    if (!tenant) {
-      navigate({ to: "/dashboard" });
+    navigate({ to: "/dashboard" });
+  };
+
+  const sendReset = async () => {
+    if (!email) {
+      setError("Enter your email address first.");
       return;
     }
-    if (tenant.status === "pending_approval") navigate({ to: "/pending" });
-    else if (tenant.status === "suspended") navigate({ to: "/suspended" });
-    else if (tenant.status === "rejected") navigate({ to: "/rejected" });
-    else navigate({ to: "/dashboard" });
+    const result = await requestResetWeb(email);
+    if (!result.success) {
+      setError(result.message || "Could not send reset email.");
+      return;
+    }
+    toast.success("If the account exists, a reset link has been emailed.");
   };
 
   return (
@@ -105,29 +110,14 @@ function LoginPage() {
             >
               Sign in
             </button>
+            <button
+              type="button"
+              onClick={sendReset}
+              className="w-full text-center text-[12.5px] font-medium text-blue hover:underline"
+            >
+              Forgot password?
+            </button>
           </form>
-
-          <div className="mt-6 rounded-md border border-border bg-surface p-3 text-[11.5px] text-muted-foreground">
-            <div className="font-semibold text-navy mb-1">
-              Demo accounts (password: <span className="font-mono">demo</span>)
-            </div>
-            <div>
-              GP Owner:{" "}
-              <span className="font-mono">dr.naidoo@northcliff.health</span>
-            </div>
-            <div>
-              Super Admin:{" "}
-              <span className="font-mono">admin@pulsemd.co.za</span>
-            </div>
-            <div>
-              Pending GP:{" "}
-              <span className="font-mono">dr.adams@sandtonmed.co.za</span>
-            </div>
-            <div>
-              Receptionist:{" "}
-              <span className="font-mono">lebo@northcliff.health</span>
-            </div>
-          </div>
 
           <p className="mt-7 text-center text-[13px] text-muted-foreground">
             New to PulseMD?{" "}

@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { PulseLogo } from "@/components/brand";
-import { registerTenant, type Plan } from "@/lib/store";
+import type { Plan } from "@/lib/store";
 import { Check, ArrowRight } from "lucide-react";
+import API from "@/utils/api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/register")({ component: RegisterPage });
 
@@ -26,12 +28,24 @@ function RegisterPage() {
   });
   const set = (k: keyof typeof form) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
+  const [submitting, setSubmitting] = useState(false);
 
-  const next = () => {
+  const next = async () => {
     if (step < STEPS.length - 1) setStep(step + 1);
     else {
-      registerTenant(form);
-      navigate({ to: "/pending" });
+      setSubmitting(true);
+      try {
+        await API.post("/onboarding", form, {
+          headers: {
+            "Idempotency-Key": crypto.randomUUID(),
+          },
+        });
+        navigate({ to: "/pending" });
+      } catch (err: any) {
+        toast.error(err?.response?.data?.detail || "Application submission failed.");
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
   const back = () => step > 0 && setStep(step - 1);
@@ -195,9 +209,10 @@ function RegisterPage() {
             </button>
             <button
               onClick={next}
+              disabled={submitting}
               className="inline-flex items-center gap-1.5 rounded-md bg-blue px-5 py-2.5 text-[13px] font-medium text-white hover:opacity-90"
             >
-              {step === STEPS.length - 1 ? "Submit application" : "Continue"}
+              {submitting ? "Submitting..." : step === STEPS.length - 1 ? "Submit application" : "Continue"}
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>

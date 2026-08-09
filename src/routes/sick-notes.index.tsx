@@ -70,7 +70,7 @@ function SickNotesList() {
                 <th className="px-4 py-2.5">Issued</th>
                 <th className="px-4 py-2.5">Period</th>
                 <th className="px-4 py-2.5">Reason</th>
-                <th className="px-4 py-2.5">Code</th>
+                <th className="px-4 py-2.5">QR</th>
                 <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
@@ -92,7 +92,7 @@ function SickNotesList() {
                   </td>
                   <td className="px-4 py-2.5 font-mono text-[11.5px] text-muted-foreground">
                     <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-teal" />
-                    {n.securityCode.slice(0, 4)}••••
+                    {n.qrHash ? n.qrHash.slice(0, 8) : "Backend signed"}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <Link

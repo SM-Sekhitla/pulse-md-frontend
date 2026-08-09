@@ -3,29 +3,28 @@ import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
 import { Plus, X, Mail, UserX, UserCheck, Trash2 } from "lucide-react";
-import {
-  currentUser,
-  inviteReceptionist,
-  resendInvite,
-  setUserStatus,
-  softDeleteUser,
-  tenantStaff,
-  updateStaff,
-  type User,
-} from "@/lib/store";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { useAuth } from "@/context/AuthContext";
+import API from "@/utils/api";
+import { userSchema } from "@/schema/user";
+import type { User } from "@/types/user";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/staff")({ component: Staff });
 
 function Staff() {
-  const [, refresh] = useState(0);
-  const reload = () => refresh((x) => x + 1);
-  const { user: me } = useAuth();
-  const staff = me?.tenantId ? tenantStaff(me.tenantId) : [];
+  const queryClient = useQueryClient();
+  const { data: staff = [], isLoading } = useQuery({
+    queryKey: ["staff"],
+    queryFn: async () => {
+      const res = await API.get("/users/staff");
+      return userSchema.array().parse(res.data);
+    },
+  });
   const [openAdd, setOpenAdd] = useState(false);
   const [manageId, setManageId] = useState<string | null>(null);
   const manage = staff.find((s) => s.id === manageId) || null;
+  const refreshStaff = () => queryClient.invalidateQueries({ queryKey: ["staff"] });
 
   return (
     <AppShell title="Staff & roles">
@@ -33,7 +32,9 @@ function Staff() {
         <div>
           <div className="label-caps">My team</div>
           <h2 className="text-[22px] font-semibold text-navy">
-            You have {staff.length} receptionist{staff.length === 1 ? "" : "s"}.
+          {isLoading
+            ? "Loading your team..."
+            : `You have ${staff.length} receptionist${staff.length === 1 ? "" : "s"}.`}
           </h2>
         </div>
         <button
@@ -75,7 +76,7 @@ function Staff() {
         <AddModal
           onClose={() => {
             setOpenAdd(false);
-            reload();
+            refreshStaff();
           }}
         />
       )}
@@ -84,7 +85,7 @@ function Staff() {
           u={manage}
           onClose={() => {
             setManageId(null);
-            reload();
+            refreshStaff();
           }}
         />
       )}
@@ -137,21 +138,41 @@ function StaffCard({ u, onManage }: { u: User; onManage: () => void }) {
 }
 
 function AddModal({ onClose }: { onClose: () => void }) {
-  const me = currentUser()!;
+  const queryClient = useQueryClient();
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const invite = useMutation({
+    mutationFn: async () => {
+      const res = await API.post("/users/staff/invite", {
+        firstName: first,
+        lastName: last,
+        email,
+        phone: phone || undefined,
+      });
+      return userSchema.parse(res.data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      toast.success("Invite sent.");
+      onClose();
+    },
+  });
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!first || !last || !email) {
       setError("Name and email are required.");
       return;
     }
-    inviteReceptionist({ firstName: first, lastName: last, email, phone }, me);
-    onClose();
+    setError(null);
+    try {
+      await invite.mutateAsync();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || "Invite failed.");
+    }
   };
 
   return (
@@ -194,42 +215,47 @@ function AddModal({ onClose }: { onClose: () => void }) {
 }
 
 function ManageModal({ u, onClose }: { u: User; onClose: () => void }) {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [first, setFirst] = useState(u.firstName);
   const [last, setLast] = useState(u.lastName);
   const [phone, setPhone] = useState(u.phone || "");
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["staff"] });
 
-  const save = () => {
-    updateStaff(u.id, { firstName: first, lastName: last, phone });
+  const save = async () => {
+    await API.patch(`/users/${u.id}`, { firstName: first, lastName: last, phone });
+    refresh();
     setEditing(false);
     onClose();
   };
-  const resend = () => {
-    resendInvite(u.id);
-    alert(`Invite resent to ${u.email}.`);
+  const resend = async () => {
+    await API.post(`/users/${u.id}/resend-invite`);
+    toast.success(`Invite resent to ${u.email}.`);
   };
-  const deactivate = () => {
+  const setStatus = async (status: "active" | "inactive" | "deleted") => {
+    await API.patch(`/users/${u.id}/status`, { status });
+    refresh();
+    onClose();
+  };
+  const deactivate = async () => {
     if (
       confirm(
         `Deactivate ${u.firstName} ${u.lastName}? They will lose access immediately.`,
       )
     ) {
-      setUserStatus(u.id, "inactive");
-      onClose();
+      await setStatus("inactive");
     }
   };
-  const reactivate = () => {
-    setUserStatus(u.id, "active");
-    onClose();
+  const reactivate = async () => {
+    await setStatus("active");
   };
-  const remove = () => {
+  const remove = async () => {
     if (
       confirm(
         `Permanently remove ${u.firstName} ${u.lastName}? This cannot be undone.`,
       )
     ) {
-      softDeleteUser(u.id);
-      onClose();
+      await setStatus("deleted");
     }
   };
 

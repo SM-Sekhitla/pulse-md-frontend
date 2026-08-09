@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { userOutSchema } from "./user";
+import { apiDateTimeSchema, userOutSchema } from "./user";
 
 //
 // -------------------------------------------------
@@ -20,13 +20,57 @@ export const planSchema = z.enum([
 
 // If already defined elsewhere, import instead
 export const moduleKeySchema = z.enum([
+  "calendar",
   "appointments",
   "billing",
+  "equipment",
   "patients",
+  "prescriptions",
+  "sick_notes",
   "inventory",
   "reports",
   "staff",
 ]);
+
+export const subscriptionStatusSchema = z.enum([
+  "trial",
+  "trialing",
+  "active",
+  "expired",
+  "cancelled",
+  "suspended",
+]);
+
+export const subscriptionOutSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  plan: planSchema,
+  status: subscriptionStatusSchema,
+  startDate: apiDateTimeSchema,
+  endDate: apiDateTimeSchema.nullable().optional(),
+  trialEndsAt: apiDateTimeSchema.nullable().optional(),
+  nextBillingDate: apiDateTimeSchema.nullable().optional(),
+  amount: z.number(),
+  currency: z.string().optional(),
+  autoRenew: z.boolean().optional(),
+  createdAt: apiDateTimeSchema,
+  updatedAt: apiDateTimeSchema.nullable().optional(),
+});
+
+const withPlanFromSubscription = (value: unknown) => {
+  if (!value || typeof value !== "object") return value;
+
+  const tenant = value as Record<string, unknown>;
+  const subscription = tenant.subscription as Record<string, unknown> | null;
+
+  return {
+    ...tenant,
+    plan:
+      tenant.plan ??
+      subscription?.plan ??
+      "Starter",
+  };
+};
 
 //
 // -------------------------------------------------
@@ -44,23 +88,28 @@ export const tenantSchema = z.object({
   hpcsa: z.string().optional(),
   vat: z.string().optional(),
 
-  plan: planSchema,
+  plan: planSchema.default("Starter"),
   gpUserId: z.string(),
 
   status: tenantStatusSchema,
 
-  createdAt: z.string().datetime(),
+  currentSubscriptionId: z.string().nullable().optional(),
+  subscriptionStatus: subscriptionStatusSchema.optional(),
+  subscription: subscriptionOutSchema.nullable().optional(),
 
-  approvedAt: z.string().datetime().optional(),
-  approvedBy: z.string().optional(),
+  createdAt: apiDateTimeSchema,
+  updatedAt: apiDateTimeSchema.nullable().optional(),
 
-  rejectionReason: z.string().optional(),
+  approvedAt: apiDateTimeSchema.nullable().optional(),
+  approvedBy: z.string().nullable().optional(),
 
-  suspendedAt: z.string().datetime().optional(),
-  suspensionReason: z.string().optional(),
+  rejectionReason: z.string().nullable().optional(),
+
+  suspendedAt: apiDateTimeSchema.nullable().optional(),
+  suspensionReason: z.string().nullable().optional(),
 
   enabledModules: z.array(moduleKeySchema).optional(),
-});
+}).passthrough();
 
 //
 // -------------------------------------------------
@@ -103,12 +152,12 @@ export const tenantUpdateSchema = z.object({
 
   status: tenantStatusSchema.optional(),
 
-  approvedAt: z.string().datetime().optional(),
+  approvedAt: apiDateTimeSchema.optional(),
   approvedBy: z.string().optional(),
 
   rejectionReason: z.string().optional(),
 
-  suspendedAt: z.string().datetime().optional(),
+  suspendedAt: apiDateTimeSchema.optional(),
   suspensionReason: z.string().optional(),
 
   enabledModules: z.array(moduleKeySchema).optional(),
@@ -118,7 +167,7 @@ export const tenantUpdateSchema = z.object({
 // -------------------------------------------------
 // Safe Output
 // -------------------------------------------------
-export const tenantOutSchema = z.object({
+export const tenantOutSchema = z.preprocess(withPlanFromSubscription, z.object({
   id: z.string(),
 
   name: z.string().min(1),
@@ -130,21 +179,26 @@ export const tenantOutSchema = z.object({
   hpcsa: z.string().optional(),
   vat: z.string().optional(),
 
-  plan: planSchema,
+  plan: planSchema.default("Starter"),
   gpUserId: z.string(),
-  owner: userOutSchema,
+  owner: userOutSchema.nullable().optional(),
 
   status: tenantStatusSchema,
 
-  createdAt: z.string().datetime(),
+  currentSubscriptionId: z.string().nullable().optional(),
+  subscriptionStatus: subscriptionStatusSchema.optional(),
+  subscription: subscriptionOutSchema.nullable().optional(),
 
-  approvedAt: z.string().datetime().optional(),
-  approvedBy: z.string().optional(),
+  createdAt: apiDateTimeSchema.nullable().optional(),
+  updatedAt: apiDateTimeSchema.nullable().optional(),
 
-  rejectionReason: z.string().optional(),
+  approvedAt: apiDateTimeSchema.nullable().optional(),
+  approvedBy: z.string().nullable().optional(),
 
-  suspendedAt: z.string().datetime().optional(),
-  suspensionReason: z.string().optional(),
+  rejectionReason: z.string().nullable().optional(),
+
+  suspendedAt: apiDateTimeSchema.nullable().optional(),
+  suspensionReason: z.string().nullable().optional(),
 
   enabledModules: z.array(moduleKeySchema).optional(),
-});
+}).passthrough());

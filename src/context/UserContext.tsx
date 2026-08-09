@@ -81,7 +81,22 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     queryKey: userKeys.all,
     queryFn: async () => {
       const res = await API.get("/users");
-      return userSchema.array().parse(res.data);
+      const result = userSchema.array().safeParse(res.data);
+
+      if (result.success) {
+        return result.data;
+      }
+
+      console.error("USER ZOD ERROR:", result.error);
+
+      if (!Array.isArray(res.data)) {
+        return [];
+      }
+
+      return res.data.flatMap((item) => {
+        const parsed = userSchema.safeParse(item);
+        return parsed.success ? [parsed.data] : [];
+      });
     },
     staleTime: 1000 * 60 * 5,
   });

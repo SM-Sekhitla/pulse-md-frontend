@@ -1,22 +1,32 @@
 import { z } from "zod";
 
+export const apiDateTimeSchema = z.string().refine(
+  (value) => !Number.isNaN(Date.parse(value)),
+  { message: "Invalid datetime" }
+);
+
 //
 // -------------------------------------------------
 // Enums
 // -------------------------------------------------
-export const userRoleSchema = z.enum([
-  "super-admin",
-  "manager",
-  "owner",
-  "receptionist",
-  "nurse",
-  "patient",
-]);
+export const userRoleSchema = z.preprocess(
+  (value) => (value === "super_admin" ? "super-admin" : value),
+  z.enum([
+    "super-admin",
+    "manager",
+    "owner",
+    "receptionist",
+    "nurse",
+    "patient",
+  ])
+);
 
 export const userStatusSchema = z.enum([
   "invited",
   "active",
   "inactive",
+  "pending",
+  "deleted",
 ]);
 
 export type Role = z.infer<typeof userRoleSchema>;
@@ -32,25 +42,25 @@ export const userSchema = z.object({
   email: z.string().email(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  title: z.string().min(1),
+  title: z.string().nullable().default("").transform((value) => value ?? ""),
 
   role: userRoleSchema.default("owner"),
   tenantId: z.string().nullable(),
 
   status: userStatusSchema.default("active"),
 
-  phone: z.string().optional(),
+  phone: z.string().nullable().optional(),
 
-  practiceName: z.string().optional(),
-  practiceSlug: z.string().optional(),
-  hpcsa: z.string().optional(),
+  practiceName: z.string().nullable().optional(),
+  practiceSlug: z.string().nullable().optional(),
+  hpcsa: z.string().nullable().optional(),
 
-  invitedBy: z.string().optional(),
-  inviteSentAt: z.string().datetime().optional(),
+  invitedBy: z.string().nullable().optional(),
+  inviteSentAt: apiDateTimeSchema.nullable().optional(),
   inviteToken: z.string().optional(),
 
-  deletedAt: z.string().datetime().optional(),
-  lastLogin: z.string().datetime().optional(),
+  deletedAt: apiDateTimeSchema.nullable().optional(),
+  lastLogin: apiDateTimeSchema.nullable().optional(),
 
   passwordSet: z.boolean().optional(),
   mustChangePassword: z.boolean().optional(),
@@ -58,7 +68,8 @@ export const userSchema = z.object({
   tempPassword: z.string().optional(),
   password: z.string().min(8).optional(),
 
-  createdAt: z.string().datetime(),
+  createdAt: apiDateTimeSchema.nullable().optional(),
+  updatedAt: apiDateTimeSchema.nullable().optional(),
 });
 
 //

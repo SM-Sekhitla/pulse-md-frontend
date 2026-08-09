@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { PulseLogo } from "@/components/brand";
-import { changePassword, currentUser, logout } from "@/lib/store";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/change-password")({
   component: ChangePassword,
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/change-password")({
 
 function ChangePassword() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(currentUser());
+  const { user, changePassword, logout } = useAuth();
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [show1, setShow1] = useState(false);
@@ -18,29 +18,30 @@ function ChangePassword() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const u = currentUser();
-    if (!u) {
+    if (!user) {
       navigate({ to: "/login" });
-      return;
     }
-    setUser(u);
-  }, [navigate]);
+  }, [navigate, user]);
 
   if (!user) return null;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (pw.length < 12 || !/\d/.test(pw) || !/[A-Z]/.test(pw) || !/[^A-Za-z0-9]/.test(pw)) {
+      setError("Password must be at least 12 characters with 1 number, 1 uppercase letter, and 1 symbol.");
+      return;
+    }
     if (pw !== pw2) {
       setError("Passwords don't match.");
       return;
     }
-    const r = changePassword(user.id, pw);
-    if (!r.ok) {
-      setError(r.error || "Failed");
+    const r = await changePassword(pw);
+    if (!r.success) {
+      setError(r.message || "Failed");
       return;
     }
-    if (user.role === "super_admin") navigate({ to: "/admin" });
+    if (user.role === "super-admin") navigate({ to: "/admin" });
     else navigate({ to: "/dashboard" });
   };
 
@@ -91,7 +92,7 @@ function ChangePassword() {
               toggle={() => setShow2((v) => !v)}
             />
             <p className="text-[11.5px] text-muted-foreground">
-              Min. 8 characters, 1 number, 1 uppercase letter.
+              Min. 12 characters, 1 number, 1 uppercase letter, 1 symbol.
             </p>
             {error && (
               <div className="rounded-md bg-[#FEE2E2] px-3 py-2 text-[12.5px] text-[#991B1B]">

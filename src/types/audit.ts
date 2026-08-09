@@ -1,37 +1,13 @@
-export type AuditType =
-  | "create"
-  | "change"
-  | "cancel"
-  | "price"
-  | "login"
-  | "export"
-  | "role"
-  | "delete";
+import { z } from "zod";
+import {
+  auditCreateSchema,
+  auditSchema,
+  auditTypeEnum,
+  auditUpdateSchema,
+} from "@/schema/audit";
 
-export interface Audit {
-  id: string;
-  ts: string;
-  type: AuditType;
-  message: string;
-  tenantId?: string;
-  actorEmail?: string;
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface AuditCreate {
-  user: string;
-  action: string;
-  detail: string;
-  type: AuditType;
-}
-
-export interface AuditUpdate {
-  user?: string;
-  action?: string;
-  detail?: string;
-  type?: AuditType;
-}
-
+export type AuditType = z.infer<typeof auditTypeEnum>;
+export type Audit = z.infer<typeof auditSchema>;
+export type AuditCreate = z.infer<typeof auditCreateSchema>;
+export type AuditUpdate = z.infer<typeof auditUpdateSchema>;
 export type AuditOut = Audit;

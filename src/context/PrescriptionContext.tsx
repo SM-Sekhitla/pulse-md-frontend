@@ -23,10 +23,14 @@ import type {
 // -------------------------------------------------
 // Create / Update Types
 // -------------------------------------------------
-export type PrescriptionCreate = Omit<
-  Prescription,
-  "id, securityCode, issuedAt"
->;
+export type PrescriptionCreate = Partial<
+  Omit<
+    Prescription,
+    "id" | "securityCode" | "issuedAt" | "qrToken" | "qrHash" | "qrCodeDataUrl"
+  >
+> & {
+  items: Prescription["items"];
+};
 
 export type PrescriptionUpdate = Partial<
   PrescriptionCreate

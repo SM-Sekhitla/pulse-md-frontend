@@ -20,19 +20,22 @@ export const sickNoteSchema = z
 
     issuedAt: z.string().datetime(),
 
-    fromDate: z.string().date(),
-    toDate: z.string().date(),
+    fromDate: z.string().min(1),
+    toDate: z.string().min(1),
 
     reason: z.string().min(1),
 
     icd10: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/),
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/)
+      .optional(),
     recommendation: z.string().optional(),
 
-    securityCode: z.string().min(1),
+    securityCode: z.string().min(1).optional(),
+    qrHash: z.string().min(1).optional(),
+    qrCodeDataUrl: z.string().min(1).optional(),
   })
   .refine((data) => new Date(data.toDate) >= new Date(data.fromDate), {
     message: "toDate must be on or after fromDate",
@@ -45,7 +48,7 @@ export const sickNoteSchema = z
 // -------------------------------------------------
 export const sickNoteCreateSchema = z
   .object({
-    tenantId: z.string(),
+    tenantId: z.string().optional(),
 
     patientId: z.string(),
     patientName: z.string().min(1),
@@ -57,15 +60,15 @@ export const sickNoteCreateSchema = z
 
     issuedAt: z.string().datetime().optional(),
 
-    fromDate: z.string().date(),
-    toDate: z.string().date(),
+    fromDate: z.string().min(1),
+    toDate: z.string().min(1),
 
     reason: z.string().min(1),
 
     icd10: z.string().optional(),
     recommendation: z.string().optional(),
 
-    securityCode: z.string().min(1),
+    securityCode: z.string().min(1).optional(),
   })
   .refine((data) => new Date(data.toDate) >= new Date(data.fromDate), {
     message: "toDate must be on or after fromDate",
@@ -90,8 +93,8 @@ export const sickNoteUpdateSchema = z
 
     issuedAt: z.string().datetime().optional(),
 
-    fromDate: z.string().date().optional(),
-    toDate: z.string().date().optional(),
+    fromDate: z.string().min(1).optional(),
+    toDate: z.string().min(1).optional(),
 
     reason: z.string().min(1).optional(),
 

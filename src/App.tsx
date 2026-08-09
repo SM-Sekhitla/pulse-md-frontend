@@ -8,6 +8,7 @@ import { Route as Pending } from "./routes/pending";
 import { Route as Rejected } from "./routes/rejected";
 import { Route as Suspended } from "./routes/suspended";
 import { Route as ChangePassword } from "./routes/change-password";
+import { Route as ResetPassword } from "./routes/reset-password";
 import { Route as Invite } from "./routes/invite.$token";
 
 import { Route as Dashboard } from "./routes/dashboard";
@@ -99,6 +100,7 @@ export default function App() {
             <Route path="/rejected" element={<C {...Rejected} />} />
             <Route path="/suspended" element={<C {...Suspended} />} />
             <Route path="/change-password" element={<C {...ChangePassword} />} />
+            <Route path="/reset-password" element={<C {...ResetPassword} />} />
             <Route path="/invite/:token" element={<C {...Invite} />} />
 
             <Route path="/dashboard" element={<C {...Dashboard} />} />

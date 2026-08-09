@@ -1,5 +1,5 @@
 import { User } from '@/types/user';
-import API from '@/utils/api';
+import API, { refreshSession } from '@/utils/api';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -80,10 +80,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.id) return { success: false, message: "User not authenticated" };
 
     try {
-      const { data } = await API.put(`/user/${user.id}/change-password`, { new_password: newPassword });
+      const { data } = await API.post(`/auth/change-password`, { new_password: newPassword });
+      if (data.user) {
+        setUser(data.user);
+      }
       return { success: data.success, message: data.message };
     } catch (err: any) {
-      return { success: false, message: err.message || "Password change failed" };
+      return { success: false, message: err?.response?.data?.detail || "Password change failed" };
     }
   };
 
@@ -92,8 +95,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let res = await fetch(`${BASE_URL}/auth/me`, { credentials: "include" });
 
       if (res.status === 401) {
-        const refresh = await fetch(`${BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" });
-        if (!refresh.ok) throw new Error("Refresh failed");
+        const refreshed = await refreshSession();
+        if (!refreshed) throw new Error("Refresh failed");
         res = await fetch(`${BASE_URL}/auth/me`, { credentials: "include" });
       }
 
@@ -103,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(user);
       setIsAuthenticated(true);
     } catch {
-      await logout()
+      await logout();
 
       setUser(null);
       setIsAuthenticated(false);
@@ -141,7 +144,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await fetch(`${BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
+    try {
+      await fetch(`${BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
+    } catch {
+      // Local auth state still needs to be cleared if the network request fails.
+    }
     setUser(null);
     setIsAuthenticated(false);
   };

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { apiDateTimeSchema } from "./user";
 
 export const auditTypeEnum = z.enum([
   "create",
@@ -13,11 +14,24 @@ export const auditTypeEnum = z.enum([
 
 export const auditSchema = z.object({
   id: z.string(),
-  ts: z.string().transform((val) => new Date(val)),
-  action: z.string(),
-  detail: z.string(),
+  ts: apiDateTimeSchema,
+  message: z.string(),
   type: auditTypeEnum,
-  createdAt: z.string().transform((val) => new Date(val)),
-  updatedAt: z.string().transform((val) => new Date(val)),
-
+  tenantId: z.string().nullish(),
+  actorEmail: z.string().email().nullish(),
+  createdAt: apiDateTimeSchema.nullish(),
+  updatedAt: apiDateTimeSchema.nullish(),
 });
+
+export const auditCreateSchema = z.object({
+  message: z.string().min(1),
+  type: auditTypeEnum,
+  tenantId: z.string().optional(),
+  actorEmail: z.string().email().optional(),
+});
+
+export const auditUpdateSchema = auditCreateSchema
+  .partial()
+  .extend({
+    ts: apiDateTimeSchema.optional(),
+  });

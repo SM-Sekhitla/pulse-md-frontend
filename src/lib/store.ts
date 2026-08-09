@@ -201,7 +201,9 @@ export interface Prescription {
   diagnosis?: string;
   icd10?: string;
   items: PrescriptionItem[];
-  securityCode: string; // hidden code embedded in QR
+  securityCode?: string;
+  qrHash?: string;
+  qrCodeDataUrl?: string;
 }
 
 export interface SickNote {
@@ -218,7 +220,9 @@ export interface SickNote {
   reason: string;
   icd10?: string;
   recommendation?: string;
-  securityCode: string;
+  securityCode?: string;
+  qrHash?: string;
+  qrCodeDataUrl?: string;
 }
 
 export interface PlatformSettings {
@@ -1248,5 +1252,4 @@ export function getPublicAppointment(id: string): { appointment: Appointment; pa
   const gp = s.users.find((u) => u.id === tenant.gpUserId) || null;
   return { appointment, patient, tenant, gp, reference: `PM-${appointment.id.slice(-6).toUpperCase()}` };
 }
-
 

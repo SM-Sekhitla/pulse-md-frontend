@@ -73,7 +73,7 @@ function PrescriptionsList() {
                 <th className="px-4 py-2.5">Issued</th>
                 <th className="px-4 py-2.5">Items</th>
                 <th className="px-4 py-2.5">Valid</th>
-                <th className="px-4 py-2.5">Code</th>
+                <th className="px-4 py-2.5">QR</th>
                 <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
@@ -91,7 +91,7 @@ function PrescriptionsList() {
                   <td className="px-4 py-2.5">{p.validDays} days</td>
                   <td className="px-4 py-2.5 font-mono text-[11.5px] text-muted-foreground">
                     <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-teal" />
-                    {p.securityCode.slice(0, 4)}••••
+                    {p.qrHash ? p.qrHash.slice(0, 8) : "Backend signed"}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <Link
