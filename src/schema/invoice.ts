@@ -17,6 +17,47 @@ export const invoiceStatusSchema = z.enum([
   "Overdue",
   "Void",
 ]);
+export const billingTypeSchema = z.enum(["private", "medical_aid"]);
+export const claimStatusSchema = z.enum([
+  "not_submitted",
+  "submitted",
+  "paid",
+  "partially_paid",
+  "rejected",
+  "appealed",
+]);
+
+const icd10CodeSchema = z.object({
+  code: z.string(),
+  description: z.string(),
+  category: z.string().optional(),
+});
+
+const tariffCodeSchema = z.object({
+  code: z.string(),
+  description: z.string(),
+  rate: z.number().min(0),
+  quantity: z.number().min(0),
+  amount: z.number().min(0),
+});
+
+const medicalAidInvoiceFields = {
+  billingType: billingTypeSchema.default("private"),
+  medicalAidSchemeId: z.string().optional(),
+  medicalAidSchemeName: z.string().optional(),
+  medicalAidPlan: z.string().optional(),
+  medicalAidNumber: z.string().optional(),
+  mainMemberName: z.string().optional(),
+  dependantCode: z.string().optional(),
+  claimStatus: claimStatusSchema.optional().default("not_submitted"),
+  schemeBilledAmount: z.number().min(0).optional().default(0),
+  schemePaidAmount: z.number().min(0).optional().default(0),
+  patientCopayment: z.number().min(0).optional().default(0),
+  icd10Codes: z.array(icd10CodeSchema).optional().default([]),
+  tariffCodes: z.array(tariffCodeSchema).optional().default([]),
+  claimReference: z.string().optional(),
+  serviceDate: z.string().optional(),
+};
 
 //
 // -------------------------------------------------
@@ -40,6 +81,7 @@ export const invoiceSchema = z
 
     type: invoiceTypeSchema,
     status: invoiceStatusSchema.default("Draft"),
+    ...medicalAidInvoiceFields,
   })
   .refine((data) => new Date(data.dueDate) >= new Date(data.date), {
     message: "Due date must be on or after invoice date",
@@ -66,6 +108,7 @@ export const invoiceCreateSchema = z
 
     type: invoiceTypeSchema.default("Private"),
     status: invoiceStatusSchema.default("Draft"),
+    ...medicalAidInvoiceFields,
   })
   .refine((data) => new Date(data.dueDate) >= new Date(data.date), {
     message: "Due date must be on or after invoice date",
@@ -92,6 +135,21 @@ export const invoiceUpdateSchema = z
 
     type: invoiceTypeSchema.optional(),
     status: invoiceStatusSchema.optional(),
+    billingType: billingTypeSchema.optional(),
+    medicalAidSchemeId: z.string().optional(),
+    medicalAidSchemeName: z.string().optional(),
+    medicalAidPlan: z.string().optional(),
+    medicalAidNumber: z.string().optional(),
+    mainMemberName: z.string().optional(),
+    dependantCode: z.string().optional(),
+    claimStatus: claimStatusSchema.optional(),
+    schemeBilledAmount: z.number().min(0).optional(),
+    schemePaidAmount: z.number().min(0).optional(),
+    patientCopayment: z.number().min(0).optional(),
+    icd10Codes: z.array(icd10CodeSchema).optional(),
+    tariffCodes: z.array(tariffCodeSchema).optional(),
+    claimReference: z.string().optional(),
+    serviceDate: z.string().optional(),
   })
   .refine(
     (data) =>
@@ -112,7 +170,7 @@ export const invoiceStatusUpdateSchema = z
   })
   .refine(
     (data) =>
-      !data.status, 
+      !!data.status, 
     {
       message: "Select a new status",
       path: ["status"],

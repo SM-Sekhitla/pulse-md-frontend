@@ -1,5 +1,11 @@
 // Mock data + localStorage store for PulseMD
 import { addDays, format, startOfDay, subDays } from "date-fns";
+import {
+  DEFAULT_MEDICAL_AID_SCHEMES,
+  type BillingType,
+  type Icd10Code,
+  type MedicalAidScheme,
+} from "@/lib/medical-aid";
 
 export type Role = "owner" | "manager" | "receptionist" | "nurse" | "patient" | "super_admin";
 export type TenantStatus = "pending_approval" | "active" | "suspended" | "rejected";
@@ -107,6 +113,15 @@ export interface Patient {
   email: string;
   medicalAid: string;
   medicalAidNumber: string;
+  billingType?: BillingType;
+  medicalAidSchemeId?: string;
+  medicalAidSchemeName?: string;
+  medicalAidPlan?: string;
+  isMainMember?: boolean;
+  mainMemberName?: string;
+  mainMemberNumber?: string;
+  dependantCode?: string;
+  relationshipToMain?: "self" | "spouse" | "child" | "parent" | "other";
   allergies: string[];
   chronic: string[];
   lastVisit: string;
@@ -160,6 +175,21 @@ export interface Invoice {
   amount: number;
   type: "Medical aid" | "Private";
   status: "Draft" | "Sent" | "Partially paid" | "Paid" | "Overdue" | "Void";
+  billingType?: BillingType;
+  medicalAidSchemeId?: string;
+  medicalAidSchemeName?: string;
+  medicalAidPlan?: string;
+  medicalAidNumber?: string;
+  mainMemberName?: string;
+  dependantCode?: string;
+  claimStatus?: "not_submitted" | "submitted" | "paid" | "partially_paid" | "rejected" | "appealed";
+  schemeBilledAmount?: number;
+  schemePaidAmount?: number;
+  patientCopayment?: number;
+  icd10Codes?: Icd10Code[];
+  tariffCodes?: Array<{ code: string; description: string; rate: number; quantity: number; amount: number }>;
+  claimReference?: string;
+  serviceDate?: string;
 }
 
 export interface AuditEvent {
@@ -238,6 +268,7 @@ interface Store {
   users: User[];
   tenants: Tenant[];
   patients: Patient[];
+  medicalAidSchemes: MedicalAidScheme[];
   appointments: Appointment[];
   inventory: InventoryItem[];
   invoices: Invoice[];
@@ -379,6 +410,15 @@ function seed(): Store {
     email: `${n[0].toLowerCase()}.${n[1].toLowerCase().replace(/\s/g, "")}@example.co.za`,
     medicalAid: MEDICAL_AIDS[i % MEDICAL_AIDS.length],
     medicalAidNumber: `${100000 + i * 4231}`,
+    billingType: i % 5 === 0 ? "private" : "medical_aid",
+    medicalAidSchemeId: DEFAULT_MEDICAL_AID_SCHEMES[i % DEFAULT_MEDICAL_AID_SCHEMES.length].id,
+    medicalAidSchemeName: DEFAULT_MEDICAL_AID_SCHEMES[i % DEFAULT_MEDICAL_AID_SCHEMES.length].name,
+    medicalAidPlan: DEFAULT_MEDICAL_AID_SCHEMES[i % DEFAULT_MEDICAL_AID_SCHEMES.length].plans[0] ?? "Comprehensive",
+    isMainMember: i % 4 !== 0,
+    mainMemberName: i % 4 === 0 ? `${n[0]} ${n[1]} Senior` : "",
+    mainMemberNumber: "",
+    dependantCode: i % 4 === 0 ? "02" : "00",
+    relationshipToMain: i % 4 === 0 ? "child" : "self",
     allergies: i % 4 === 0 ? ["Penicillin"] : i % 5 === 0 ? ["Peanuts", "Latex"] : [],
     chronic: i % 3 === 0 ? ["Hypertension"] : i % 7 === 0 ? ["Type 2 Diabetes"] : [],
     lastVisit: format(subDays(today, (i * 11) % 90), "yyyy-MM-dd"),
@@ -436,6 +476,21 @@ function seed(): Store {
     amount: 350 + (i * 173) % 2400,
     type: i % 3 === 0 ? "Private" : "Medical aid",
     status: (["Paid", "Paid", "Sent", "Partially paid", "Overdue", "Paid", "Sent"] as const)[i % 7],
+    billingType: i % 3 === 0 ? "private" : "medical_aid",
+    medicalAidSchemeId: p.medicalAidSchemeId,
+    medicalAidSchemeName: p.medicalAidSchemeName,
+    medicalAidPlan: p.medicalAidPlan,
+    medicalAidNumber: p.medicalAidNumber,
+    mainMemberName: p.isMainMember === false ? p.mainMemberName : "",
+    dependantCode: p.dependantCode,
+    claimStatus: i % 3 === 0 ? "not_submitted" : (["paid", "submitted", "partially_paid", "rejected"] as const)[i % 4],
+    schemeBilledAmount: i % 3 === 0 ? 0 : 350 + (i * 173) % 2400,
+    schemePaidAmount: i % 3 === 0 ? 0 : Math.round((350 + (i * 173) % 2400) * (i % 4 === 0 ? 0.7 : 0.9)),
+    patientCopayment: i % 3 === 0 ? 0 : Math.round((350 + (i * 173) % 2400) * (i % 4 === 0 ? 0.3 : 0.1)),
+    icd10Codes: [{ code: "J06", description: "Acute upper respiratory infections of multiple and unspecified sites", category: "J00-J99" }],
+    tariffCodes: [{ code: "0191", description: "Follow-up consultation (established patient)", rate: 520, quantity: 1, amount: 520 }],
+    claimReference: `CLM-${(8400 + i).toString()}`,
+    serviceDate: format(subDays(today, (i * 5) % 60), "yyyy-MM-dd"),
   }));
 
   const audit: AuditEvent[] = [
@@ -449,6 +504,7 @@ function seed(): Store {
     users,
     tenants: [demoTenant, pendingTenant],
     patients,
+    medicalAidSchemes: DEFAULT_MEDICAL_AID_SCHEMES,
     appointments,
     inventory,
     invoices,
@@ -475,7 +531,27 @@ function load(): Store {
       localStorage.setItem(KEY, JSON.stringify(s));
       return s;
     }
-    return JSON.parse(raw) as Store;
+    const parsed = JSON.parse(raw) as Store;
+    return {
+      ...parsed,
+      medicalAidSchemes: parsed.medicalAidSchemes ?? DEFAULT_MEDICAL_AID_SCHEMES,
+      patients: parsed.patients.map((patient) => ({
+        ...patient,
+        billingType: patient.billingType ?? (patient.medicalAid && patient.medicalAid !== "Private" ? "medical_aid" : "private"),
+        medicalAidSchemeName: patient.medicalAidSchemeName ?? patient.medicalAid,
+        medicalAidNumber: patient.medicalAidNumber ?? "",
+        isMainMember: patient.isMainMember ?? true,
+        relationshipToMain: patient.relationshipToMain ?? "self",
+      })),
+      invoices: parsed.invoices.map((invoice) => ({
+        ...invoice,
+        billingType: invoice.billingType ?? (invoice.type === "Medical aid" ? "medical_aid" : "private"),
+        claimStatus: invoice.claimStatus ?? (invoice.type === "Medical aid" ? "not_submitted" : undefined),
+        schemeBilledAmount: invoice.schemeBilledAmount ?? (invoice.type === "Medical aid" ? invoice.amount : 0),
+        schemePaidAmount: invoice.schemePaidAmount ?? 0,
+        patientCopayment: invoice.patientCopayment ?? Math.max(0, (invoice.schemeBilledAmount ?? invoice.amount) - (invoice.schemePaidAmount ?? 0)),
+      })),
+    };
   } catch {
     return seed();
   }
@@ -762,6 +838,26 @@ export function updateSettings(patch: Partial<PlatformSettings>) {
   store.set((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
 }
 
+export function medicalAidSchemes(): MedicalAidScheme[] {
+  return load().medicalAidSchemes ?? DEFAULT_MEDICAL_AID_SCHEMES;
+}
+
+export function tenantAcceptedMedicalAidSchemes(_tenantId?: string | null): MedicalAidScheme[] {
+  return medicalAidSchemes().filter((scheme) => scheme.isActive && scheme.acceptedByPractice);
+}
+
+export function updateMedicalAidScheme(
+  schemeId: string,
+  patch: Partial<Pick<MedicalAidScheme, "acceptedByPractice" | "plans" | "isActive">>,
+) {
+  store.set((s) => ({
+    ...s,
+    medicalAidSchemes: (s.medicalAidSchemes ?? DEFAULT_MEDICAL_AID_SCHEMES).map((scheme) =>
+      scheme.id === schemeId ? { ...scheme, ...patch } : scheme,
+    ),
+  }));
+}
+
 export function planPrice(p: Plan): number {
   return p === "Starter" ? 799 : p === "Growth" ? 1799 : 4500;
 }
@@ -815,6 +911,9 @@ export function createPatient(input: Omit<Patient, "id" | "tenantId" | "lastVisi
     active: input.active ?? true,
     allergies: input.allergies ?? [],
     chronic: input.chronic ?? [],
+    billingType: input.billingType ?? (input.medicalAid && input.medicalAid !== "Private" ? "medical_aid" : "private"),
+    isMainMember: input.isMainMember ?? true,
+    relationshipToMain: input.relationshipToMain ?? "self",
   };
   store.set((s) => ({ ...s, patients: [p, ...s.patients] }));
   return p;
@@ -1141,7 +1240,13 @@ export interface PublicBookingInput {
     phone: string;
     email: string;
     medicalAid?: string;
+    medicalAidSchemeId?: string;
+    medicalAidSchemeName?: string;
+    medicalAidPlan?: string;
     medicalAidNumber?: string;
+    isMainMember?: boolean;
+    mainMemberName?: string;
+    dependantCode?: string;
     province?: string;
     suburb?: string;
   };
@@ -1178,6 +1283,14 @@ export function createPublicBooking(input: PublicBookingInput): PublicBookingRes
       email: input.patient.email,
       medicalAid: input.patient.medicalAid || "Private",
       medicalAidNumber: input.patient.medicalAidNumber || "",
+      billingType: input.patient.medicalAidSchemeId ? "medical_aid" : "private",
+      medicalAidSchemeId: input.patient.medicalAidSchemeId,
+      medicalAidSchemeName: input.patient.medicalAidSchemeName || input.patient.medicalAid,
+      medicalAidPlan: input.patient.medicalAidPlan,
+      isMainMember: input.patient.isMainMember ?? true,
+      mainMemberName: input.patient.mainMemberName,
+      dependantCode: input.patient.dependantCode || (input.patient.medicalAidSchemeId ? "00" : ""),
+      relationshipToMain: input.patient.isMainMember === false ? "other" : "self",
       allergies: [],
       chronic: [],
       lastVisit: input.date,
@@ -1252,4 +1365,3 @@ export function getPublicAppointment(id: string): { appointment: Appointment; pa
   const gp = s.users.find((u) => u.id === tenant.gpUserId) || null;
   return { appointment, patient, tenant, gp, reference: `PM-${appointment.id.slice(-6).toUpperCase()}` };
 }
-

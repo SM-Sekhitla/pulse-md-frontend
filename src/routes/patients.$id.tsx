@@ -12,6 +12,8 @@ import {
   Receipt,
   Plus,
   ArrowLeft,
+  Banknote,
+  Shield,
 } from "lucide-react";
 import { useData } from "@/context/AppDataProvider";
 
@@ -209,12 +211,7 @@ function Overview({ p }: { p: Patient }) {
         <Row label="Email" value={p.email} />
         <Row label="Emergency" value="Spouse · +27 82 555 9201" />
       </Section>
-      <Section title="Medical aid">
-        <Row label="Scheme" value={p.medicalAid} />
-        <Row label="Plan" value="Comprehensive" />
-        <Row label="Member number" value={p.medicalAidNumber} mono />
-        <Row label="Dependant code" value="00 (Main)" />
-      </Section>
+      <MedicalAidCard p={p} />
       <Section title="Clinical">
         <div>
           <div className="label-caps">Chronic conditions</div>
@@ -252,6 +249,56 @@ function Overview({ p }: { p: Patient }) {
           </div>
         </div>
       </Section>
+    </div>
+  );
+}
+
+function MedicalAidCard({ p }: { p: Patient }) {
+  const isMedicalAid = (p.billingType ?? (p.medicalAid === "Private" ? "private" : "medical_aid")) === "medical_aid";
+
+  return (
+    <div className="pulse-card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[12px] font-semibold text-navy">Medical aid</div>
+        <div className="flex items-center gap-2">
+          {isMedicalAid && <Badge variant="success">Medical aid</Badge>}
+          <Link to="/patients/new" className="text-[12.5px] font-medium text-blue hover:underline">
+            {isMedicalAid ? "Edit" : "Add medical aid"}
+          </Link>
+        </div>
+      </div>
+
+      {isMedicalAid ? (
+        <div className="mt-4 space-y-3">
+          <div>
+            <div className="text-[14px] font-medium text-navy">
+              {p.medicalAidSchemeName || p.medicalAid}
+            </div>
+            <div className="mt-0.5 text-[12px] text-muted-foreground">
+              {p.medicalAidPlan || "Plan not recorded"}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+            <Shield className="h-3.5 w-3.5 text-blue" />
+            <span className="font-mono">{p.medicalAidNumber || "Member number not recorded"}</span>
+          </div>
+          {p.isMainMember === false && (
+            <div className="text-[12px] text-muted-foreground">
+              {p.mainMemberName || "Main member"} - dependant {p.dependantCode || "--"}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 flex items-start gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#DCFCE7] text-success">
+            <Banknote className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-[14px] font-medium text-navy">Private patient</div>
+            <div className="text-[12px] text-muted-foreground">No medical aid on file</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

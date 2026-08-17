@@ -5,6 +5,21 @@ import { z } from "zod";
 // Enums
 // -------------------------------------------------
 export const patientGenderSchema = z.enum(["M", "F"]);
+export const billingTypeSchema = z.enum(["private", "medical_aid"]);
+export const relationshipToMainSchema = z.enum(["self", "spouse", "child", "parent", "other"]);
+
+const medicalAidFields = {
+  billingType: billingTypeSchema.default("private"),
+  medicalAidSchemeId: z.string().optional(),
+  medicalAidSchemeName: z.string().optional(),
+  medicalAidPlan: z.string().optional(),
+  medicalAidNumber: z.string().optional().default(""),
+  isMainMember: z.boolean().default(true),
+  mainMemberName: z.string().optional(),
+  mainMemberNumber: z.string().optional(),
+  dependantCode: z.string().optional(),
+  relationshipToMain: relationshipToMainSchema.default("self"),
+};
 
 //
 // -------------------------------------------------
@@ -27,8 +42,8 @@ export const patientSchema = z.object({
   phone: z.string().min(1),
   email: z.string().email(),
 
-  medicalAid: z.string().min(1),
-  medicalAidNumber: z.string().min(1),
+  medicalAid: z.string().optional().default("Private"),
+  ...medicalAidFields,
 
   allergies: z.array(z.string()).default([]),
   chronic: z.array(z.string()).default([]),
@@ -57,8 +72,8 @@ export const patientCreateSchema = z.object({
   phone: z.string().min(1),
   email: z.string().email(),
 
-  medicalAid: z.string().min(1),
-  medicalAidNumber: z.string().min(1),
+  medicalAid: z.string().optional().default("Private"),
+  ...medicalAidFields,
 
   allergies: z.array(z.string()).default([]),
   chronic: z.array(z.string()).default([]),
@@ -85,8 +100,17 @@ export const patientUpdateSchema = z.object({
   phone: z.string().min(1).optional(),
   email: z.string().email().optional(),
 
-  medicalAid: z.string().min(1).optional(),
-  medicalAidNumber: z.string().min(1).optional(),
+  medicalAid: z.string().optional(),
+  billingType: billingTypeSchema.optional(),
+  medicalAidSchemeId: z.string().optional(),
+  medicalAidSchemeName: z.string().optional(),
+  medicalAidPlan: z.string().optional(),
+  medicalAidNumber: z.string().optional(),
+  isMainMember: z.boolean().optional(),
+  mainMemberName: z.string().optional(),
+  mainMemberNumber: z.string().optional(),
+  dependantCode: z.string().optional(),
+  relationshipToMain: relationshipToMainSchema.optional(),
 
   allergies: z.array(z.string()).optional(),
   chronic: z.array(z.string()).optional(),

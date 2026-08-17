@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useParams, useNavigate } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Calendar as CalendarIcon, Check, ChevronRight, Loader2, MapPin, User as UserIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, Calendar as CalendarIcon, Check, ChevronRight, CreditCard, Loader2, MapPin, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isToday } from "date-fns";
 import {
   publicGPBySlug,
   mockAvailability,
   createPublicBooking,
+  medicalAidSchemes,
   type AppointmentType,
 } from "@/lib/store";
 import { SA_PROVINCES, SA_SUBURBS, type SAProvince } from "@/lib/sa-suburbs";
@@ -29,8 +30,12 @@ interface FormState {
   gender: "M" | "F" | "";
   phone: string;
   email: string;
+  billingType: "private" | "medical_aid";
+  medicalAidSchemeId: string;
   medicalAid: string;
+  medicalAidPlan: string;
   medicalAidNumber: string;
+  mainMemberName: string;
   province: string;
   suburb: string;
   consent: boolean;
@@ -39,7 +44,7 @@ interface FormState {
 const EMPTY: FormState = {
   date: "", time: "", appointmentType: "Consultation", reason: "",
   firstName: "", lastName: "", idNumber: "", dob: "", gender: "",
-  phone: "", email: "", medicalAid: "", medicalAidNumber: "",
+  phone: "", email: "", billingType: "private", medicalAidSchemeId: "", medicalAid: "", medicalAidPlan: "", medicalAidNumber: "", mainMemberName: "",
   province: "", suburb: "", consent: false,
 };
 
@@ -77,6 +82,8 @@ function BookingForm() {
   }
 
   const { tenant, gp } = item;
+  const schemes = useMemo(() => medicalAidSchemes().filter((scheme) => scheme.isActive && scheme.acceptedByPractice), []);
+  const selectedScheme = schemes.find((scheme) => scheme.id === form.medicalAidSchemeId);
   const days = useMemo(() => mockAvailability(tenant.id, 14), [tenant.id]);
   const selectedDay = days.find((d) => d.date === form.date);
 
@@ -100,6 +107,11 @@ function BookingForm() {
       if (!/^\+?\d[\d\s]{8,}$/.test(form.phone)) return "Enter a valid mobile number.";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Enter a valid email address.";
       if (!form.province) return "Select your province.";
+      if (form.billingType === "medical_aid") {
+        if (!selectedScheme) return "Select your medical aid scheme.";
+        if (!form.medicalAidPlan.trim()) return "Enter your medical aid plan.";
+        if (!form.medicalAidNumber.trim()) return "Enter your member number.";
+      }
     }
     if (s === 4) {
       if (!form.consent) return "Please accept the consent to continue.";
@@ -138,8 +150,13 @@ function BookingForm() {
           gender: form.gender as "M" | "F",
           phone: form.phone,
           email: form.email,
-          medicalAid: form.medicalAid || undefined,
+          medicalAid: selectedScheme?.name,
+          medicalAidSchemeId: selectedScheme?.id,
+          medicalAidSchemeName: selectedScheme?.name,
+          medicalAidPlan: form.medicalAidPlan || undefined,
           medicalAidNumber: form.medicalAidNumber || undefined,
+          isMainMember: !form.mainMemberName.trim(),
+          mainMemberName: form.mainMemberName || undefined,
           province: form.province,
           suburb: form.suburb || undefined,
         },
@@ -275,8 +292,59 @@ function BookingForm() {
                     {suburbs.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </Field>
-                <Field label="Medical aid (optional)"><input value={form.medicalAid} onChange={(e) => set("medicalAid", e.target.value)} placeholder="e.g. Discovery Health" className={inp} /></Field>
-                <Field label="Member number (optional)"><input value={form.medicalAidNumber} onChange={(e) => set("medicalAidNumber", e.target.value)} className={inp} /></Field>
+                <div className="sm:col-span-2">
+                  <Label>Payment type</Label>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                    <PaymentTile
+                      active={form.billingType === "private"}
+                      icon={Banknote}
+                      iconClassName="bg-[#DCFCE7] text-success"
+                      title="Private patient"
+                      sub="Cash or card. Patient pays directly."
+                      onClick={() => setForm((current) => ({ ...current, billingType: "private", medicalAidSchemeId: "", medicalAid: "", medicalAidPlan: "", medicalAidNumber: "", mainMemberName: "" }))}
+                    />
+                    <PaymentTile
+                      active={form.billingType === "medical_aid"}
+                      icon={CreditCard}
+                      iconClassName="bg-blue-tint text-blue"
+                      title="Medical aid member"
+                      sub="Claim through a registered scheme."
+                      onClick={() => setForm((current) => ({ ...current, billingType: "medical_aid", medicalAidSchemeId: current.medicalAidSchemeId || schemes[0]?.id || "" }))}
+                    />
+                  </div>
+                </div>
+                {form.billingType === "medical_aid" && (
+                  <div className="sm:col-span-2 rounded-xl border border-[#B8CAFF] bg-[#EEF4FF] p-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#1D4ED8]">Medical aid details</div>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      <Field label="Scheme">
+                        <select value={form.medicalAidSchemeId} onChange={(e) => {
+                          const scheme = schemes.find((item) => item.id === e.target.value);
+                          setForm((current) => ({ ...current, medicalAidSchemeId: e.target.value, medicalAid: scheme?.name ?? "", medicalAidPlan: scheme?.plans[0] ?? "" }));
+                        }} className={inp}>
+                          <option value="">Select...</option>
+                          {schemes.map((scheme) => <option key={scheme.id} value={scheme.id}>{scheme.name} - {scheme.administrator}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Plan / option">
+                        {selectedScheme?.plans.length ? (
+                          <select value={form.medicalAidPlan} onChange={(e) => set("medicalAidPlan", e.target.value)} className={inp}>
+                            <option value="">Select...</option>
+                            {selectedScheme.plans.map((plan) => <option key={plan} value={plan}>{plan}</option>)}
+                          </select>
+                        ) : (
+                          <input value={form.medicalAidPlan} onChange={(e) => set("medicalAidPlan", e.target.value)} className={inp} placeholder="Plan name" />
+                        )}
+                      </Field>
+                      <Field label="Member number">
+                        <input value={form.medicalAidNumber} onChange={(e) => set("medicalAidNumber", e.target.value)} className={inp} />
+                      </Field>
+                      <Field label="Main member's name (if you are a dependant)">
+                        <input value={form.mainMemberName} onChange={(e) => set("mainMemberName", e.target.value)} className={inp} />
+                      </Field>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -293,7 +361,7 @@ function BookingForm() {
                 <div className="font-medium text-navy">{form.firstName} {form.lastName}</div>
                 <div className="text-muted-foreground">ID {form.idNumber} · {form.gender === "F" ? "Female" : "Male"} · DOB {form.dob}</div>
                 <div className="text-muted-foreground">{form.phone} · {form.email}</div>
-                {form.medicalAid && <div className="text-muted-foreground">{form.medicalAid} {form.medicalAidNumber && `(#${form.medicalAidNumber})`}</div>}
+                {form.billingType === "medical_aid" && <div className="text-muted-foreground">{selectedScheme?.name} {form.medicalAidNumber && `(#${form.medicalAidNumber})`}</div>}
               </ReviewCard>
               <ReviewCard label="Location" icon={<MapPin className="h-4 w-4" />}>
                 <div className="font-medium text-navy">{[form.suburb, form.province].filter(Boolean).join(", ")}</div>
@@ -398,6 +466,32 @@ function ReviewCard({ label, icon, children }: { label: string; icon: React.Reac
       </div>
       <div className="mt-2 text-[13px]">{children}</div>
     </div>
+  );
+}
+
+function PaymentTile({
+  active,
+  icon: Icon,
+  iconClassName,
+  title,
+  sub,
+  onClick,
+}: {
+  active: boolean;
+  icon: typeof Banknote;
+  iconClassName: string;
+  title: string;
+  sub: string;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className={`rounded-xl border p-4 text-left transition-colors ${active ? "border-blue bg-white" : "border-white/60 bg-white/70 hover:border-blue"}`}>
+      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconClassName}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="mt-3 text-[14px] font-semibold text-navy">{title}</div>
+      <div className="mt-1 text-[12.5px] text-muted-foreground">{sub}</div>
+    </button>
   );
 }
 
