@@ -1,15 +1,28 @@
 import { createFileRoute, Link, useParams } from "@/lib/router-compat";
-import { useMemo } from "react";
 import { Check, CalendarDays, MapPin, User as UserIcon, Building2, ArrowRight, Printer } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { getPublicAppointment } from "@/lib/store";
+import { getPublicAppointment } from "@/lib/public-booking-api";
 import { PulseLogoOnDark } from "@/components/brand";
 
 export const Route = createFileRoute("/book/confirmation/$id")({ component: Confirmation });
 
 function Confirmation() {
   const { id } = useParams<{ id: string }>();
-  const data = useMemo(() => getPublicAppointment(id), [id]);
+  const { data, isLoading } = useQuery({
+    queryKey: ["public-booking", "confirmation", id],
+    queryFn: () => getPublicAppointment(id),
+  });
+
+  if (isLoading) {
+    return (
+      <Shell>
+        <div className="rounded-xl border border-border bg-white p-10 text-center">
+          <div className="text-[15px] font-semibold text-navy">Loading booking...</div>
+        </div>
+      </Shell>
+    );
+  }
 
   if (!data) {
     return (
@@ -35,7 +48,7 @@ function Confirmation() {
           </div>
           <h2 className="mt-4 text-[22px] font-semibold text-navy">Your booking is confirmed</h2>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            We've sent a confirmation to <span className="font-medium text-navy">{patient.email}</span> and an SMS to <span className="font-medium text-navy">{patient.phone}</span>.
+            The booking is reserved for <span className="font-medium text-navy">{patient.email}</span>. The practice can contact you on <span className="font-medium text-navy">{patient.phone}</span>.
           </p>
           <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-[12px] font-mono text-navy">
             Reference: <span className="font-semibold">{reference}</span>
@@ -64,7 +77,7 @@ function Confirmation() {
           <h3 className="text-[14px] font-semibold text-navy">What happens next</h3>
           <ul className="mt-3 space-y-2 text-[13px] text-navy/80">
             <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue" /> Please arrive 10 minutes early with your ID and medical aid card (if applicable).</li>
-            <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue" /> You'll receive a reminder SMS 24 hours before your appointment.</li>
+            <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue" /> The practice may contact you if any booking details need to be confirmed.</li>
             <li className="flex items-start gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue" /> To cancel or reschedule, reply to the confirmation email with your reference.</li>
           </ul>
         </div>

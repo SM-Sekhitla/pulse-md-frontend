@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
-import { approveTenant, rejectTenant, store } from "@/lib/store";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
 
@@ -11,7 +10,7 @@ export const Route = createFileRoute("/admin/practices/pending")({
 });
 
 function Pending() {
-  const { tenant, patient, user, } = useData();
+  const { tenant } = useData();
   
   const [, refresh] = useState(0);
   const reload = () => refresh((x) => x + 1);

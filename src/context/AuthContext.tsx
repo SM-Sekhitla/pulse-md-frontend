@@ -106,8 +106,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(user);
       setIsAuthenticated(true);
     } catch {
-      await logout();
-
       setUser(null);
       setIsAuthenticated(false);
   

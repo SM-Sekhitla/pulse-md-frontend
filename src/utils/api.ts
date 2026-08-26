@@ -1,6 +1,11 @@
 // src/api/axios.ts
 import axios, { AxiosRequestConfig } from 'axios';
-import { toast } from "sonner";
+
+declare module "axios" {
+  interface AxiosRequestConfig {
+    suppressErrorToast?: boolean;
+  }
+}
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 const REFRESH_PATH = "/auth/refresh";
@@ -14,6 +19,7 @@ const API = axios.create({
 });
 
 export const getApiErrorMessage = (error: any) => {
+  const status = error?.response?.status;
   const detail = error?.response?.data?.detail;
   const message =
     detail?.message ||
@@ -21,8 +27,38 @@ export const getApiErrorMessage = (error: any) => {
     error?.response?.data?.message ||
     error?.message ||
     "Something went wrong";
-  const requestId = error?.response?.data?.requestId;
-  return requestId ? `${message} (Request ${requestId})` : message;
+
+  if (status >= 500) {
+    return "Something went wrong on the server. Please try again.";
+  }
+
+  if (status === 422 || Array.isArray(detail)) {
+    return "Please check the form details and try again.";
+  }
+
+  if (typeof message === "string") {
+    const internalFragments = [
+      "validation error",
+      "invalid_type",
+      "\"expected\"",
+      "\"code\"",
+      "\"path\"",
+      "traceback",
+      "typeerror",
+      "valueerror",
+      "pydantic",
+      "zod",
+      "objectid",
+      "vars()",
+      "not iterable",
+    ];
+    const lowerMessage = message.toLowerCase();
+    if (internalFragments.some((fragment) => lowerMessage.includes(fragment))) {
+      return "Something went wrong. Please try again.";
+    }
+  }
+
+  return message;
 };
 
 const isAuthRefreshRequest = (url?: string) => {
@@ -78,10 +114,6 @@ API.interceptors.response.use(
 
     if (error.response?.status === 401 && originalRequest?._retry) {
       redirectToLogin();
-    }
-
-    if (error.response?.status !== 401) {
-      toast.error(getApiErrorMessage(error));
     }
 
     return Promise.reject(error);

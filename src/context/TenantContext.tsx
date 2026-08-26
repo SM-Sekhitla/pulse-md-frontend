@@ -159,7 +159,19 @@ export function TenantProvider({
           result.error
         );
 
-        return [];
+        if (!Array.isArray(res.data)) {
+          return [];
+        }
+
+        return res.data.flatMap((item) => {
+          const parsed = tenantOutSchema.safeParse(item);
+
+          if (!parsed.success) {
+            console.error("TENANT ITEM ZOD ERROR:", parsed.error, item);
+          }
+
+          return parsed.success ? [parsed.data] : [];
+        });
       }
 
       return result.data;

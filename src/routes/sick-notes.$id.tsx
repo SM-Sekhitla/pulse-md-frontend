@@ -4,9 +4,9 @@ import { ArrowLeft, Printer, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { DocumentQR } from "@/components/document-qr";
-import { currentTenant } from "@/lib/store";
 import { useData } from "@/context/AppDataProvider";
 import type { SickNote } from "@/types/sicknote";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
 export const Route = createFileRoute("/sick-notes/$id")({
   component: SickNoteDetail,
@@ -17,7 +17,7 @@ function SickNoteDetail() {
   const { sicknote } = useData();
   const [note, setNote] = useState<SickNote | null>(null);
   const [loading, setLoading] = useState(true);
-  const tenant = currentTenant();
+  const tenant = useCurrentTenant();
 
   useEffect(() => {
     let alive = true;

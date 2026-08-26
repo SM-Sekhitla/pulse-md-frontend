@@ -5,11 +5,13 @@ import {
   MapPin,
   Languages,
   ArrowLeft,
-  CalendarClock,
-  ShieldCheck,
-  Stethoscope,
 } from "lucide-react";
-import { publicGPBySlug, mockAvailability, nextAvailableSlot } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getPublicGPBySlug,
+  getPublicAvailability,
+  nextAvailableSlot,
+} from "@/lib/public-booking-api";
 import { PulseLogoOnDark } from "@/components/brand";
 import { format, parseISO, isToday } from "date-fns";
 
@@ -17,7 +19,27 @@ export const Route = createFileRoute("/book/$slug")({ component: GPProfile });
 
 function GPProfile() {
   const { slug } = useParams<{ slug: string }>();
-  const item = useMemo(() => publicGPBySlug(slug), [slug]);
+  const { data: item, isLoading } = useQuery({
+    queryKey: ["public-booking", "tenant", slug],
+    queryFn: () => getPublicGPBySlug(slug),
+  });
+  const { data: days = [] } = useQuery({
+    queryKey: ["public-booking", "availability", slug],
+    queryFn: () => getPublicAvailability(slug, 14),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <PublicHeader />
+        <main className="mx-auto max-w-3xl px-6 py-16 text-center">
+          <div className="rounded-3xl border border-border bg-white p-10 shadow-sm">
+            <h2 className="text-[22px] font-semibold text-navy">Loading GP profile...</h2>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!item) {
     return (
@@ -46,8 +68,7 @@ function GPProfile() {
 
   const { tenant, gp } = item;
   const initials = `${gp.firstName?.[0] || ""}${gp.lastName?.[0] || ""}`.toUpperCase();
-  const next = nextAvailableSlot(tenant.id);
-  const days = mockAvailability(tenant.id, 14);
+  const next = nextAvailableSlot(days);
 
   const languages =
     tenant.gpLanguages && tenant.gpLanguages.length > 0 ? tenant.gpLanguages : ["English"];
@@ -228,21 +249,6 @@ function GPProfile() {
           </aside>
         </div>
       </main>
-    </div>
-  );
-}
-
-function InfoItem({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof Building2;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-      <Icon className="h-4 w-4 shrink-0 text-white/55" />
-      <span className="truncate">{label}</span>
     </div>
   );
 }

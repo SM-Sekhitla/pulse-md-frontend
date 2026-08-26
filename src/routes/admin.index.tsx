@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { AdminShell } from "@/components/admin-shell";
-import { Badge } from "@/components/badge-pill";
-import { store, formatZAR, planPrice, tenantPatientCount } from "@/lib/store";
+import { formatZAR, planPrice } from "@/lib/pricing";
 import { format, parseISO, isThisMonth } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
 

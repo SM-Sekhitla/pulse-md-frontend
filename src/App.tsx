@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Outlet, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 
 import { Route as Landing } from "./routes/index";
@@ -10,6 +10,7 @@ import { Route as Suspended } from "./routes/suspended";
 import { Route as ChangePassword } from "./routes/change-password";
 import { Route as ResetPassword } from "./routes/reset-password";
 import { Route as Invite } from "./routes/invite.$token";
+import { Route as PracticeLogin } from "./routes/practice-login.$slug";
 
 import { Route as Dashboard } from "./routes/dashboard";
 import { Route as Calendar } from "./routes/calendar";
@@ -59,7 +60,7 @@ import VersionBadge from "./components/common/VersionBadge";
 
 import { Link } from "react-router-dom";
 import { AppDataProvider } from "./context/AppDataProvider";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const C = (r: { component?: React.ComponentType<any> }) => {
   const Cmp = r.component!;
@@ -85,24 +86,43 @@ function NotFound() {
   );
 }
 
+function ProtectedDataLayout() {
+  const { loading, user } = useAuth();
+
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return (
+    <AppDataProvider>
+      <Outlet />
+    </AppDataProvider>
+  );
+}
+
 export default function App() {
   return (
     <>
       <Toaster />
       <VersionBadge/>
       <AuthProvider>
-        <AppDataProvider> 
-          <Routes>
-            <Route path="/" element={<C {...Landing} />} />
-            <Route path="/login" element={<C {...Login} />} />
-            <Route path="/register" element={<C {...Register} />} />
-            <Route path="/pending" element={<C {...Pending} />} />
-            <Route path="/rejected" element={<C {...Rejected} />} />
-            <Route path="/suspended" element={<C {...Suspended} />} />
-            <Route path="/change-password" element={<C {...ChangePassword} />} />
-            <Route path="/reset-password" element={<C {...ResetPassword} />} />
-            <Route path="/invite/:token" element={<C {...Invite} />} />
+        <Routes>
+          <Route path="/" element={<C {...Landing} />} />
+          <Route path="/login" element={<C {...Login} />} />
+          <Route path="/register" element={<C {...Register} />} />
+          <Route path="/pending" element={<C {...Pending} />} />
+          <Route path="/rejected" element={<C {...Rejected} />} />
+          <Route path="/suspended" element={<C {...Suspended} />} />
+          <Route path="/change-password" element={<C {...ChangePassword} />} />
+          <Route path="/reset-password" element={<C {...ResetPassword} />} />
+          <Route path="/invite/:token" element={<C {...Invite} />} />
+          <Route path="/practice/:slug/login" element={<C {...PracticeLogin} />} />
 
+          <Route path="/book" element={<C {...BookList} />} />
+          <Route path="/book/:slug" element={<C {...BookGP} />} />
+          <Route path="/book/confirmation/:id" element={<C {...BookConfirmation} />} />
+          <Route path="/book/:slug/new" element={<C {...BookNew} />} />
+
+          <Route element={<ProtectedDataLayout />}>
             <Route path="/dashboard" element={<C {...Dashboard} />} />
             <Route path="/calendar" element={<C {...Calendar} />} />
             <Route path="/appointments" element={<C {...Appointments} />} />
@@ -137,17 +157,13 @@ export default function App() {
             <Route path="/admin/audit" element={<C {...AdminAudit} />} />
             <Route path="/admin/outbox" element={<C {...AdminOutbox} />} />
             <Route path="/admin/settings" element={<C {...AdminSettings} />} />
-            <Route path="/book" element={<C {...BookList} />} />
-            <Route path="/book/:slug" element={<C {...BookGP} />} />
-            <Route path="/book/confirmation/:id" element={<C {...BookConfirmation} />} />
-            <Route path="/book/:slug/new" element={<C {...BookNew} />} />
             <Route path="/booking/inbox" element={<C {...BookingInbox} />} />
             <Route path="/booking/availability" element={<C {...BookingAvailability} />} />
             <Route path="/booking/profile" element={<C {...BookingProfile} />} />
+          </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppDataProvider>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </AuthProvider>
     </>
   );

@@ -9,7 +9,6 @@ import {
   Calendar as CalIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { currentTenant, tenantPrescriptions } from "@/lib/store";
 import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/prescriptions/")({
@@ -17,12 +16,10 @@ export const Route = createFileRoute("/prescriptions/")({
 });
 
 function PrescriptionsList() {
-  const t = currentTenant();
-  const { appointment, patient, invoice, prescription } = useData();
+  const { prescription } = useData();
   
-  const all = useMemo(() => tenantPrescriptions(t?.id), [t?.id]);
   const [q, setQ] = useState("");
-  const list = all.filter((p) =>
+  const list = prescription.prescriptions.filter((p) =>
     p.patientName.toLowerCase().includes(q.toLowerCase()),
   );
 

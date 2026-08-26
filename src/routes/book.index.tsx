@@ -5,11 +5,16 @@ import {
   MapPin,
   Search,
   CalendarClock,
-  ShieldCheck,
   Stethoscope,
   Users,
 } from "lucide-react";
-import { publicBookingTenants, nextAvailableSlot, type PublicGP } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+import {
+  availabilityFromTenant,
+  getPublicBookingTenants,
+  nextAvailableSlot,
+  type PublicGP,
+} from "@/lib/public-booking-api";
 import { SA_PROVINCES } from "@/lib/sa-suburbs";
 import {
   format,
@@ -36,7 +41,10 @@ const APPOINTMENT_TYPES = [
 type AvailabilityFilter = "any" | "today" | "week";
 
 function PublicBookingList() {
-  const all = useMemo(() => publicBookingTenants(), []);
+  const { data: all = [], isLoading } = useQuery({
+    queryKey: ["public-booking", "tenants"],
+    queryFn: getPublicBookingTenants,
+  });
 
   const [province, setProvince] = useState("");
   const [search, setSearch] = useState("");
@@ -69,7 +77,7 @@ function PublicBookingList() {
     //   }
 
       if (applied.avail !== "any") {
-        const next = nextAvailableSlot(tenant.id);
+        const next = nextAvailableSlot(availabilityFromTenant(tenant, 14));
         if (!next) return false;
 
         const nd = parseISO(next.date);
@@ -202,7 +210,15 @@ function PublicBookingList() {
         </div>
 
         <div className="space-y-4">
-          {visible.length === 0 && (
+          {isLoading && (
+            <div className="rounded-2xl border border-border bg-white p-12 text-center shadow-sm">
+              <div className="text-[15px] font-semibold text-navy">
+                Loading healthcare providers...
+              </div>
+            </div>
+          )}
+
+          {!isLoading && visible.length === 0 && (
             <div className="rounded-2xl border border-border bg-white p-12 text-center shadow-sm">
               <div className="text-[15px] font-semibold text-navy">
                 No GPs found matching your search.
@@ -260,7 +276,7 @@ function HeroStat({
 function GPCard({ item }: { item: PublicGP }) {
   const { tenant, gp } = item;
   const initials = `${gp.firstName?.[0] || ""}${gp.lastName?.[0] || ""}`.toUpperCase();
-  const next = nextAvailableSlot(tenant.id);
+  const next = nextAvailableSlot(availabilityFromTenant(tenant, 14));
   const nextLabel = next ? formatNextLabel(next.date, next.time) : "No availability";
   const slug = tenant.bookingSlug || tenant.slug;
 

@@ -1,13 +1,6 @@
 import { createFileRoute } from "@/lib/router-compat";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import {
-  currentTenant,
-  getTenantAvailability,
-  setTenantAvailability,
-  setTenantHolidays,
-  type BookingAvailability,
-} from "@/lib/store";
 import { toast } from "sonner";
 import {
   Calendar,
@@ -32,29 +25,53 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
+import { useData } from "@/context/AppDataProvider";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
+import type { TenantOut } from "@/types/tenant";
 
 export const Route = createFileRoute("/booking/availability")({
   component: AvailabilityPage,
 });
 
 const DAYS = [
-  { v: 1, l: "Mon" },
-  { v: 2, l: "Tue" },
-  { v: 3, l: "Wed" },
-  { v: 4, l: "Thu" },
-  { v: 5, l: "Fri" },
-  { v: 6, l: "Sat" },
-  { v: 0, l: "Sun" },
+  { v: 1, key: "monday", label: "Monday", l: "Mon" },
+  { v: 2, key: "tuesday", label: "Tuesday", l: "Tue" },
+  { v: 3, key: "wednesday", label: "Wednesday", l: "Wed" },
+  { v: 4, key: "thursday", label: "Thursday", l: "Thu" },
+  { v: 5, key: "friday", label: "Friday", l: "Fri" },
+  { v: 6, key: "saturday", label: "Saturday", l: "Sat" },
+  { v: 0, key: "sunday", label: "Sunday", l: "Sun" },
 ];
 
+interface BookingAvailability {
+  workDays: number[];
+  startTime: string;
+  endTime: string;
+  slotMinutes: number;
+  breakStart?: string;
+  breakEnd?: string;
+}
+
+const DEFAULT_AVAILABILITY: BookingAvailability = {
+  workDays: [1, 2, 3, 4, 5],
+  startTime: "08:00",
+  endTime: "16:00",
+  slotMinutes: 30,
+};
+
 function AvailabilityPage() {
-  const tenant = currentTenant();
-  if (!tenant) return null;
+  const { tenant: tenantData } = useData();
+  const tenant = useCurrentTenant();
 
   const [month, setMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [av, setAv] = useState<BookingAvailability>(getTenantAvailability(tenant.id));
-  const [holidays, setHolidays] = useState<string[]>(tenant.bookingHolidays || []);
+  const [av, setAv] = useState<BookingAvailability>(DEFAULT_AVAILABILITY);
+  const [holidays, setHolidays] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!tenant) return;
+    setAv(availabilityFromTenant(tenant));
+  }, [tenant]);
 
   const selectedKey = format(selectedDate, "yyyy-MM-dd");
   const selectedDayNumber = selectedDate.getDay();
@@ -122,7 +139,9 @@ function AvailabilityPage() {
     toast.success("All days closed");
   };
 
-  const save = () => {
+  const save = async () => {
+    if (!tenant) return;
+
     if (av.startTime >= av.endTime) {
       toast.error("End time must be after start time");
       return;
@@ -133,10 +152,13 @@ function AvailabilityPage() {
       return;
     }
 
-    setTenantAvailability(tenant.id, av);
-    setTenantHolidays(tenant.id, holidays);
+    await tenantData.updateTenant(tenant.id, {
+      workingHours: toWorkingHours(av),
+    });
     toast.success("Availability saved");
   };
+
+  if (!tenant) return null;
 
   return (
     <AppShell title="Booking availability">
@@ -419,4 +441,31 @@ function toMin(t: string) {
   if (!t) return 0;
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
+}
+
+function availabilityFromTenant(tenant: TenantOut): BookingAvailability {
+  const enabledHours = tenant.workingHours?.find((item) => item.enabled);
+  const workDays =
+    tenant.workingHours
+      ?.filter((item) => item.enabled)
+      .map((item) => DAYS.find((day) => day.key === item.key)?.v)
+      .filter((value): value is number => value !== undefined) ?? DEFAULT_AVAILABILITY.workDays;
+
+  return {
+    ...DEFAULT_AVAILABILITY,
+    workDays: workDays.length ? workDays : DEFAULT_AVAILABILITY.workDays,
+    startTime: enabledHours?.start ?? DEFAULT_AVAILABILITY.startTime,
+    endTime: enabledHours?.end ?? DEFAULT_AVAILABILITY.endTime,
+  };
+}
+
+function toWorkingHours(av: BookingAvailability) {
+  return DAYS.map((day) => ({
+    key: day.key,
+    label: day.label,
+    short: day.l,
+    enabled: av.workDays.includes(day.v),
+    start: av.startTime,
+    end: av.endTime,
+  }));
 }

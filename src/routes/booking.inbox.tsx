@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@/lib/router-compat";
-import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { currentTenant, publicBookingsForTenant, setAppointmentStatus, store, type AppointmentStatus } from "@/lib/store";
+import type { AppointmentStatus } from "@/types/appointment";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Globe, CheckCircle2, XCircle, Phone, Mail } from "lucide-react";
+import { useData } from "@/context/AppDataProvider";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
 export const Route = createFileRoute("/booking/inbox")({ component: BookingInbox });
 
@@ -13,18 +14,26 @@ const STATUS_VARIANT = (s: AppointmentStatus) =>
   s === "Confirmed" ? "success" : s === "Cancelled" || s === "No-show" ? "danger" : s === "Completed" ? "neutral" : "blue";
 
 function BookingInbox() {
-  const [, refresh] = useState(0);
-  const reload = () => refresh((x) => x + 1);
-  const tenant = currentTenant();
+  const { appointment, patient } = useData();
+  const tenant = useCurrentTenant();
   if (!tenant) return null;
-  const bookings = publicBookingsForTenant(tenant.id);
-  const s = store.get();
+  const bookings = appointment.appointments.filter(
+    (item) => !item.tenantId || item.tenantId === tenant.id,
+  );
 
   const upcoming = bookings.filter((b) => new Date(b.start) >= new Date(new Date().setHours(0, 0, 0, 0)));
   const past = bookings.filter((b) => new Date(b.start) < new Date(new Date().setHours(0, 0, 0, 0)));
 
-  const onConfirm = (id: string) => { setAppointmentStatus(id, "Confirmed"); toast.success("Booking confirmed"); reload(); };
-  const onCancel = (id: string) => { if (window.confirm("Cancel this booking? The patient should be notified separately.")) { setAppointmentStatus(id, "Cancelled"); toast.success("Booking cancelled"); reload(); } };
+  const onConfirm = async (id: string) => {
+    await appointment.updateAppointmentStatus(id, "Confirmed");
+    toast.success("Booking confirmed");
+  };
+  const onCancel = async (id: string) => {
+    if (window.confirm("Cancel this booking? The patient should be notified separately.")) {
+      await appointment.updateAppointmentStatus(id, "Cancelled");
+      toast.success("Booking cancelled");
+    }
+  };
 
   return (
     <AppShell title="Public bookings inbox">
@@ -49,7 +58,7 @@ function BookingInbox() {
         ) : (
           <div className="divide-y divide-border">
             {upcoming.map((b) => {
-              const p = s.patients.find((x) => x.id === b.patientId);
+              const p = patient.patients.find((x) => x.id === b.patientId);
               return (
                 <Row key={b.id} appt={b} patient={p} onConfirm={() => onConfirm(b.id)} onCancel={() => onCancel(b.id)} />
               );
@@ -63,7 +72,7 @@ function BookingInbox() {
           <Section title="Past" count={past.length}>
             <div className="divide-y divide-border">
               {past.slice(0, 20).map((b) => {
-                const p = s.patients.find((x) => x.id === b.patientId);
+                const p = patient.patients.find((x) => x.id === b.patientId);
                 return <Row key={b.id} appt={b} patient={p} readOnly />;
               })}
             </div>

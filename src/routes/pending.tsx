@@ -1,15 +1,29 @@
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PulseLogo } from "@/components/brand";
-import { currentUser, currentTenant, logout, store } from "@/lib/store";
 import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
+import API from "@/utils/api";
+import { tenantOutSchema } from "@/schema/tenant";
+import type { TenantOut } from "@/types/tenant";
 
 export const Route = createFileRoute("/pending")({ component: Pending });
 
 function Pending() {
   const navigate = useNavigate();
-  const { user } = useAuth()
-  const tenant = currentTenant();
+  const { user, logout } = useAuth();
+  const [tenant, setTenant] = useState<TenantOut | null>(null);
+
+  useEffect(() => {
+    const loadTenant = async () => {
+      if (!user?.tenantId) return;
+      const res = await API.get("/tenants");
+      const result = tenantOutSchema.array().safeParse(res.data);
+      if (!result.success) return;
+      setTenant(result.data.find((item) => item.id === user.tenantId) ?? null);
+    };
+
+    loadTenant().catch(() => setTenant(null));
+  }, [user?.tenantId]);
 
   useEffect(() => {
     if (!user) {
@@ -26,7 +40,7 @@ function Pending() {
   }, [user, tenant, navigate]);
 
   if (!user) return null;
-  const support = store.get().settings.supportEmail;
+  const support = "support@pulsemd.co.za";
 
   return (
     <Holding>

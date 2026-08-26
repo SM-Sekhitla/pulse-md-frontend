@@ -2,14 +2,9 @@ import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import {
-  formatZAR,
-  type InventoryItem,
-  myScopedStore,
-  receiveStock,
-  adjustStock,
-  INVENTORY_CATEGORIES,
-} from "@/lib/store";
+import { formatZAR } from "@/lib/pricing";
+import { INVENTORY_CATEGORIES } from "@/lib/inventory";
+import type { Inventory as InventoryItem } from "@/types/inventory";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { Plus, Search, Minus } from "lucide-react";
 import {
@@ -173,6 +168,7 @@ function ReceiveStockDialog({
   existing: InventoryItem[];
   onDone: () => void;
 }) {
+  const { inventory } = useData();
   const [mode, setMode] = useState<"new" | "existing">("new");
   const [itemId, setItemId] = useState<string>("");
   const [name, setName] = useState("");
@@ -195,22 +191,33 @@ function ReceiveStockDialog({
     }
   }, [open, existing]);
 
-  const submit = () => {
+  const submit = async () => {
     if (quantity <= 0) { toast.error("Quantity must be greater than 0"); return; }
     if (mode === "new" && !name.trim()) { toast.error("Product name required"); return; }
     if (mode === "existing" && !itemId) { toast.error("Select a product"); return; }
-    receiveStock({
-      itemId: mode === "existing" ? itemId : undefined,
-      name: mode === "new" ? name : undefined,
-      category: mode === "new" ? category : undefined,
-      sku: mode === "new" ? (sku || undefined) : undefined,
-      quantity,
-      unitCost: mode === "new" ? unitCost : (unitCost || undefined),
-      sellingPrice: mode === "new" ? sellingPrice : (sellingPrice || undefined),
-      reorderLevel: mode === "new" ? reorderLevel : undefined,
-      expiry: expiry || undefined,
-      supplier: supplier || undefined,
-    });
+    if (mode === "existing") {
+      const existingItem = existing.find((item) => item.id === itemId);
+      if (!existingItem) { toast.error("Select a product"); return; }
+      await inventory.updateInventory(itemId, {
+        stock: existingItem.stock + quantity,
+        unitCost: unitCost || existingItem.unitCost,
+        sellingPrice: sellingPrice || existingItem.sellingPrice,
+        expiry: expiry || existingItem.expiry,
+        supplier: supplier || existingItem.supplier,
+      });
+    } else {
+      await inventory.createInventory({
+        name: name.trim(),
+        category,
+        sku: sku || `SKU-${Date.now().toString(36).toUpperCase()}`,
+        stock: quantity,
+        unitCost,
+        sellingPrice,
+        reorderLevel,
+        expiry: expiry || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+        supplier: supplier || "Unknown",
+      });
+    }
     toast.success(mode === "existing" ? "Stock added" : "Item received");
     onDone();
     onOpenChange(false);
@@ -325,6 +332,7 @@ function AdjustStockDialog({
   onOpenChange: (b: boolean) => void;
   onDone: () => void;
 }) {
+  const { inventory } = useData();
   const [action, setAction] = useState<"remove" | "add">("remove");
   const [qty, setQty] = useState<number>(1);
   const [reason, setReason] = useState<string>("Dispensed");
@@ -335,14 +343,14 @@ function AdjustStockDialog({
 
   if (!item) return null;
 
-  const submit = () => {
+  const submit = async () => {
     if (qty <= 0) { toast.error("Quantity must be greater than 0"); return; }
     const delta = action === "remove" ? -qty : qty;
     if (action === "remove" && qty > item.stock) {
       toast.error(`Only ${item.stock} in stock`);
       return;
     }
-    adjustStock(item.id, delta, reason);
+    await inventory.updateStock(item.id, { stock: Math.max(0, item.stock + delta) });
     toast.success(`Stock updated · ${item.name}`);
     onDone();
   };

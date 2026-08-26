@@ -11,13 +11,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import {
-  currentTenant,
-  patientAppointments,
-  type PrescriptionItem,
-} from "@/lib/store";
+import type { PrescriptionItem } from "@/types/prescription";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/AppDataProvider";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
 export const Route = createFileRoute("/prescriptions/new")({
   component: NewPrescription,
@@ -26,8 +23,8 @@ export const Route = createFileRoute("/prescriptions/new")({
 function NewPrescription() {
   const navigate = useNavigate();
   const { user: me } = useAuth();
-  const { user: userData, patient, inventory, prescription } = useData();
-  const tenant = currentTenant();
+  const { appointment, user: userData, patient, inventory, prescription } = useData();
+  const tenant = useCurrentTenant();
 
   const allUsers = userData.users;
   const patients = useMemo(
@@ -44,7 +41,7 @@ function NewPrescription() {
     : me
       ? `${me.title} ${me.firstName} ${me.lastName}`
       : "Dr. M. Naidoo";
-  const hpcsa = owner?.hpcsa || tenant?.hpcsa || "MP0712345";
+  const hpcsa = owner?.hpcsa || tenant?.hpcsa || "";
 
   const [search, setSearch] = useState("");
   const [patientId, setPatientId] = useState<string>("");
@@ -66,7 +63,7 @@ function NewPrescription() {
     .slice(0, 50);
   const selectedPatient = patients.find((p) => p.id === patientId);
   const apptOptions = selectedPatient
-    ? patientAppointments(selectedPatient.id)
+    ? appointment.appointments.filter((item) => item.patientId === selectedPatient.id)
     : [];
   const medications = useMemo(
     () =>

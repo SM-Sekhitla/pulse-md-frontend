@@ -1,14 +1,30 @@
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
+import { useEffect, useState } from "react";
 import { PulseLogo } from "@/components/brand";
-import { currentUser, currentTenant, logout, store } from "@/lib/store";
+import { useAuth } from "@/context/AuthContext";
+import API from "@/utils/api";
+import { tenantOutSchema } from "@/schema/tenant";
+import type { TenantOut } from "@/types/tenant";
 
 export const Route = createFileRoute("/rejected")({ component: Rejected });
 
 function Rejected() {
   const navigate = useNavigate();
-  const user = currentUser();
-  const tenant = currentTenant();
-  const support = store.get().settings.supportEmail;
+  const { user, logout } = useAuth();
+  const [tenant, setTenant] = useState<TenantOut | null>(null);
+  const support = "support@pulsemd.co.za";
+
+  useEffect(() => {
+    const loadTenant = async () => {
+      if (!user?.tenantId) return;
+      const res = await API.get("/tenants");
+      const result = tenantOutSchema.array().safeParse(res.data);
+      if (!result.success) return;
+      setTenant(result.data.find((item) => item.id === user.tenantId) ?? null);
+    };
+
+    loadTenant().catch(() => setTenant(null));
+  }, [user?.tenantId]);
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-surface">

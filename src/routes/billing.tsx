@@ -2,7 +2,8 @@ import { createFileRoute } from "@/lib/router-compat";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { formatZAR, medicalAidSchemes, rid } from "@/lib/store";
+import { formatZAR } from "@/lib/pricing";
+import { rid } from "@/lib/id";
 import { format, parseISO, addDays } from "date-fns";
 import { Info, Plus, Printer, Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +11,9 @@ import { useData } from "@/context/AppDataProvider";
 import { ICD10_CODES, TARIFF_CODES, type Icd10Code } from "@/lib/medical-aid";
 import type { Invoice } from "@/types/invoice";
 import type { Patient } from "@/types/patient";
+import { useQuery } from "@tanstack/react-query";
+import { getMedicalAidSchemes } from "@/lib/medical-aid-api";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
 export const Route = createFileRoute("/billing")({
   component: Billing,
@@ -141,7 +145,11 @@ function NewInvoiceModal({
   onClose: () => void;
   onCreate: (payload: any) => Promise<void>;
 }) {
-  const schemes = medicalAidSchemes().filter((scheme) => scheme.isActive && scheme.acceptedByPractice);
+  const { data: allSchemes = [] } = useQuery({
+    queryKey: ["medical-aid-schemes"],
+    queryFn: getMedicalAidSchemes,
+  });
+  const schemes = allSchemes.filter((scheme) => scheme.isActive && scheme.acceptedByPractice);
   const [patientId, setPatientId] = useState(patients[0]?.id ?? "");
   const selectedPatient = patients.find((patient) => patient.id === patientId);
   const patientScheme = schemes.find((scheme) => scheme.id === selectedPatient?.medicalAidSchemeId);
@@ -432,6 +440,7 @@ function InvoiceDetailModal({
   onClose: () => void;
   onUpdate: (patch: Partial<Invoice>) => Promise<void>;
 }) {
+  const tenant = useCurrentTenant();
   const [paymentOpen, setPaymentOpen] = useState(false);
   const claimStatus = invoice.claimStatus ?? "not_submitted";
   const schemeBilled = invoice.schemeBilledAmount ?? invoice.amount;
@@ -475,14 +484,16 @@ function InvoiceDetailModal({
         <div className="rounded-lg border border-border bg-white p-5 print:border-0">
           <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
             <div>
-              <div className="text-[18px] font-semibold text-navy">Northcliff Family Practice</div>
-              <div className="mt-1 text-[12.5px] text-muted-foreground">14 Riverside Drive, Northcliff, Johannesburg</div>
-              <div className="text-[12.5px] text-muted-foreground">Tel +27 11 555 0100 - reception@northcliff.health</div>
+              <div className="text-[18px] font-semibold text-navy">{tenant?.name ?? "PulseMD Practice"}</div>
+              <div className="mt-1 text-[12.5px] text-muted-foreground">{tenant?.address ?? ""}</div>
+              <div className="text-[12.5px] text-muted-foreground">
+                {[tenant?.owner?.phone, tenant?.owner?.email].filter(Boolean).join(" - ")}
+              </div>
             </div>
             <div className="text-right text-[12.5px] text-navy">
               <div className="font-semibold">HPCSA Practice Number</div>
-              <div className="font-mono">MP0712345</div>
-              <div className="mt-1 text-muted-foreground">VAT 4123456789</div>
+              <div className="font-mono">{tenant?.hpcsa ?? "—"}</div>
+              <div className="mt-1 text-muted-foreground">VAT {tenant?.vat ?? "—"}</div>
             </div>
           </div>
 
@@ -555,7 +566,8 @@ function InvoiceDetailModal({
           )}
 
           <div className="mt-5 border-t border-border pt-4 text-[11.5px] text-muted-foreground">
-            This account has been prepared in accordance with HPCSA ethical guidelines. Queries: reception@northcliff.health
+            This account has been prepared in accordance with HPCSA ethical guidelines.
+            {tenant?.owner?.email ? ` Queries: ${tenant.owner.email}` : ""}
           </div>
         </div>
 

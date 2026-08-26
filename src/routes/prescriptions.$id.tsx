@@ -3,9 +3,10 @@ import { addDays, format } from "date-fns";
 import { ArrowLeft, Printer, ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DocumentQR } from "@/components/document-qr";
-import { currentTenant, Prescription, store } from "@/lib/store";
 import { useData } from "@/context/AppDataProvider";
 import { useEffect, useState } from "react";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
+import type { Prescription } from "@/types/prescription";
 
 export const Route = createFileRoute("/prescriptions/$id")({
   component: PrescriptionDetail,
@@ -13,10 +14,10 @@ export const Route = createFileRoute("/prescriptions/$id")({
 
 function PrescriptionDetail() {
   const { id } = useParams({ from: "/prescriptions/$id" });
-  const { appointment, patient, invoice, prescription } = useData();
+  const { patient, prescription } = useData();
   const [rx, setX] = useState<Prescription | null>(null);
   
-  const tenant = currentTenant();
+  const tenant = useCurrentTenant();
 
   useEffect(() => {
 

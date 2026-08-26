@@ -2,13 +2,9 @@ import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge, StatusDot } from "@/components/badge-pill";
-import {
-  store,
-  type Appointment,
-  type InventoryItem,
-  formatZAR,
-  myScopedStore,
-} from "@/lib/store";
+import { formatZAR } from "@/lib/pricing";
+import type { Appointment } from "@/types/appointment";
+import type { Inventory } from "@/types/inventory";
 import {
   format,
   isToday,
@@ -89,7 +85,7 @@ function Dashboard() {
       i.status === "Overdue" ||
       i.status === "Partially paid",
   );
-  const lowStock: InventoryItem[] = inventory.inventoryList.filter(
+  const lowStock: Inventory[] = inventory.inventoryList.filter(
     (i) => i.stock <= i.reorderLevel,
   );
   const expiringSoon = inventory.inventoryList.filter((i) => {

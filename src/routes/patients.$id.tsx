@@ -2,7 +2,8 @@ import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, formatZAR, type Patient,myScopedStore } from "@/lib/store";
+import { formatZAR } from "@/lib/pricing";
+import type { Patient } from "@/types/patient";
 import { differenceInYears, format, parseISO } from "date-fns";
 import {
   Calendar,
@@ -112,7 +113,7 @@ function PatientDetail() {
                 <span className="font-mono">{p.idNumber}</span>
                 <Badge variant="indigo">{p.medicalAid}</Badge>
                 <span>
-                  Last visit: {format(parseISO(p.lastVisit), "d MMM yyyy")}
+                  Last visit: {p.lastVisit ? format(parseISO(p.lastVisit), "d MMM yyyy") : "Never"}
                 </span>
               </div>
               {p.allergies.length > 0 && (
@@ -204,7 +205,7 @@ function Overview({ p }: { p: Patient }) {
         />
         <Row label="Gender" value={p.gender === "F" ? "Female" : "Male"} />
         <Row label="ID number" value={p.idNumber} mono />
-        <Row label="Address" value="14 Riverside Drive, Cape Town, 8001" />
+        <Row label="Address" value="Not recorded" />
       </Section>
       <Section title="Contact">
         <Row label="Mobile" value={p.phone} mono />

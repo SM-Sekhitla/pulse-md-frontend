@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { apiDateTimeSchema } from "./user";
 
 //
 // -------------------------------------------------
@@ -8,16 +9,21 @@ export const patientGenderSchema = z.enum(["M", "F"]);
 export const billingTypeSchema = z.enum(["private", "medical_aid"]);
 export const relationshipToMainSchema = z.enum(["self", "spouse", "child", "parent", "other"]);
 
+const optionalString = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.string().optional(),
+);
+
 const medicalAidFields = {
   billingType: billingTypeSchema.default("private"),
-  medicalAidSchemeId: z.string().optional(),
-  medicalAidSchemeName: z.string().optional(),
-  medicalAidPlan: z.string().optional(),
-  medicalAidNumber: z.string().optional().default(""),
+  medicalAidSchemeId: optionalString,
+  medicalAidSchemeName: optionalString,
+  medicalAidPlan: optionalString,
+  medicalAidNumber: optionalString.default(""),
   isMainMember: z.boolean().default(true),
-  mainMemberName: z.string().optional(),
-  mainMemberNumber: z.string().optional(),
-  dependantCode: z.string().optional(),
+  mainMemberName: optionalString,
+  mainMemberNumber: optionalString,
+  dependantCode: optionalString,
   relationshipToMain: relationshipToMainSchema.default("self"),
 };
 
@@ -28,12 +34,12 @@ const medicalAidFields = {
 export const patientSchema = z.object({
   id: z.string(),
 
-  tenantId: z.string().optional(),
+  tenantId: optionalString,
 
   firstName: z.string().min(1),
   lastName: z.string().min(1),
 
-  dob: z.string().datetime(),
+  dob: apiDateTimeSchema,
 
   gender: patientGenderSchema,
 
@@ -42,13 +48,13 @@ export const patientSchema = z.object({
   phone: z.string().min(1),
   email: z.string().email(),
 
-  medicalAid: z.string().optional().default("Private"),
+  medicalAid: optionalString.default("Private"),
   ...medicalAidFields,
 
   allergies: z.array(z.string()).default([]),
   chronic: z.array(z.string()).default([]),
 
-  lastVisit: z.string().datetime(),
+  lastVisit: apiDateTimeSchema.nullable().optional(),
 
   active: z.boolean(),
 });
@@ -58,12 +64,12 @@ export const patientSchema = z.object({
 // Create Patient
 // -------------------------------------------------
 export const patientCreateSchema = z.object({
-  tenantId: z.string().optional(),
+  tenantId: optionalString,
 
   firstName: z.string().min(1),
   lastName: z.string().min(1),
 
-  dob: z.string().datetime(),
+  dob: apiDateTimeSchema,
 
   gender: patientGenderSchema,
 
@@ -72,7 +78,7 @@ export const patientCreateSchema = z.object({
   phone: z.string().min(1),
   email: z.string().email(),
 
-  medicalAid: z.string().optional().default("Private"),
+  medicalAid: optionalString.default("Private"),
   ...medicalAidFields,
 
   allergies: z.array(z.string()).default([]),
@@ -86,12 +92,12 @@ export const patientCreateSchema = z.object({
 // Update Patient
 // -------------------------------------------------
 export const patientUpdateSchema = z.object({
-  tenantId: z.string().optional(),
+  tenantId: optionalString,
 
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
 
-  dob: z.string().datetime().optional(),
+  dob: apiDateTimeSchema.optional(),
 
   gender: patientGenderSchema.optional(),
 
@@ -100,22 +106,22 @@ export const patientUpdateSchema = z.object({
   phone: z.string().min(1).optional(),
   email: z.string().email().optional(),
 
-  medicalAid: z.string().optional(),
+  medicalAid: optionalString,
   billingType: billingTypeSchema.optional(),
-  medicalAidSchemeId: z.string().optional(),
-  medicalAidSchemeName: z.string().optional(),
-  medicalAidPlan: z.string().optional(),
-  medicalAidNumber: z.string().optional(),
+  medicalAidSchemeId: optionalString,
+  medicalAidSchemeName: optionalString,
+  medicalAidPlan: optionalString,
+  medicalAidNumber: optionalString,
   isMainMember: z.boolean().optional(),
-  mainMemberName: z.string().optional(),
-  mainMemberNumber: z.string().optional(),
-  dependantCode: z.string().optional(),
+  mainMemberName: optionalString,
+  mainMemberNumber: optionalString,
+  dependantCode: optionalString,
   relationshipToMain: relationshipToMainSchema.optional(),
 
   allergies: z.array(z.string()).optional(),
   chronic: z.array(z.string()).optional(),
 
-  lastVisit: z.string().datetime().optional(),
+  lastVisit: apiDateTimeSchema.nullable().optional(),
 
   active: z.boolean().optional(),
 });

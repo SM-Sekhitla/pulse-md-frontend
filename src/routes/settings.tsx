@@ -3,8 +3,10 @@ import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Search, X } from "lucide-react";
 import { toast } from "sonner";
-import { medicalAidSchemes, updateMedicalAidScheme } from "@/lib/store";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getMedicalAidSchemes, updateMedicalAidScheme } from "@/lib/medical-aid-api";
 import type { MedicalAidScheme } from "@/lib/medical-aid";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
 export const Route = createFileRoute("/settings")({ component: Settings });
 
@@ -22,11 +24,18 @@ const TABS = [
 ] as const;
 
 function Settings() {
+  const queryClient = useQueryClient();
+  const tenant = useCurrentTenant();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Practice profile");
-  const [schemes, setSchemes] = useState(() => medicalAidSchemes());
+  const { data: schemes = [] } = useQuery({
+    queryKey: ["medical-aid-schemes"],
+    queryFn: getMedicalAidSchemes,
+  });
   const [editingScheme, setEditingScheme] = useState<MedicalAidScheme | null>(null);
 
-  const refreshSchemes = () => setSchemes(medicalAidSchemes());
+  const refreshSchemes = () => {
+    queryClient.invalidateQueries({ queryKey: ["medical-aid-schemes"] });
+  };
 
   return (
     <AppShell title="Settings">
@@ -52,29 +61,29 @@ function Settings() {
               <>
                 <Field
                   label="Practice name"
-                  defaultValue="Northcliff Family Practice"
+                  defaultValue={tenant?.name ?? ""}
                 />
-                <Field label="HPCSA practice number" defaultValue="MP0712345" />
-                <Field label="VAT number" defaultValue="4123456789" />
-                <Field label="Phone" defaultValue="+27 11 555 0100" />
+                <Field label="HPCSA practice number" defaultValue={tenant?.hpcsa ?? ""} />
+                <Field label="VAT number" defaultValue={tenant?.vat ?? ""} />
+                <Field label="Phone" defaultValue={tenant?.owner?.phone ?? ""} />
                 <Field
                   label="Email"
-                  defaultValue="reception@northcliff.health"
+                  defaultValue={tenant?.owner?.email ?? ""}
                 />
-                <Field label="Website" defaultValue="northcliff.health" />
+                <Field label="Website" defaultValue="" />
                 <Field
                   full
                   label="Physical address"
-                  defaultValue="14 Riverside Drive, Northcliff, Johannesburg"
+                  defaultValue={tenant?.address ?? ""}
                 />
               </>
             )}
             {tab === "Medical aid schemes" && (
               <MedicalAidSchemesPanel
                 schemes={schemes}
-                onToggle={(scheme) => {
+                onToggle={async (scheme) => {
                   const next = !scheme.acceptedByPractice;
-                  updateMedicalAidScheme(scheme.id, { acceptedByPractice: next });
+                  await updateMedicalAidScheme(scheme.id, { acceptedByPractice: next });
                   refreshSchemes();
                   toast.success(
                     next
@@ -104,9 +113,6 @@ function Settings() {
           onClose={() => setEditingScheme(null)}
           onSaved={() => {
             refreshSchemes();
-            setEditingScheme((current) =>
-              current ? medicalAidSchemes().find((scheme) => scheme.id === current.id) ?? current : current,
-            );
           }}
         />
       )}
@@ -241,8 +247,8 @@ function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onC
   const [planName, setPlanName] = useState("");
   const [saved, setSaved] = useState(true);
 
-  const save = (nextPlans = plans) => {
-    updateMedicalAidScheme(scheme.id, { plans: nextPlans });
+  const save = async (nextPlans = plans) => {
+    await updateMedicalAidScheme(scheme.id, { plans: nextPlans });
     setSaved(true);
     onSaved();
   };
@@ -324,6 +330,7 @@ function Field({
     <label className={`block ${full ? "md:col-span-2" : ""}`}>
       <span className="text-[12.5px] font-medium text-navy">{label}</span>
       <input
+        key={defaultValue}
         defaultValue={defaultValue}
         className="mt-1.5 block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
       />

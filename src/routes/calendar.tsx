@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, type Appointment, type AppointmentType, myScopedStore } from "@/lib/store";
+import type { Appointment, AppointmentType } from "@/types/appointment";
 import {
   addDays,
   addMinutes,

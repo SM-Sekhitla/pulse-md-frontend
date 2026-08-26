@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, type Patient, myScopedStore } from "@/lib/store";
+import type { Patient } from "@/types/patient";
 import { differenceInYears, format, parseISO } from "date-fns";
 import { Search, Plus, Download, Filter } from "lucide-react";
 import { useData } from "@/context/AppDataProvider";
@@ -143,7 +143,7 @@ function PatientRow({ p }: { p: Patient }) {
       </td>
       <td className="px-5 py-3 font-mono text-[12px] text-navy">{p.phone}</td>
       <td className="px-5 py-3 text-muted-foreground">
-        {format(parseISO(p.lastVisit), "d MMM yyyy")}
+        {p.lastVisit ? format(parseISO(p.lastVisit), "d MMM yyyy") : "Never"}
       </td>
       <td className="px-5 py-3">
         <Badge variant={p.active ? "success" : "neutral"}>

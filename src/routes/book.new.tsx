@@ -4,13 +4,14 @@ import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Banknote, Calendar as CalendarIcon, Check, ChevronRight, CreditCard, Loader2, MapPin, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isToday } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import {
-  publicGPBySlug,
-  mockAvailability,
+  getPublicGPBySlug,
+  getPublicAvailability,
   createPublicBooking,
-  medicalAidSchemes,
-  type AppointmentType,
-} from "@/lib/store";
+  getPublicMedicalAidSchemes,
+} from "@/lib/public-booking-api";
+import type { AppointmentType } from "@/types/appointment";
 import { SA_PROVINCES, SA_SUBURBS, type SAProvince } from "@/lib/sa-suburbs";
 import { PulseLogoOnDark } from "@/components/brand";
 
@@ -50,9 +51,20 @@ const EMPTY: FormState = {
 
 function BookingForm() {
   const { slug } = useParams<{ slug: string }>();
-  const item = useMemo(() => publicGPBySlug(slug), [slug]);
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { data: item, isLoading } = useQuery({
+    queryKey: ["public-booking", "tenant", slug],
+    queryFn: () => getPublicGPBySlug(slug),
+  });
+  const { data: days = [] } = useQuery({
+    queryKey: ["public-booking", "availability", slug],
+    queryFn: () => getPublicAvailability(slug, 14),
+  });
+  const { data: schemes = [] } = useQuery({
+    queryKey: ["public-booking", "medical-aid-schemes", slug],
+    queryFn: () => getPublicMedicalAidSchemes(slug),
+  });
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(() => ({
@@ -70,22 +82,9 @@ function BookingForm() {
     }
   }, [topMsg]);
 
-  if (!item) {
-    return (
-      <Shell title="Book an appointment">
-        <div className="rounded-xl border border-border bg-white p-10 text-center">
-          <div className="text-[15px] font-semibold text-navy">This GP isn't available for booking.</div>
-          <Link to="/book" className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white"><ArrowLeft className="h-3.5 w-3.5" /> Back to search</Link>
-        </div>
-      </Shell>
-    );
-  }
-
-  const { tenant, gp } = item;
-  const schemes = useMemo(() => medicalAidSchemes().filter((scheme) => scheme.isActive && scheme.acceptedByPractice), []);
   const selectedScheme = schemes.find((scheme) => scheme.id === form.medicalAidSchemeId);
-  const days = useMemo(() => mockAvailability(tenant.id, 14), [tenant.id]);
   const selectedDay = days.find((d) => d.date === form.date);
+  const suburbs = form.province ? SA_SUBURBS[form.province as SAProvince] || [] : [];
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -131,13 +130,12 @@ function BookingForm() {
     setStep((x) => Math.max(1, x - 1));
   };
 
-  const submit = () => {
+  const submit = async () => {
     const err = stepValid(4);
     if (err) { setTopMsg({ kind: "error", text: err }); return; }
     setSubmitting(true);
     try {
-      const result = createPublicBooking({
-        tenantId: tenant.id,
+      const result = await createPublicBooking(slug, {
         date: form.date,
         time: form.time,
         appointmentType: form.appointmentType,
@@ -150,6 +148,7 @@ function BookingForm() {
           gender: form.gender as "M" | "F",
           phone: form.phone,
           email: form.email,
+          billingType: form.billingType,
           medicalAid: selectedScheme?.name,
           medicalAidSchemeId: selectedScheme?.id,
           medicalAidSchemeName: selectedScheme?.name,
@@ -163,14 +162,35 @@ function BookingForm() {
         consent: form.consent,
       });
       toast.success("Booking confirmed");
-      navigate(`/book/confirmation/${result.appointment.id}`);
+      navigate(`/book/confirmation/${result.confirmationToken}`);
     } catch (e) {
       setSubmitting(false);
       setTopMsg({ kind: "error", text: e instanceof Error ? e.message : "Failed to create booking." });
     }
   };
 
-  const suburbs = form.province ? SA_SUBURBS[form.province as SAProvince] || [] : [];
+  if (isLoading) {
+    return (
+      <Shell title="Book an appointment">
+        <div className="rounded-xl border border-border bg-white p-10 text-center">
+          <div className="text-[15px] font-semibold text-navy">Loading booking page...</div>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (!item) {
+    return (
+      <Shell title="Book an appointment">
+        <div className="rounded-xl border border-border bg-white p-10 text-center">
+          <div className="text-[15px] font-semibold text-navy">This GP isn't available for booking.</div>
+          <Link to="/book" className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white"><ArrowLeft className="h-3.5 w-3.5" /> Back to search</Link>
+        </div>
+      </Shell>
+    );
+  }
+
+  const { tenant, gp } = item;
 
   return (
     <Shell title="Book an appointment">

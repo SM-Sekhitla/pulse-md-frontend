@@ -1,6 +1,6 @@
 import { createFileRoute } from "@/lib/router-compat";
 import { AppShell } from "@/components/app-shell";
-import { formatZAR, medicalAidSchemes } from "@/lib/store";
+import { formatZAR } from "@/lib/pricing";
 import {
   Activity,
   ArrowLeft,
@@ -17,6 +17,8 @@ import {
 import { useState } from "react";
 import { differenceInCalendarDays, format, parseISO, subMonths } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
+import { useQuery } from "@tanstack/react-query";
+import { getMedicalAidSchemes } from "@/lib/medical-aid-api";
 
 export const Route = createFileRoute("/reports")({ component: Reports });
 
@@ -76,7 +78,10 @@ function Reports() {
 }
 
 function ClaimsSummary({ invoices }: { invoices: any[] }) {
-  const schemes = medicalAidSchemes();
+  const { data: schemes = [] } = useQuery({
+    queryKey: ["medical-aid-schemes"],
+    queryFn: getMedicalAidSchemes,
+  });
   const [scheme, setScheme] = useState("");
   const [status, setStatus] = useState("");
   const rows = invoices.filter((invoice) =>

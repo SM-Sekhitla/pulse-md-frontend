@@ -9,17 +9,16 @@ import {
   Calendar as CalIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { currentTenant, tenantSickNotes } from "@/lib/store";
+import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/sick-notes/")({
   component: SickNotesList,
 });
 
 function SickNotesList() {
-  const t = currentTenant();
-  const all = useMemo(() => tenantSickNotes(t?.id), [t?.id]);
+  const { sicknote } = useData();
   const [q, setQ] = useState("");
-  const list = all.filter((n) =>
+  const list = sicknote.sickNotes.filter((n) =>
     n.patientName.toLowerCase().includes(q.toLowerCase()),
   );
 

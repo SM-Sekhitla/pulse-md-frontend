@@ -8,12 +8,9 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import {
-  currentTenant,
-  patientAppointments,
-} from "@/lib/store";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/AppDataProvider";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
 export const Route = createFileRoute("/sick-notes/new")({
   component: NewSickNote,
@@ -22,8 +19,8 @@ export const Route = createFileRoute("/sick-notes/new")({
 function NewSickNote() {
   const navigate = useNavigate();
   const { user: me} = useAuth();
-  const { user, patient, sicknote } = useData();
-  const tenant = currentTenant();
+  const { appointment, user, patient, sicknote } = useData();
+  const tenant = useCurrentTenant();
 
   const allUsers = user.users;
   const patients = useMemo(
@@ -39,7 +36,7 @@ function NewSickNote() {
     : me
       ? `${me.title} ${me.firstName} ${me.lastName}`
       : "Dr. M. Naidoo";
-  const hpcsa = owner?.hpcsa || tenant?.hpcsa || "MP0712345";
+  const hpcsa = owner?.hpcsa || tenant?.hpcsa || "";
 
   const today = format(new Date(), "yyyy-MM-dd");
   const [search, setSearch] = useState("");
@@ -61,7 +58,7 @@ function NewSickNote() {
     .slice(0, 50);
   const selectedPatient = patients.find((p) => p.id === patientId);
   const apptOptions = selectedPatient
-    ? patientAppointments(selectedPatient.id)
+    ? appointment.appointments.filter((item) => item.patientId === selectedPatient.id)
     : [];
   const days = (() => {
     try {
@@ -86,8 +83,12 @@ function NewSickNote() {
       setError("End date must be on or after start date.");
       return;
     }
+    if (!tenant) {
+      setError("Practice context is still loading. Please try again.");
+      return;
+    }
     const note = await sicknote.createSickNote({
-      tenantId: tenant?.id || "tn_demo",
+      tenantId: tenant.id,
       patientId: selectedPatient.id,
       patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
       appointmentId: appointmentId || undefined,

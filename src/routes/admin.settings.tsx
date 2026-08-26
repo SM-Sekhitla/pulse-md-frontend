@@ -1,7 +1,6 @@
 import { createFileRoute } from "@/lib/router-compat";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
-import { store, updateSettings } from "@/lib/store";
 import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/settings")({
@@ -9,15 +8,23 @@ export const Route = createFileRoute("/admin/settings")({
 });
 
 function AdminSettings() {
-  const { tenant, patient, user, platformSetting} = useData();
+  const { platformSetting } = useData();
   
-  const [superEmail, setSuperEmail] = useState(platformSetting?.platformSettings?.superAdminEmail!);
-  const [supportEmail, setSupportEmail] = useState(platformSetting?.platformSettings?.supportEmail);
-  const [maint, setMaint] = useState(platformSetting?.platformSettings?.maintenanceMode);
+  const [superEmail, setSuperEmail] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [maint, setMaint] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const save = () => {
-    updateSettings({
+  useEffect(() => {
+    const settings = platformSetting.platformSettings;
+    if (!settings) return;
+    setSuperEmail(settings.superAdminEmail);
+    setSupportEmail(settings.supportEmail);
+    setMaint(settings.maintenanceMode);
+  }, [platformSetting.platformSettings]);
+
+  const save = async () => {
+    await platformSetting.createOrUpdatePlatformSettings({
       superAdminEmail: superEmail,
       supportEmail,
       maintenanceMode: maint,

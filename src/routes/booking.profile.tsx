@@ -1,25 +1,35 @@
 import { createFileRoute, Link } from "@/lib/router-compat";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { currentTenant, updateTenantBookingProfile } from "@/lib/store";
 import { toast } from "sonner";
 import { Globe, ExternalLink, Save } from "lucide-react";
+import { useData } from "@/context/AppDataProvider";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
 export const Route = createFileRoute("/booking/profile")({ component: BookingProfile });
 
 const COMMON_LANGS = ["English", "Afrikaans", "isiZulu", "isiXhosa", "Sesotho", "Setswana", "Sepedi", "Xitsonga", "siSwati", "Tshivenda", "isiNdebele"];
 
 function BookingProfile() {
-  const tenant = currentTenant();
-  if (!tenant) return null;
-  const [bio, setBio] = useState(tenant.gpBio || "");
-  const [langs, setLangs] = useState<string[]>(tenant.gpLanguages || ["English"]);
+  const { tenant: tenantData } = useData();
+  const tenant = useCurrentTenant();
+  const [bio, setBio] = useState("");
+  const [langs, setLangs] = useState<string[]>(["English"]);
+
+  useEffect(() => {
+    if (!tenant) return;
+    setBio(tenant.gpBio || "");
+    setLangs(tenant.gpLanguages?.length ? tenant.gpLanguages : ["English"]);
+  }, [tenant]);
 
   const toggle = (l: string) => setLangs((arr) => arr.includes(l) ? arr.filter((x) => x !== l) : [...arr, l]);
-  const save = () => {
-    updateTenantBookingProfile(tenant.id, { gpBio: bio.trim(), gpLanguages: langs });
+  const save = async () => {
+    if (!tenant) return;
+    await tenantData.updateTenant(tenant.id, { gpBio: bio.trim(), gpLanguages: langs });
     toast.success("Public profile saved");
   };
+
+  if (!tenant) return null;
 
   const slug = tenant.bookingSlug || tenant.slug;
   const url = `${typeof window !== "undefined" ? window.location.origin : ""}/book/${slug}`;

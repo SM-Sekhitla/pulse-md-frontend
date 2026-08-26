@@ -1,7 +1,7 @@
 import { createFileRoute } from "@/lib/router-compat";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
-import { store, planPrice, formatZAR } from "@/lib/store";
+import { planPrice, formatZAR } from "@/lib/pricing";
 import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/subscriptions")({
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/admin/subscriptions")({
 });
 
 function Subs() {
-  const { tenant, patient, user, platformSetting} = useData();
+  const { tenant } = useData();
   
   const active = tenant.tenants.filter((t) => t.status === "active");
   const monthly = active.reduce((sum, t) => sum + planPrice(t.plan), 0);

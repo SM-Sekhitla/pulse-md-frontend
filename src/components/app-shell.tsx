@@ -7,9 +7,11 @@ import {
 } from "lucide-react";
 import { PulseLogoOnDark } from "@/components/brand";
 import { cn } from "@/lib/utils";
-import { store, tenantEnabledModules, type ModuleKey } from "@/lib/store";
+import { tenantEnabledModules } from "@/lib/modules";
+import type { ModuleKey } from "@/types/tenant";
 import { Badge } from "@/components/badge-pill";
 import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/AppDataProvider";
 
 interface NavItem { to: string; label: string; icon: any; module?: ModuleKey; }
 interface NavGroup { label: string; items: NavItem[]; }
@@ -59,10 +61,11 @@ const RECEPTIONIST_NAV: NavGroup[] = [
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
+  const { tenant: tenantData } = useData();
   const [collapsed, setCollapsed] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const tenant = user?.tenantId
-    ? store.get().tenants.find((t) => t.id === user.tenantId) || null
+    ? tenantData.tenants.find((t) => t.id === user.tenantId) || null
     : null;
 
   useEffect(() => {
@@ -81,7 +84,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
 
   const handleLogout = async () => { await logout(); navigate({ to: "/" }); };
   const baseNav = user.role === "receptionist" ? RECEPTIONIST_NAV : OWNER_NAV;
-  const enabled = new Set(tenantEnabledModules(user.tenantId));
+  const enabled = new Set(tenantEnabledModules(tenant));
   let NAV: NavGroup[] = baseNav
     .map((g) => ({ ...g, items: g.items.filter((i) => !i.module || enabled.has(i.module)) }))
     .filter((g) => g.items.length > 0);

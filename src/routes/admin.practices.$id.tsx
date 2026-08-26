@@ -1,24 +1,14 @@
-import { createFileRoute, useParams, Link } from "@/lib/router-compat";
+import { createFileRoute, useNavigate, useParams, Link } from "@/lib/router-compat";
 import { useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
-import {
-  approveTenant,
-  rejectTenant,
-  suspendTenant,
-  reinstateTenant,
-  store,
-  planPrice,
-  formatZAR,
-  setTenantBookingEnabled,
-  type TenantStatus,
-} from "@/lib/store";
+import { planPrice, formatZAR } from "@/lib/pricing";
+import type { TenantStatus } from "@/types/tenant";
 import { Switch } from "@/components/ui/switch";
 import {toast} from "sonner";
-import {Copy, Check,Globe,NotebookPen} from "lucide-react";
+import {Copy, Check,KeyRound,NotebookPen, Trash2} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
-import { te } from "date-fns/locale";
 import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/admin/practices/$id")({
@@ -36,13 +26,10 @@ const STATUS_VARIANT = (s: TenantStatus) =>
 
 function PracticeDetail() {
   const { id } = useParams({ from: "/admin/practices/$id" });
+  const navigate = useNavigate();
   const [, refresh] = useState(0);
   const reload = () => refresh((x) => x + 1);
   const { tenant, patient, user, } = useData();
-  const { user: currentUser} = useAuth();
-
-  
-  const me = currentUser!;
   const t = tenant.tenants.find((x) => x.id === id);
   if (!t)
     return (
@@ -56,7 +43,7 @@ function PracticeDetail() {
       </AdminShell>
     );
 
-  const owner = user.users.find((u) => u.id === t.gpUserId);
+  const owner = t.owner ?? user.users.find((u) => u.id === t.gpUserId);
   const staffCount = user.users.filter(
     (u) => u.tenantId === t.id && u.role === "receptionist" && !u.deletedAt,
   ).length;
@@ -91,13 +78,26 @@ function PracticeDetail() {
       reload();
     }
   };
-  const reinstate = () => {
+  const reinstate = async () => {
     if (confirm("Reinstate this practice?")) {
-      reinstateTenant(t.id, me);
-      //await tenant.rejectTenant(t.id, r)
-
+      await tenant.updateTenantStatus(t.id, "active");
       reload();
     }
+  };
+  const removePractice = async () => {
+    const confirmed = confirm(
+      `Remove ${t.name}? This removes the practice from super admin and disables access for its practice users.`,
+    );
+    if (!confirmed) return;
+
+    const removed = await tenant.deleteTenant(t.id);
+    if (!removed) {
+      toast.error("Could not remove practice.");
+      return;
+    }
+
+    toast.success("Practice removed.");
+    navigate({ to: "/admin/practices" });
   };
 
   return (
@@ -167,7 +167,21 @@ function PracticeDetail() {
             </div>
           </div>
 
-           <FeaturesCard tenantId={t.id} bookingEnabled={!!t.bookingEnabled} bookingSlug={t.bookingSlug || t.slug} onChange={reload} />
+           <FeaturesCard
+             bookingEnabled={!!t.bookingEnabled}
+             bookingSlug={t.bookingSlug || t.slug}
+             loginSlug={t.slug}
+             onToggle={async (enabled) => {
+               const updated = await tenant.updateTenant(t.id, {
+                 bookingEnabled: enabled,
+                 bookingSlug: t.bookingSlug || t.slug,
+               });
+               if (!updated) return false;
+               toast.success(enabled ? "Public booking enabled" : "Public booking disabled");
+               reload();
+               return true;
+             }}
+           />
         </div>
 
         <div className="space-y-4">
@@ -210,6 +224,16 @@ function PracticeDetail() {
                 Application rejected. Reason: {t.rejectionReason || "—"}
               </div>
             )}
+            <div className="mt-4 border-t border-border pt-4">
+              <button
+                type="button"
+                onClick={removePractice}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#FCA5A5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#991B1B] hover:bg-[#FEF2F2]"
+              >
+                <Trash2 className="h-4 w-4" />
+                Remove practice
+              </button>
+            </div>
           </div>
 
           <div className="pulse-card p-6">
@@ -251,22 +275,39 @@ function Row({
   );
 }
 
-function FeaturesCard({ tenantId, bookingEnabled, bookingSlug, onChange }: { tenantId: string; bookingEnabled: boolean; bookingSlug: string; onChange: () => void }) {
+function FeaturesCard({
+  bookingEnabled,
+  bookingSlug,
+  loginSlug,
+  onToggle,
+}: {
+  bookingEnabled: boolean;
+  bookingSlug: string;
+  loginSlug: string;
+  onToggle: (enabled: boolean) => Promise<boolean>;
+}) {
   const [copied, setCopied] = useState(false);
+  const [copiedLogin, setCopiedLogin] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "https://app.pulsemd.co.za";
-  const link = `${origin}/book`;
+  const link = `${origin}/book/${bookingSlug}`;
+  const loginLink = `${origin}/practice/${loginSlug}/login`;
 
-  const toggle = (on: boolean) => {
-    setTenantBookingEnabled(tenantId, on);
-    toast.success(on ? "Public booking enabled" : "Public booking disabled");
-    onChange();
+  const toggle = async (on: boolean) => {
+    setUpdating(true);
+    try {
+      const ok = await onToggle(on);
+      if (!ok) toast.error("Could not update public booking.");
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  const copy = async () => {
+  const copy = async (value: string, markCopied: (copied: boolean) => void) => {
     try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      await navigator.clipboard.writeText(value);
+      markCopied(true);
+      setTimeout(() => markCopied(false), 1800);
     } catch { /* ignore */ }
   };
 
@@ -283,7 +324,7 @@ function FeaturesCard({ tenantId, bookingEnabled, bookingSlug, onChange }: { ten
             </div>
           </div>
         </div>
-        <Switch checked={bookingEnabled} onCheckedChange={toggle} aria-label="Toggle public booking" />
+        <Switch checked={bookingEnabled} disabled={updating} onCheckedChange={toggle} aria-label="Toggle public booking" />
       </div>
 
       {bookingEnabled && (
@@ -295,14 +336,28 @@ function FeaturesCard({ tenantId, bookingEnabled, bookingSlug, onChange }: { ten
           </div>
           <button
             type="button"
-            onClick={copy}
+            onClick={() => copy(link, setCopied)}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
           >
             {copied ? <><Check className="h-3.5 w-3.5 text-success" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
           </button>
         </div>
       )}
+
+      <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-white px-4 py-3">
+        <div className="min-w-0">
+          <div className="label-caps">Practice login</div>
+          <div className="font-mono text-[12.5px] text-navy truncate">{loginLink}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Share with the practice owner and staff.</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => copy(loginLink, setCopiedLogin)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
+        >
+          {copiedLogin ? <><Check className="h-3.5 w-3.5 text-success" /> Copied</> : <><KeyRound className="h-3.5 w-3.5" /> Copy</>}
+        </button>
+      </div>
     </div>
   );
 }
-

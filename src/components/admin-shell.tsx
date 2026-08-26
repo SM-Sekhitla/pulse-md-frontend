@@ -3,9 +3,9 @@ import { Link, useNavigate, useRouterState } from "@/lib/router-compat";
 import { LayoutDashboard, Building2, Clock, Users, CreditCard, ScrollText, Settings, LogOut, ChevronLeft, Mail, SlidersHorizontal } from "lucide-react";
 import { PulseLogoOnDark } from "@/components/brand";
 import { cn } from "@/lib/utils";
-import { store } from "@/lib/store";
 import { Badge } from "@/components/badge-pill";
 import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/AppDataProvider";
 
 const NAV = [
   { label: "Overview", items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
@@ -26,6 +26,7 @@ const NAV = [
 export function AdminShell({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
+  const { tenant } = useData();
   const [collapsed, setCollapsed] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
 
@@ -37,7 +38,7 @@ export function AdminShell({ children, title }: { children: ReactNode; title: st
 
   if (loading || !user || !isSuperAdminRole(user.role)) return null;
 
-  const pending = store.get().tenants.filter(t => t.status === "pending_approval").length;
+  const pending = tenant.tenants.filter(t => t.status === "pending_approval").length;
   const handleLogout = async () => { await logout(); navigate({ to: "/" }); };
 
   return (

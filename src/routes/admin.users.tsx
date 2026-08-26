@@ -1,13 +1,12 @@
 import { createFileRoute } from "@/lib/router-compat";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
-import { store } from "@/lib/store";
 import { useData } from "@/context/AppDataProvider";
 
 export const Route = createFileRoute("/admin/users")({ component: AdminUsers });
 
 function AdminUsers() {
-  const { tenant, patient, user, platformSetting} = useData();
+  const { tenant, user } = useData();
   const users = user.users.filter((u) => !u.deletedAt);
   return (
     <AdminShell title="Users">

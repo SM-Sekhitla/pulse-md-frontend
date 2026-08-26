@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { ArrowLeft, Banknote, CreditCard } from "lucide-react";
-import { medicalAidSchemes } from "@/lib/store";
 import { useData } from "@/context/AppDataProvider";
+import { useQuery } from "@tanstack/react-query";
+import { getMedicalAidSchemes } from "@/lib/medical-aid-api";
+import { getApiErrorMessage } from "@/utils/api";
 
 export const Route = createFileRoute("/patients/new")({
   component: NewPatient,
@@ -13,6 +15,10 @@ function NewPatient() {
   const navigate = useNavigate();
 
   const { patient, } = useData();
+  const { data: allSchemes = [] } = useQuery({
+    queryKey: ["medical-aid-schemes"],
+    queryFn: getMedicalAidSchemes,
+  });
   
   const [title, setTitle] = useState("Mr");
   const [firstName, setFirstName] = useState("");
@@ -24,7 +30,10 @@ function NewPatient() {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [billingType, setBillingType] = useState<"private" | "medical_aid">("private");
-  const schemes = medicalAidSchemes().filter((scheme) => scheme.isActive && scheme.acceptedByPractice);
+  const schemes = useMemo(
+    () => allSchemes.filter((scheme) => scheme.isActive && scheme.acceptedByPractice),
+    [allSchemes],
+  );
   const [schemeId, setSchemeId] = useState(schemes[0]?.id ?? "");
   const [planName, setPlanName] = useState("");
   const [customPlanName, setCustomPlanName] = useState("");
@@ -41,42 +50,53 @@ function NewPatient() {
   const availablePlans = selectedScheme?.plans ?? [];
   const selectedPlan = planName === "__other" ? customPlanName : planName;
 
+  useEffect(() => {
+    if (!schemeId && schemes[0]) {
+      setSchemeId(schemes[0].id);
+    }
+  }, [schemeId, schemes]);
+
   const submit = async(e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!firstName.trim() || !lastName.trim()) { setError("First and last name are required."); return; }
     if (!dob) { setError("Date of birth is required."); return; }
     if (!phone.trim()) { setError("Mobile number is required."); return; }
+    if (!email.trim()) { setError("Email address is required."); return; }
     if (billingType === "medical_aid" && !selectedScheme) { setError("Medical aid scheme is required."); return; }
     if (billingType === "medical_aid" && !memberNo.trim()) { setError("Medical aid number is required."); return; }
     if (billingType === "medical_aid" && !selectedPlan.trim()) { setError("Medical aid plan is required."); return; }
     if (billingType === "medical_aid" && !isMainMember && !mainMemberName.trim()) { setError("Main member name is required for dependants."); return; }
     if (!consent) { setError("POPIA consent is required."); return; }
 
-    await patient.createPatient({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      dob,
-      gender,
-      idNumber: idNumber.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
-      medicalAid: billingType === "medical_aid" ? selectedScheme?.name ?? "" : "Private",
-      billingType,
-      medicalAidSchemeId: billingType === "medical_aid" ? selectedScheme?.id : undefined,
-      medicalAidSchemeName: billingType === "medical_aid" ? selectedScheme?.name : undefined,
-      medicalAidPlan: billingType === "medical_aid" ? selectedPlan.trim() : "",
-      medicalAidNumber: memberNo.trim(),
-      isMainMember,
-      mainMemberName: isMainMember ? "" : mainMemberName.trim(),
-      mainMemberNumber: isMainMember ? "" : mainMemberNumber.trim(),
-      dependantCode: billingType === "medical_aid" ? dependantCode.trim() : "",
-      relationshipToMain: isMainMember ? "self" : relationshipToMain,
-      allergies: [],
-      chronic: [],
-      active: true
-    });
-    navigate({ to: "/patients" });
+    try {
+      await patient.createPatient({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dob: new Date(`${dob}T00:00:00`).toISOString(),
+        gender,
+        idNumber: idNumber.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        medicalAid: billingType === "medical_aid" ? selectedScheme?.name ?? "" : "Private",
+        billingType,
+        medicalAidSchemeId: billingType === "medical_aid" ? selectedScheme?.id : undefined,
+        medicalAidSchemeName: billingType === "medical_aid" ? selectedScheme?.name : undefined,
+        medicalAidPlan: billingType === "medical_aid" ? selectedPlan.trim() : "",
+        medicalAidNumber: memberNo.trim(),
+        isMainMember,
+        mainMemberName: isMainMember ? "" : mainMemberName.trim(),
+        mainMemberNumber: isMainMember ? "" : mainMemberNumber.trim(),
+        dependantCode: billingType === "medical_aid" ? dependantCode.trim() : "",
+        relationshipToMain: isMainMember ? "self" : relationshipToMain,
+        allergies: [],
+        chronic: [],
+        active: true
+      });
+      navigate({ to: "/patients" });
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    }
   };
 
   return (

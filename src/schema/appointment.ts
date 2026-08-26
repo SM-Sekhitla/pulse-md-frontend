@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { apiDateTimeSchema } from "./user";
 
 //
 // -------------------------------------------------
@@ -38,8 +39,8 @@ export const appointmentSchema = z
 
     type: appointmentTypeSchema,
 
-    start: z.string().datetime(),
-    end: z.string().datetime(),
+    start: apiDateTimeSchema,
+    end: apiDateTimeSchema,
 
     status: appointmentStatusSchema.default("Booked"),
 
@@ -66,8 +67,8 @@ export const appointmentCreateSchema = z
 
     type: appointmentTypeSchema.default("Consultation"),
 
-    start: z.string().datetime(),
-    end: z.string().datetime(),
+    start: apiDateTimeSchema,
+    end: apiDateTimeSchema,
 
     status: appointmentStatusSchema.default("Booked"),
 
@@ -94,8 +95,8 @@ export const appointmentUpdateSchema = z
 
     type: appointmentTypeSchema.optional(),
 
-    start: z.string().datetime().optional(),
-    end: z.string().datetime().optional(),
+    start: apiDateTimeSchema.optional(),
+    end: apiDateTimeSchema.optional(),
 
     status: appointmentStatusSchema.optional(),
 

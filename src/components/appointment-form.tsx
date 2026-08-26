@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock, Stethoscope, User as UserIcon, MapPin, FileText } from "lucide-react";
-import { createAppointment, myScopedStore, store, type Appointment, type AppointmentType } from "@/lib/store";
+import type { Appointment, AppointmentType } from "@/types/appointment";
 import { useData } from "@/context/AppDataProvider";
 import { useAuth } from "@/context/AuthContext";
 
@@ -16,10 +16,10 @@ const ROOMS = ["Room 1", "Room 2", "Room 3", "Telehealth"];
 const DURATIONS = [10, 15, 20, 30, 45, 60];
 
 export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
-  const { patient } = useData();
+  const { appointment, patient, user: users } = useData();
   const { user } = useAuth();
   const patients = useMemo(() => patient.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)), [patient.patients]);
-  const gp = fullStore.users.find(u => u.role === "owner" && u.tenantId === fullStore.user?.tenantId);
+  const gp = users.users.find((item) => item.role === "owner" && item.tenantId === user?.tenantId);
   const gpName = gp ? `${gp.title} ${gp.firstName[0]}. ${gp.lastName}` : "Dr.";
 
   const initial = defaultDate || new Date();
@@ -38,7 +38,7 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
   ).slice(0, 50);
   const selectedPatient = patients.find(p => p.id === patientId);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     const p = patients.find(x => x.id === patientId);
@@ -47,7 +47,7 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
     const start = new Date(`${date}T${time}:00`);
     if (isNaN(start.getTime())) { setError("Invalid date/time."); return; }
     const end = new Date(start.getTime() + duration * 60000);
-    const a = createAppointment({
+    const a = await appointment.createAppointment({
       patientId: p.id,
       patientName: `${p.firstName} ${p.lastName}`,
       type,
