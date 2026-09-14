@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { Check, CalendarDays, MapPin, User as UserIcon, Building2, ArrowRight, Printer } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -83,9 +84,9 @@ function Confirmation() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
+          <ActionButton onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
             <Printer className="h-3.5 w-3.5" /> Print confirmation
-          </button>
+          </ActionButton>
           <Link to="/book" className="inline-flex items-center gap-1.5 rounded-md bg-blue px-4 py-2 text-[13px] font-semibold text-white hover:bg-blue/90">
             Find another GP <ArrowRight className="h-3.5 w-3.5" />
           </Link>

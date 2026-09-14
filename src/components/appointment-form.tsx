@@ -1,3 +1,4 @@
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock, Stethoscope, User as UserIcon, MapPin, FileText } from "lucide-react";
@@ -62,7 +63,7 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <ActionForm onSubmit={submit} className="space-y-5">
       <Section icon={<UserIcon className="h-4 w-4" />} title="Patient">
         <input
           placeholder="Search patients by name…"
@@ -129,15 +130,15 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
 
       <div className="flex justify-end gap-2 pt-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
+          <ActionButton type="button" onClick={onCancel} className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
             Cancel
-          </button>
+          </ActionButton>
         )}
-        <button type="submit" className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
+        <ActionButton type="submit" className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
           Schedule appointment
-        </button>
+        </ActionButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 

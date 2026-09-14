@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+const optionalString = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.string().optional(),
+);
+
+const dateOnlyString = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+
+  return Number.isNaN(Date.parse(value)) ? value : value.slice(0, 10);
+}, z.string().date());
+
+const optionalDateOnlyString = z.preprocess((value) => {
+  if (value === null || value === "") return undefined;
+  if (typeof value !== "string") return value;
+
+  return Number.isNaN(Date.parse(value)) ? value : value.slice(0, 10);
+}, z.string().date().optional());
+
 //
 // -------------------------------------------------
 // Base Inventory
@@ -7,7 +25,7 @@ import { z } from "zod";
 export const inventorySchema = z.object({
   id: z.string(),
 
-  tenantId: z.string().optional(),
+  tenantId: optionalString,
 
   name: z.string().min(1),
   category: z.string().min(1),
@@ -20,7 +38,7 @@ export const inventorySchema = z.object({
   unitCost: z.number().min(0),
   sellingPrice: z.number().min(0),
 
-  expiry: z.string().date(),
+  expiry: dateOnlyString,
 
   supplier: z.string().min(1),
 });
@@ -30,7 +48,7 @@ export const inventorySchema = z.object({
 // Create Inventory
 // -------------------------------------------------
 export const inventoryCreateSchema = z.object({
-  tenantId: z.string().optional(),
+  tenantId: optionalString,
 
   name: z.string().min(1),
   category: z.string().min(1),
@@ -43,7 +61,7 @@ export const inventoryCreateSchema = z.object({
   unitCost: z.number().min(0),
   sellingPrice: z.number().min(0),
 
-  expiry: z.string().date(),
+  expiry: dateOnlyString,
 
   supplier: z.string().min(1),
 });
@@ -53,7 +71,7 @@ export const inventoryCreateSchema = z.object({
 // Update Inventory
 // -------------------------------------------------
 export const inventoryUpdateSchema = z.object({
-  tenantId: z.string().optional(),
+  tenantId: optionalString,
 
   name: z.string().min(1).optional(),
   category: z.string().min(1).optional(),
@@ -66,7 +84,7 @@ export const inventoryUpdateSchema = z.object({
   unitCost: z.number().min(0).optional(),
   sellingPrice: z.number().min(0).optional(),
 
-  expiry: z.string().date().optional(),
+  expiry: optionalDateOnlyString,
 
   supplier: z.string().min(1).optional(),
 });

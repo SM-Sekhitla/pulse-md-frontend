@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, useNavigate, useParams, Link } from "@/lib/router-compat";
 import { useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
@@ -189,35 +190,35 @@ function PracticeDetail() {
             <div className="label-caps mb-3">Actions</div>
             {t.status === "pending_approval" && (
               <>
-                <button
+                <ActionButton
                   onClick={approve}
                   className="w-full rounded-md bg-success px-4 py-2.5 text-[13px] font-medium text-white hover:opacity-90"
                 >
                   Approve practice
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton
                   onClick={reject}
                   className="mt-2 w-full rounded-md border border-[#FCA5A5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#991B1B] hover:bg-[#FEF2F2]"
                 >
                   Reject application
-                </button>
+                </ActionButton>
               </>
             )}
             {t.status === "active" && (
-              <button
+              <ActionButton
                 onClick={suspend}
                 className="w-full rounded-md bg-[#E53E3E] px-4 py-2.5 text-[13px] font-medium text-white hover:opacity-90"
               >
                 Suspend practice
-              </button>
+              </ActionButton>
             )}
             {t.status === "suspended" && (
-              <button
+              <ActionButton
                 onClick={reinstate}
                 className="w-full rounded-md bg-success px-4 py-2.5 text-[13px] font-medium text-white hover:opacity-90"
               >
                 Reinstate practice
-              </button>
+              </ActionButton>
             )}
             {t.status === "rejected" && (
               <div className="text-[12.5px] text-muted-foreground">
@@ -225,14 +226,14 @@ function PracticeDetail() {
               </div>
             )}
             <div className="mt-4 border-t border-border pt-4">
-              <button
+              <ActionButton
                 type="button"
                 onClick={removePractice}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#FCA5A5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#991B1B] hover:bg-[#FEF2F2]"
               >
                 <Trash2 className="h-4 w-4" />
                 Remove practice
-              </button>
+              </ActionButton>
             </div>
           </div>
 
@@ -334,13 +335,13 @@ function FeaturesCard({
             <div className="font-mono text-[12.5px] text-navy truncate">{link}</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Slug: <span className="font-mono">{bookingSlug}</span></div>
           </div>
-          <button
+          <ActionButton
             type="button"
             onClick={() => copy(link, setCopied)}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
           >
             {copied ? <><Check className="h-3.5 w-3.5 text-success" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
-          </button>
+          </ActionButton>
         </div>
       )}
 
@@ -350,13 +351,13 @@ function FeaturesCard({
           <div className="font-mono text-[12.5px] text-navy truncate">{loginLink}</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">Share with the practice owner and staff.</div>
         </div>
-        <button
+        <ActionButton
           type="button"
           onClick={() => copy(loginLink, setCopiedLogin)}
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
         >
           {copiedLogin ? <><Check className="h-3.5 w-3.5 text-success" /> Copied</> : <><KeyRound className="h-3.5 w-3.5" /> Copy</>}
-        </button>
+        </ActionButton>
       </div>
     </div>
   );

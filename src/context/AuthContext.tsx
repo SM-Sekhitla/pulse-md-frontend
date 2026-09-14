@@ -1,17 +1,70 @@
+import { getLoginRoute } from "@/lib/auth-routing";
 import { User } from '@/types/user';
+import { fetchTenants, tenantKeys } from '@/context/TenantContext';
+import { auditSchema } from '@/schema/audit';
+import { patientSchema } from '@/schema/patient';
+import { userSchema } from '@/schema/user';
 import API, { refreshSession } from '@/utils/api';
+import { useQueryClient } from '@tanstack/react-query';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 const BASE_URL = import.meta.env.VITE_API_URL;
+const TENANT_SLUG_STORAGE_KEY = "pulse_tenant_slug";
 
 export const isSuperAdminRole = (role?: string | null) =>
   role === "super-admin";
+
+const timeout = (ms: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+const prefetchSuperAdminData = async (
+  queryClient: ReturnType<typeof useQueryClient>,
+) => {
+  await Promise.race([
+    Promise.allSettled([
+      queryClient.prefetchQuery({
+        queryKey: tenantKeys.lists(),
+        queryFn: fetchTenants,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ["patients", "list"],
+        queryFn: async () => {
+          const res = await API.get("/patients");
+          return patientSchema.array().parse(res.data);
+        },
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ["users"],
+        queryFn: async () => {
+          const res = await API.get("/users");
+          return userSchema.array().parse(res.data);
+        },
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ["users", "stats"],
+        queryFn: async () => {
+          const res = await API.get("/users/stats");
+          return res.data;
+        },
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ["audits", "list"],
+        queryFn: async () => {
+          const res = await API.get("/audits");
+          return auditSchema.array().parse(res.data);
+        },
+      }),
+    ]),
+    timeout(2000),
+  ]);
+};
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string, user?: User }>;
+  login: (email: string, password: string, practiceSlug?: string) => Promise<{ success: boolean; message?: string, user?: User }>;
+  acceptInvite: (token: string, password: string) => Promise<{ success: boolean; message?: string; user?: User }>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<{success: boolean; message?: string }>;
   changePassword: (newPassword: string) => Promise<{success: boolean; message?: string }>;
@@ -25,6 +78,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
@@ -34,9 +88,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const rememberTenantSlug = (loggedInUser: User | null) => {
+    if (loggedInUser?.practiceSlug) {
+      window.sessionStorage.setItem(TENANT_SLUG_STORAGE_KEY, loggedInUser.practiceSlug);
+      return;
+    }
+    window.sessionStorage.removeItem(TENANT_SLUG_STORAGE_KEY);
+  };
+
+  const login = async (email: string, password: string, practiceSlug?: string) => {
     try {
-      const res = await fetch(`${BASE_URL}/auth/login`, {
+      const endpoint = practiceSlug
+        ? `${BASE_URL}/auth/practice/${encodeURIComponent(practiceSlug)}/login`
+        : `${BASE_URL}/auth/login`;
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -45,7 +110,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const result = await res.json();
 
       if (!res.ok) {
-        return { success: false, message: result.detail?.message || "Invalid credentials" };
+        return {
+          success: false,
+          message: [401, 403, 404, 422].includes(res.status)
+            ? "Invalid credentials, email or password."
+            : result.detail?.message || "Login failed",
+        };
       }
 
       let loggedInUser = result.user ?? result.data?.user;
@@ -58,12 +128,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loggedInUser = await me.json();
       }
 
+      queryClient.clear();
       setUser(loggedInUser);
       setIsAuthenticated(true);
+      rememberTenantSlug(loggedInUser);
+
+      if (isSuperAdminRole(loggedInUser.role)) {
+        await prefetchSuperAdminData(queryClient);
+      }
 
       return { success: true, user: loggedInUser };
     } catch (err: any) {
       return { success: false, message: "Login failed" };
+    }
+  };
+
+  const acceptInvite = async (token: string, password: string) => {
+    try {
+      const { data } = await API.post("/auth/invite/accept", {
+        token,
+        password,
+      });
+      const loggedInUser = userSchema.parse(data.user);
+
+      queryClient.clear();
+      setUser(loggedInUser);
+      setIsAuthenticated(true);
+      rememberTenantSlug(loggedInUser);
+
+      return { success: true, user: loggedInUser };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err?.response?.data?.detail || "Invalid or expired invite.",
+      };
     }
   };
 
@@ -105,9 +203,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const user = await res.json();
       setUser(user);
       setIsAuthenticated(true);
+      rememberTenantSlug(user);
     } catch {
       setUser(null);
       setIsAuthenticated(false);
+      rememberTenantSlug(null);
   
     } finally {
       setLoading(false);
@@ -142,19 +242,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    const tenants = queryClient.getQueryData<Array<{ id: string; slug: string; gpUserId?: string }>>(tenantKeys.lists()) ?? [];
+    const practice = tenants.find((tenant) => tenant.id === user?.tenantId)
+      ?? tenants.find((tenant) => user?.role === "owner" && tenant.gpUserId === user.id);
+    const slug = practice?.slug || user?.practiceSlug || window.sessionStorage.getItem(TENANT_SLUG_STORAGE_KEY);
+    const loginRoute = isSuperAdminRole(user?.role) ? "/login" : getLoginRoute(slug);
     try {
       await fetch(`${BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
     } catch {
       // Local auth state still needs to be cleared if the network request fails.
     }
+    queryClient.clear();
+    if (loginRoute !== "/login" && slug) {
+      window.sessionStorage.setItem(TENANT_SLUG_STORAGE_KEY, slug);
+    } else {
+      window.sessionStorage.removeItem(TENANT_SLUG_STORAGE_KEY);
+    }
     setUser(null);
     setIsAuthenticated(false);
+    window.location.assign(loginRoute);
   };
 
   return (
     <AuthContext.Provider value={{
       user, isAuthenticated, loading, isAdmin,
-      login, logout, register, changePassword,
+      login, acceptInvite, logout, register, changePassword,
       requestResetWeb, requestResetMobile, verifyOtp,
       resetPasswordWeb, resetPasswordMobile,
     }}>

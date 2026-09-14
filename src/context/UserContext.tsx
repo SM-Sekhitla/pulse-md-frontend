@@ -5,6 +5,8 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import API from "@/utils/api";
+import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 import {
   userSchema,
@@ -75,10 +77,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
+  const { user, loading } = useAuth();
+  const canFetchUsers = useModuleAccess("staff");
+  const canFetchStats = !loading && isSuperAdminRole(user?.role);
 
   // 🔹 FETCH ALL USERS
   const { data: users = [], isLoading } = useQuery({
     queryKey: userKeys.all,
+    enabled: canFetchUsers,
     queryFn: async () => {
       const res = await API.get("/users");
       const result = userSchema.array().safeParse(res.data);
@@ -98,12 +104,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         return parsed.success ? [parsed.data] : [];
       });
     },
-    staleTime: 1000 * 60 * 5,
   });
 
   // 🔹 FETCH STATS
   const { data: stats = [] } = useQuery({
     queryKey: userKeys.stats,
+    enabled: canFetchStats,
     queryFn: async () => {
       const res = await API.get("/users/stats");
       return res.data;
@@ -233,7 +239,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     <UserContext.Provider
       value={{
         users,
-        isLoading,
+        isLoading: canFetchUsers && isLoading,
 
         stats,
 

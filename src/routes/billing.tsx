@@ -1,5 +1,6 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
 import { formatZAR } from "@/lib/pricing";
@@ -14,6 +15,8 @@ import type { Patient } from "@/types/patient";
 import { useQuery } from "@tanstack/react-query";
 import { getMedicalAidSchemes } from "@/lib/medical-aid-api";
 import { useCurrentTenant } from "@/hooks/use-current-tenant";
+import { useSearchParams } from "react-router-dom";
+import { getApiErrorMessage } from "@/utils/api";
 
 export const Route = createFileRoute("/billing")({
   component: Billing,
@@ -30,10 +33,35 @@ const claimLabels: Record<string, string> = {
 
 function Billing() {
   const { invoice, patient } = useData();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
-  const [showNew, setShowNew] = useState(false);
+  const [showNew, setShowNew] = useState(searchParams.get("new") === "1");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const initialPatientId = searchParams.get("patientId") ?? undefined;
+
+  useEffect(() => {
+    setShowNew(searchParams.get("new") === "1");
+  }, [searchParams]);
+
+  const openNewInvoice = () => {
+    setShowNew(true);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("new", "1");
+      return next;
+    });
+  };
+
+  const closeNewInvoice = () => {
+    setShowNew(false);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("new");
+      next.delete("patientId");
+      return next;
+    });
+  };
 
   const filtered = invoice.invoices.filter((item) => {
     return (
@@ -75,9 +103,9 @@ function Billing() {
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
-          <button onClick={() => setShowNew(true)} className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-1.5 text-[13px] font-medium text-white hover:opacity-90">
+          <ActionButton onClick={openNewInvoice} className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-1.5 text-[13px] font-medium text-white hover:opacity-90">
             <Plus className="h-4 w-4" /> New invoice
-          </button>
+          </ActionButton>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-[13px]">
@@ -110,10 +138,11 @@ function Billing() {
       {showNew && (
         <NewInvoiceModal
           patients={patient.patients}
-          onClose={() => setShowNew(false)}
+          initialPatientId={initialPatientId}
+          onClose={closeNewInvoice}
           onCreate={async (payload) => {
             await invoice.createInvoice(payload);
-            setShowNew(false);
+            closeNewInvoice();
             toast.success("Invoice created");
           }}
         />
@@ -138,10 +167,12 @@ function Billing() {
 
 function NewInvoiceModal({
   patients,
+  initialPatientId,
   onClose,
   onCreate,
 }: {
   patients: Patient[];
+  initialPatientId?: string;
   onClose: () => void;
   onCreate: (payload: any) => Promise<void>;
 }) {
@@ -150,7 +181,11 @@ function NewInvoiceModal({
     queryFn: getMedicalAidSchemes,
   });
   const schemes = allSchemes.filter((scheme) => scheme.isActive && scheme.acceptedByPractice);
-  const [patientId, setPatientId] = useState(patients[0]?.id ?? "");
+  const [patientId, setPatientId] = useState(
+    initialPatientId && patients.some((patient) => patient.id === initialPatientId)
+      ? initialPatientId
+      : patients[0]?.id ?? "",
+  );
   const selectedPatient = patients.find((patient) => patient.id === patientId);
   const patientScheme = schemes.find((scheme) => scheme.id === selectedPatient?.medicalAidSchemeId);
   const [billingType, setBillingType] = useState<"private" | "medical_aid">(
@@ -189,6 +224,18 @@ function NewInvoiceModal({
     setDependantCode(nextPatient?.dependantCode ?? "");
   };
 
+  useEffect(() => {
+    const requestedPatient = initialPatientId && patients.some((patient) => patient.id === initialPatientId)
+      ? initialPatientId
+      : null;
+    const currentPatientStillExists = patients.some((patient) => patient.id === patientId);
+    const nextPatientId = requestedPatient || (currentPatientStillExists ? patientId : patients[0]?.id ?? "");
+
+    if (nextPatientId && nextPatientId !== patientId) {
+      selectPatient(nextPatientId);
+    }
+  }, [initialPatientId, patientId, patients, schemes]);
+
   const submit = async () => {
     if (!selectedPatient) return toast.error("Select a patient");
     if (billingType === "medical_aid" && icdCodes.length === 0) return toast.error("Add at least one ICD-10 diagnosis code");
@@ -196,31 +243,35 @@ function NewInvoiceModal({
 
     const today = new Date();
     const invoiceNumber = `PM-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}-${rid("").slice(0, 4).toUpperCase()}`;
-    await onCreate({
-      number: invoiceNumber,
-      patientId: selectedPatient.id,
-      patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
-      date: format(today, "yyyy-MM-dd"),
-      dueDate: format(addDays(today, 30), "yyyy-MM-dd"),
-      amount: total,
-      type: billingType === "medical_aid" ? "Medical aid" : "Private",
-      status: "Draft",
-      billingType,
-      medicalAidSchemeId: billingType === "medical_aid" ? selectedScheme?.id : undefined,
-      medicalAidSchemeName: billingType === "medical_aid" ? selectedScheme?.name : undefined,
-      medicalAidPlan: billingType === "medical_aid" ? plan : undefined,
-      medicalAidNumber: billingType === "medical_aid" ? memberNumber.trim() : undefined,
-      mainMemberName,
-      dependantCode,
-      claimStatus: billingType === "medical_aid" ? "not_submitted" : undefined,
-      schemeBilledAmount: billingType === "medical_aid" ? total : 0,
-      schemePaidAmount: 0,
-      patientCopayment: billingType === "medical_aid" ? estimatedCopayment : 0,
-      icd10Codes: icdCodes,
-      tariffCodes: billingType === "medical_aid" ? tariffs : [],
-      claimReference: billingType === "medical_aid" ? invoiceNumber : undefined,
-      serviceDate: format(today, "yyyy-MM-dd"),
-    });
+    try {
+      await onCreate({
+        number: invoiceNumber,
+        patientId: selectedPatient.id,
+        patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+        date: format(today, "yyyy-MM-dd"),
+        dueDate: format(addDays(today, 30), "yyyy-MM-dd"),
+        amount: total,
+        type: billingType === "medical_aid" ? "Medical aid" : "Private",
+        status: "Draft",
+        billingType,
+        medicalAidSchemeId: billingType === "medical_aid" ? selectedScheme?.id : undefined,
+        medicalAidSchemeName: billingType === "medical_aid" ? selectedScheme?.name : undefined,
+        medicalAidPlan: billingType === "medical_aid" ? plan : undefined,
+        medicalAidNumber: billingType === "medical_aid" ? memberNumber.trim() : undefined,
+        mainMemberName,
+        dependantCode,
+        claimStatus: billingType === "medical_aid" ? "not_submitted" : undefined,
+        schemeBilledAmount: billingType === "medical_aid" ? total : 0,
+        schemePaidAmount: 0,
+        patientCopayment: billingType === "medical_aid" ? estimatedCopayment : 0,
+        icd10Codes: icdCodes,
+        tariffCodes: billingType === "medical_aid" ? tariffs : [],
+        claimReference: billingType === "medical_aid" ? invoiceNumber : undefined,
+        serviceDate: format(today, "yyyy-MM-dd"),
+      });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -241,14 +292,14 @@ function NewInvoiceModal({
               ["private", "Private"],
               ["medical_aid", "Medical aid"],
             ].map(([value, label]) => (
-              <button
+              <ActionButton
                 key={value}
                 type="button"
                 onClick={() => setBillingType(value as typeof billingType)}
                 className={`rounded px-4 py-1.5 text-[13px] font-medium ${billingType === value ? "bg-navy text-white" : "text-muted-foreground hover:text-navy"}`}
               >
                 {label}
-              </button>
+              </ActionButton>
             ))}
           </div>
         </div>
@@ -291,7 +342,7 @@ function NewInvoiceModal({
           {icdQuery && (
             <div className="mt-2 max-h-44 overflow-y-auto rounded-md border border-border bg-white">
               {filteredIcd.map((code) => (
-                <button
+                <ActionButton
                   key={code.code}
                   type="button"
                   onClick={() => {
@@ -303,7 +354,7 @@ function NewInvoiceModal({
                   <span className="font-mono text-navy">{code.code}</span>
                   <span className="mx-2 text-muted-foreground">|</span>
                   <span className="text-muted-foreground">{code.description}</span>
-                </button>
+                </ActionButton>
               ))}
             </div>
           )}
@@ -343,7 +394,7 @@ function NewInvoiceModal({
 
         <div className="flex items-center justify-between border-t border-border pt-4">
           <div className="text-[13px] text-muted-foreground">Total billed: <span className="font-semibold text-navy">{formatZAR(total)}</span></div>
-          <button type="button" onClick={submit} className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">Create invoice</button>
+          <ActionButton type="button" onClick={submit} className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">Create invoice</ActionButton>
         </div>
       </div>
     </Modal>
@@ -404,18 +455,18 @@ function TariffEditor({
                 <td className="px-3 py-2"><input type="number" min={0} value={row.rate} onChange={(event) => updateRow(index, { rate: Number(event.target.value) })} className={inputClass} /></td>
                 <td className="px-3 py-2 font-semibold text-navy">{formatZAR(row.amount)}</td>
                 <td className="px-3 py-2">
-                  <button type="button" onClick={() => onChange(tariffs.filter((_, rowIndex) => rowIndex !== index))} className="rounded-md border border-border p-1 text-navy hover:bg-surface" aria-label="Remove tariff">
+                  <ActionButton type="button" onClick={() => onChange(tariffs.filter((_, rowIndex) => rowIndex !== index))} className="rounded-md border border-border p-1 text-navy hover:bg-surface" aria-label="Remove tariff">
                     <X className="h-3.5 w-3.5" />
-                  </button>
+                  </ActionButton>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <button type="button" onClick={() => onChange([...tariffs, { ...TARIFF_CODES[0], quantity: 1, amount: TARIFF_CODES[0].rate }])} className="mt-3 rounded-md border border-border bg-white px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-surface">
+      <ActionButton type="button" onClick={() => onChange([...tariffs, { ...TARIFF_CODES[0], quantity: 1, amount: TARIFF_CODES[0].rate }])} className="mt-3 rounded-md border border-border bg-white px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-surface">
         Add another code
-      </button>
+      </ActionButton>
       <div className="mt-4 flex flex-col items-end gap-1 text-[13px]">
         <label className="mb-1 flex items-center gap-2 text-muted-foreground">
           <input type="checkbox" checked={vatEnabled} onChange={(event) => onVatChange(event.target.checked)} className="accent-blue" />
@@ -464,19 +515,19 @@ function InvoiceDetailModal({
               <ClaimBadge status={claimStatus} />
             </div>
             {claimStatus === "not_submitted" && (
-              <button onClick={markSubmitted} className="rounded-md border border-blue/30 px-3 py-1.5 text-[12.5px] font-medium text-blue hover:bg-blue-tint">
+              <ActionButton onClick={markSubmitted} className="rounded-md border border-blue/30 px-3 py-1.5 text-[12.5px] font-medium text-blue hover:bg-blue-tint">
                 Mark as submitted
-              </button>
+              </ActionButton>
             )}
             {claimStatus === "submitted" && (
-              <button onClick={() => setPaymentOpen(true)} className="rounded-md bg-blue px-3 py-1.5 text-[12.5px] font-medium text-white hover:opacity-90">
+              <ActionButton onClick={() => setPaymentOpen(true)} className="rounded-md bg-blue px-3 py-1.5 text-[12.5px] font-medium text-white hover:opacity-90">
                 Record payment
-              </button>
+              </ActionButton>
             )}
             {claimStatus === "rejected" && (
-              <button onClick={markAppealed} className="rounded-md border border-border px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-white">
+              <ActionButton onClick={markAppealed} className="rounded-md border border-border px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-white">
                 Resubmit / appeal
-              </button>
+              </ActionButton>
             )}
           </div>
         )}
@@ -572,9 +623,9 @@ function InvoiceDetailModal({
         </div>
 
         <div className="flex justify-end">
-          <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
+          <ActionButton onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
             <Printer className="h-4 w-4" /> Print / PDF
-          </button>
+          </ActionButton>
         </div>
       </div>
       {paymentOpen && (
@@ -607,7 +658,7 @@ function PaymentModal({ invoice, onClose, onSave }: { invoice: Invoice; onClose:
       <div className="w-full max-w-md rounded-xl border border-border bg-white p-5 shadow-xl">
         <div className="flex items-center justify-between gap-4">
           <h3 className="text-[16px] font-semibold text-navy">Record payment</h3>
-          <button onClick={onClose} className="rounded-md border border-border p-1.5 text-navy hover:bg-surface"><X className="h-4 w-4" /></button>
+          <ActionButton onClick={onClose} className="rounded-md border border-border p-1.5 text-navy hover:bg-surface"><X className="h-4 w-4" /></ActionButton>
         </div>
         <div className="mt-4 space-y-3">
           <Field label="Amount received from scheme"><input type="number" value={amount} onChange={(event) => setAmount(Number(event.target.value))} className={inputClass} /></Field>
@@ -616,7 +667,7 @@ function PaymentModal({ invoice, onClose, onSave }: { invoice: Invoice; onClose:
           <Field label="Any co-payment received from patient"><input type="number" value={copayment} onChange={(event) => setCopayment(Number(event.target.value))} className={inputClass} /></Field>
         </div>
         <div className="mt-5 flex justify-end">
-          <button onClick={() => onSave(amount, copayment)} className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">Save payment</button>
+          <ActionButton onClick={() => onSave(amount, copayment)} className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">Save payment</ActionButton>
         </div>
       </div>
     </div>
@@ -629,9 +680,9 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div className="w-full max-w-5xl rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2 className="text-[18px] font-semibold text-navy">{title}</h2>
-          <button onClick={onClose} className="rounded-md border border-border p-1.5 text-navy hover:bg-surface" aria-label="Close">
+          <ActionButton onClick={onClose} className="rounded-md border border-border p-1.5 text-navy hover:bg-surface" aria-label="Close">
             <X className="h-4 w-4" />
-          </button>
+          </ActionButton>
         </div>
         {children}
       </div>
@@ -690,7 +741,7 @@ function Chip({ children, onRemove }: { children: React.ReactNode; onRemove: () 
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-blue/20 bg-blue-tint px-3 py-1 text-[12.5px] font-medium text-blue">
       {children}
-      <button type="button" onClick={onRemove} aria-label="Remove"><X className="h-3 w-3" /></button>
+      <ActionButton type="button" onClick={onRemove} aria-label="Remove"><X className="h-3 w-3" /></ActionButton>
     </span>
   );
 }

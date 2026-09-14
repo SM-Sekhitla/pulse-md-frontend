@@ -1,14 +1,18 @@
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, useNavigate, useParams } from "@/lib/router-compat";
 import { useState } from "react";
 import { PulseLogo } from "@/components/brand";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import API from "@/utils/api";
+import { getPostAuthRoute } from "@/lib/auth-routing";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/invite/$token")({ component: Invite });
 
 function Invite() {
   const { token } = useParams({ from: "/invite/$token" });
   const navigate = useNavigate();
+  const { acceptInvite } = useAuth();
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +28,13 @@ function Invite() {
 
   const accept = useMutation({
     mutationFn: async () => {
-      await API.post("/auth/invite/accept", { token, password: pw });
+      const result = await acceptInvite(token, pw);
+      if (!result.success || !result.user) {
+        throw new Error(result.message || "Invalid or expired invite.");
+      }
+      return result.user;
     },
-    onSuccess: () => navigate({ to: "/dashboard" }),
+    onSuccess: (user) => navigate({ to: getPostAuthRoute(user) }),
   });
 
   const submit = async (e: React.FormEvent) => {
@@ -45,7 +53,7 @@ function Invite() {
     try {
       await accept.mutateAsync();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Invalid or expired invite.");
+      setError(err?.message || "Invalid or expired invite.");
     }
   };
 
@@ -89,7 +97,7 @@ function Invite() {
                   {invite.inviter?.title} {invite.inviter?.firstName} {invite.inviter?.lastName}
                 </span>
               </p>
-              <form onSubmit={submit} className="mt-6 space-y-4">
+              <ActionForm onSubmit={submit} className="mt-6 space-y-4">
                 <Field
                   label="Password"
                   type="password"
@@ -110,13 +118,13 @@ function Invite() {
                     {error}
                   </div>
                 )}
-                <button
+                <ActionButton
                   type="submit"
                   className="w-full rounded-md bg-blue px-4 py-2.5 text-[13.5px] font-medium text-white hover:opacity-90"
                 >
                   Create account
-                </button>
-              </form>
+                </ActionButton>
+              </ActionForm>
             </>
           )}
         </div>

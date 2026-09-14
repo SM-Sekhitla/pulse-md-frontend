@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
 import {
@@ -188,12 +189,12 @@ function PublicBookingList() {
                 <option value="week">Available this week</option>
               </select>
 
-              <button
+              <ActionButton
                 onClick={onSearch}
                 className="h-11 rounded-xl bg-blue px-5 text-[13px] font-semibold text-white shadow-lg shadow-blue/20 transition hover:bg-blue/90 md:col-span-1"
               >
                 Search
-              </button>
+              </ActionButton>
             </div>
           </div>
         </div>
@@ -237,7 +238,7 @@ function PublicBookingList() {
         {filtered.length > perPage && (
           <div className="mt-8 flex items-center justify-center gap-1">
             {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-              <button
+              <ActionButton
                 key={n}
                 onClick={() => setPage(n)}
                 className={`h-9 min-w-[36px] rounded-lg border px-2 text-[12.5px] font-semibold ${
@@ -247,7 +248,7 @@ function PublicBookingList() {
                 }`}
               >
                 {n}
-              </button>
+              </ActionButton>
             ))}
           </div>
         )}

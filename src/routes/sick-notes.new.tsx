@@ -1,3 +1,4 @@
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
 import { differenceInCalendarDays, format } from "date-fns";
@@ -105,7 +106,7 @@ function NewSickNote() {
 
   return (
     <AppShell title="New sick note">
-      <form onSubmit={submit} className="mx-auto max-w-[820px] space-y-5">
+      <ActionForm onSubmit={submit} className="mx-auto max-w-[820px] space-y-5">
         <div className="pulse-card p-6">
           <h2 className="text-[16px] font-semibold text-navy">
             Issue a sick note
@@ -236,23 +237,23 @@ function NewSickNote() {
             )}
 
             <div className="flex justify-end gap-2 pt-1">
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => navigate({ to: "/sick-notes" })}
                 className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface"
               >
                 Cancel
-              </button>
-              <button
+              </ActionButton>
+              <ActionButton
                 type="submit"
                 className="inline-flex items-center gap-1.5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
               >
                 <FileText className="h-4 w-4" /> Issue sick note
-              </button>
+              </ActionButton>
             </div>
           </div>
         </div>
-      </form>
+      </ActionForm>
     </AppShell>
   );
 }

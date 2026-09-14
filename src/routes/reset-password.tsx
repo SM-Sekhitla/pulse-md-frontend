@@ -1,3 +1,4 @@
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -58,7 +59,7 @@ function ResetPassword() {
           <p className="mt-2 text-[13.5px] text-muted-foreground">
             Choose a new password for your PulseMD account.
           </p>
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <ActionForm onSubmit={submit} className="mt-6 space-y-4">
             <Field label="New password" value={password} onChange={setPassword} />
             <Field label="Confirm password" value={confirm} onChange={setConfirm} />
             <p className="text-[11.5px] text-muted-foreground">
@@ -69,14 +70,14 @@ function ResetPassword() {
                 {error}
               </div>
             )}
-            <button
+            <ActionButton
               type="submit"
               disabled={submitting}
               className="w-full rounded-md bg-blue px-4 py-2.5 text-[13.5px] font-medium text-white hover:opacity-90 disabled:opacity-60"
             >
               {submitting ? "Updating..." : "Update password"}
-            </button>
-          </form>
+            </ActionButton>
+          </ActionForm>
         </div>
       </div>
     </div>

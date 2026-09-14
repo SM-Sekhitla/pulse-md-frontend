@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@/lib/router-compat";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
+import { AdminPagination } from "@/components/admin-pagination";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import type { TenantStatus } from "@/types/tenant";
@@ -9,6 +11,8 @@ import { useData } from "@/context/AppDataProvider";
 export const Route = createFileRoute("/admin/practices/")({
   component: AllPractices,
 });
+
+const PAGE_SIZE = 20;
 
 const STATUS_VARIANT = (s: TenantStatus) =>
   s === "active"
@@ -21,33 +25,60 @@ const STATUS_VARIANT = (s: TenantStatus) =>
 
 function AllPractices() {
   const { tenant, patient } = useData();
-  
+
   const [statusFilter, setStatusFilter] = useState<TenantStatus | "all">("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
 
-  const rows = tenant.tenants.filter((t) => {
-    if (statusFilter !== "all" && t.status !== statusFilter) return false;
-    if (planFilter !== "all" && t.plan !== planFilter) return false;
-    //const owner = user.users.find((u) => u.id === t.gpUserId);
-    const owner = t.owner
-    const hay = `${t.name} ${owner?.email || ""}`.toLowerCase();
-    if (q && !hay.includes(q.toLowerCase())) return false;
-    return true;
-  });
+  const rows = useMemo(
+    () =>
+      tenant.tenants.filter((t) => {
+        if (statusFilter !== "all" && t.status !== statusFilter) return false;
+        if (planFilter !== "all" && t.plan !== planFilter) return false;
+        //const owner = user.users.find((u) => u.id === t.gpUserId);
+        const owner = t.owner;
+        const hay = `${t.name} ${owner?.email || ""}`.toLowerCase();
+        if (q && !hay.includes(q.toLowerCase())) return false;
+        return true;
+      }),
+    [planFilter, q, statusFilter, tenant.tenants],
+  );
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = useMemo(
+    () => rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [page, rows],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, statusFilter, planFilter]);
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   return (
     <AdminShell title="All practices">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search practice or email…"
-          className="h-9 w-[280px] rounded-md border border-border bg-white px-3 text-[13px] outline-none focus:border-blue"
-        />
+      <div className="admin-filter-bar">
+        <label className="admin-search">
+          <Search size={17} aria-hidden="true" />
+          <span className="sr-only">Search practice or email</span>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search practice or email…"
+            className="h-9 w-[280px] rounded-md border border-border bg-white px-3 text-[13px] outline-none focus:border-blue"
+          />
+        </label>
         <select
+          aria-label="Filter by practice status"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as TenantStatus | "all")
+          }
           className="h-9 rounded-md border border-border bg-white px-3 text-[13px]"
         >
           <option value="all">All statuses</option>
@@ -57,6 +88,7 @@ function AllPractices() {
           <option value="rejected">Rejected</option>
         </select>
         <select
+          aria-label="Filter by plan"
           value={planFilter}
           onChange={(e) => setPlanFilter(e.target.value)}
           className="h-9 rounded-md border border-border bg-white px-3 text-[13px]"
@@ -66,7 +98,7 @@ function AllPractices() {
           <option value="Growth">Growth</option>
           <option value="Enterprise">Enterprise</option>
         </select>
-        <div className="ml-auto text-[12.5px] text-muted-foreground">
+        <div className="admin-result-count" role="status">
           {rows.length} result{rows.length === 1 ? "" : "s"}
         </div>
       </div>
@@ -86,9 +118,9 @@ function AllPractices() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((t) => {
+            {pageRows.map((t) => {
               //const owner = user.users.find((u) => u.id === t.gpUserId);
-              const owner = t.owner
+              const owner = t.owner;
               return (
                 <tr
                   key={t.id}
@@ -131,7 +163,7 @@ function AllPractices() {
                 </tr>
               );
             })}
-            {rows.length === 0 && (
+            {!tenant.isLoading && rows.length === 0 && (
               <tr>
                 <td
                   colSpan={8}
@@ -143,6 +175,12 @@ function AllPractices() {
             )}
           </tbody>
         </table>
+        <AdminPagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalItems={rows.length}
+          onPageChange={setPage}
+        />
       </div>
     </AdminShell>
   );

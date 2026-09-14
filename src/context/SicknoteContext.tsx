@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 
 import API from "@/utils/api";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 import {
   sickNoteSchema,
@@ -103,6 +104,7 @@ export function SickNoteProvider({
   children: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const canFetchSickNotes = useModuleAccess("sick_notes");
 
   //
   // ---------------- GET ALL ----------------
@@ -112,6 +114,7 @@ export function SickNoteProvider({
     isLoading,
   } = useQuery({
     queryKey: sickNoteKeys.lists(),
+    enabled: canFetchSickNotes,
 
     queryFn: async (): Promise<
       SickNote[]
@@ -278,7 +281,7 @@ export function SickNoteProvider({
     <SickNoteContext.Provider
       value={{
         sickNotes,
-        isLoading,
+        isLoading: canFetchSickNotes && isLoading,
 
         getSickNote,
 

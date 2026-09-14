@@ -1,8 +1,11 @@
+import { getLoginRoute } from "@/lib/auth-routing";
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { PulseLogo } from "@/components/brand";
 import { useAuth } from "@/context/AuthContext";
+import { getPostAuthRoute } from "@/lib/auth-routing";
 
 export const Route = createFileRoute("/change-password")({
   component: ChangePassword,
@@ -19,7 +22,7 @@ function ChangePassword() {
 
   useEffect(() => {
     if (!user) {
-      navigate({ to: "/login" });
+      navigate({ to: getLoginRoute() });
     }
   }, [navigate, user]);
 
@@ -41,8 +44,7 @@ function ChangePassword() {
       setError(r.message || "Failed");
       return;
     }
-    if (user.role === "super-admin") navigate({ to: "/admin" });
-    else navigate({ to: "/dashboard" });
+    navigate({ to: getPostAuthRoute({ ...user, mustChangePassword: false }) });
   };
 
   const required = !!user.mustChangePassword;
@@ -76,7 +78,7 @@ function ChangePassword() {
             work.
           </p>
 
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <ActionForm onSubmit={submit} className="mt-6 space-y-4">
             <PwField
               label="New password"
               value={pw}
@@ -99,24 +101,21 @@ function ChangePassword() {
                 {error}
               </div>
             )}
-            <button
+            <ActionButton
               type="submit"
               className="w-full rounded-md bg-blue px-4 py-2.5 text-[13.5px] font-medium text-white hover:opacity-90"
             >
               Update password & continue
-            </button>
-          </form>
+            </ActionButton>
+          </ActionForm>
 
           {required && (
-            <button
-              onClick={() => {
-                logout();
-                navigate({ to: "/login" });
-              }}
+            <ActionButton
+              onClick={logout}
               className="mt-5 block w-full text-center text-[12.5px] text-muted-foreground hover:text-navy underline"
             >
               Sign out
-            </button>
+            </ActionButton>
           )}
         </div>
       </div>
@@ -147,14 +146,14 @@ function PwField({
           onChange={(e) => onChange(e.target.value)}
           className="block w-full rounded-md border border-border bg-white px-3 py-2.5 pr-10 text-[13.5px] outline-none focus:border-blue"
         />
-        <button
+        <ActionButton
           type="button"
           onClick={toggle}
           tabIndex={-1}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-navy"
         >
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
+        </ActionButton>
       </div>
     </label>
   );

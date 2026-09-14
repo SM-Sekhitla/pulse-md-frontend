@@ -1,17 +1,29 @@
+import { ActionButton } from "@/components/action-feedback";
+import { useState } from "react";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { PulseLogo, PulseLogoOnDark } from "@/components/brand";
 import {
-  Calendar,
-  Users,
-  Package,
-  Receipt,
-  UserCog,
-  ShieldCheck,
-  Check,
-  ArrowRight,
   Activity,
+  ArrowDown,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  HeartHandshake,
+  MapPin,
+  Menu,
+  Package,
+  Plus,
+  Receipt,
+  ShieldCheck,
+  Stethoscope,
+  Users,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import "./landing.css";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,576 +32,740 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "PulseMD gives South African GPs one intelligent platform for appointments, patients, billing, inventory, and compliance — with zero paper.",
-      },
-      {
-        property: "og:title",
-        content: "PulseMD — Practice intelligence, delivered.",
-      },
-      {
-        property: "og:description",
-        content:
-          "Run your GP practice on one modern platform built for South Africa.",
+          "More time for patients. Less time on paperwork. Practice management built for South African healthcare providers.",
       },
     ],
   }),
   component: Landing,
 });
 
+const slides = [
+  {
+    eyebrow: "Better practice. Better care.",
+    title: "Your patients first.",
+    accent: "Everything else,",
+    ending: "made simpler.",
+    body: "Bring your appointments, patient records and day-to-day admin together. One connected platform, built for the way South African practices care.",
+    image: "/images/landing/medical-team.webp",
+    alt: "Healthcare professionals walking together in a bright medical facility",
+  },
+  {
+    eyebrow: "Connected teams. Smoother days.",
+    title: "Less paperwork.",
+    accent: "More time for",
+    ending: "what matters.",
+    body: "From the first booking to the final invoice, give your team the tools to keep your practice moving — and your attention where it belongs.",
+    image: "/images/landing/medical-care.webp",
+    alt: "A Black doctor warmly greeting a Black patient in a bright medical reception",
+  },
+];
+
+const features = [
+  {
+    icon: CalendarDays,
+    title: "Smarter appointments",
+    body: "Bring online bookings, availability and your daily schedule into one organised calendar.",
+    detail:
+      "Set working hours, block out time and review incoming booking requests in one place.",
+  },
+  {
+    icon: Users,
+    title: "Connected patient records",
+    body: "Keep patient details, clinical history and consultation notes together and easy to find.",
+    detail:
+      "Move from a patient profile to their appointments, prescriptions and documents without switching systems.",
+  },
+  {
+    icon: Receipt,
+    title: "Simpler billing",
+    body: "Create invoices, record payments and stay on top of your practice’s outstanding balances.",
+    detail:
+      "Keep billing connected to your patients, with a clear view of invoices and payment status.",
+  },
+  {
+    icon: ClipboardList,
+    title: "Digital clinical documents",
+    body: "Prepare prescriptions and sick notes directly from your practice workspace.",
+    detail:
+      "Keep the documents you issue linked to the right patient for easy reference at their next visit.",
+  },
+  {
+    icon: Package,
+    title: "Inventory in focus",
+    body: "Track stock, monitor expiry dates and manage the equipment your team relies on.",
+    detail:
+      "Review stock levels and inventory movements to help your team plan ahead.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "The right access for your team",
+    body: "Manage staff permissions and keep a record of important activity across your practice.",
+    detail:
+      "Use role-based access and audit logs to support accountable, organised practice operations.",
+  },
+];
+
+const plans = [
+  {
+    name: "Starter",
+    price: "799",
+    description: "A simpler start for your solo practice.",
+    features: ["Online bookings", "Patient records", "Billing basics"],
+  },
+  {
+    name: "Growth",
+    price: "1,799",
+    description: "More support for a growing practice.",
+    features: [
+      "Everything in Starter",
+      "Appointment reminders",
+      "Practice reports",
+    ],
+  },
+  {
+    name: "Enterprise",
+    price: null,
+    description: "A plan shaped around your team.",
+    features: ["Custom modules", "Priority support", "Advanced controls"],
+  },
+];
+
+const faqs = [
+  {
+    question: "Who is PulseMD built for?",
+    answer:
+      "PulseMD is built for South African GPs and medical practices. It brings the front desk, clinical records and practice administration into a shared workspace for practitioners and their teams.",
+  },
+  {
+    question: "How do I get started?",
+    answer:
+      "Register your practice, choose a plan and add your practice details and working hours. Your application is reviewed before your practice is activated. You can then invite your team and configure your workspace.",
+  },
+  {
+    question: "Can patients book appointments online?",
+    answer:
+      "Yes. Practices can set up a public booking profile and availability. Patients can find a practice and request an appointment through the booking directory, while your team manages incoming requests in PulseMD.",
+  },
+  {
+    question: "Can I control what each staff member can access?",
+    answer:
+      "Yes. PulseMD supports staff roles and permissions, so you can manage access to your practice’s tools. Audit logs provide a record of important activity.",
+  },
+];
+
 function Landing() {
-  const [activeFeature, setActiveFeature] = useState("Smart scheduling");
-  
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [activeFeature, setActiveFeature] = useState<number | null>(null);
+  const slide = slides[activeSlide];
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Top nav */}
-      <div className="bg-navy">
-        <div className="mx-auto flex max-w-[1280px] items-center justify-between px-8 py-5">
-          <PulseLogoOnDark size={36} />
-          <nav className="hidden items-center gap-7 md:flex">
-            <a
-              href="#features"
-              className="text-[13.5px] text-white/70 hover:text-white"
-            >
-              Features
+    <div className="landing" id="top">
+      <a href="#main-content" className="landing-skip">
+        Skip to content
+      </a>
+      <div className="landing-topbar">
+        <div className="landing-container">
+          <span>
+            <Activity size={14} aria-hidden="true" /> Practice intelligence,
+            delivered.
+          </span>
+          <div>
+            <span className="landing-topbar-location">
+              <MapPin size={13} aria-hidden="true" /> Built for South Africa
+            </span>
+            <Link to="/book">
+              Looking for a doctor?{" "}
+              <ArrowUpRight size={13} aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <header
+        className="landing-header"
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && menuOpen) {
+            setMenuOpen(false);
+            document.getElementById("landing-menu-toggle")?.focus();
+          }
+        }}
+      >
+        <div className="landing-container landing-nav">
+          <Link to="/" aria-label="PulseMD home" className="landing-logo">
+            <PulseLogo size={42} />
+          </Link>
+          <nav aria-label="Main navigation" className="landing-desktop-nav">
+            <a href="#top" aria-current="page">
+              Home
             </a>
-            <a
-              href="#pricing"
-              className="text-[13.5px] text-white/70 hover:text-white"
-            >
-              Pricing
-            </a>
-            <a
-              href="#testimonials"
-              className="text-[13.5px] text-white/70 hover:text-white"
-            >
-              Customers
-            </a>
-            <Link
-              to="/login"
-              className="text-[13.5px] text-white/70 hover:text-white"
-            >
-              Sign in
+            <a href="#about">About PulseMD</a>
+            <a href="#features">Our platform</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#faqs">FAQs</a>
+          </nav>
+          <div className="landing-nav-actions">
+            <Link to="/login" className="landing-signin">
+              Admin sign in <ArrowUpRight size={15} aria-hidden="true" />
             </Link>
             <Link
               to="/register"
-              className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
+              className="landing-button landing-button-yellow landing-nav-cta"
             >
-              Start free trial
+              Get started <ArrowUpRight size={17} aria-hidden="true" />
+            </Link>
+            <ActionButton
+              type="button"
+              id="landing-menu-toggle"
+              className="landing-menu-toggle"
+              aria-expanded={menuOpen}
+              aria-controls="landing-mobile-nav"
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              {menuOpen ? <X /> : <Menu />}
+            </ActionButton>
+          </div>
+        </div>
+        {menuOpen && (
+          <nav
+            id="landing-mobile-nav"
+            className="landing-mobile-nav"
+            aria-label="Mobile navigation"
+            onClick={() => setMenuOpen(false)}
+          >
+            <a href="#top">Home</a>
+            <a href="#about">About PulseMD</a>
+            <a href="#features">Our platform</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#faqs">FAQs</a>
+            <Link to="/login">Admin sign in</Link>
+            <Link to="/register">
+              Get started <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
           </nav>
-        </div>
+        )}
+      </header>
 
-        {/* Hero */}
-        <section className="relative overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 bg-[url('./public/asset/feature_bg.jpg')] bg-cover bg-center" />
-
-        {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/50" />
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/85 to-black/50" />
-
-        {/* Hero Content */}
-        <div className="relative z-10">
-          <div className="mx-auto max-w-[1280px] px-8 pb-24 pt-16">
-            <div className="grid items-center gap-12 lg:grid-cols-2">
-              <div>
-
-                <h1 className="mt-6 text-[52px] font-bold leading-[1.05] tracking-tight text-white">
-                  Your practice,
-                  <br />
-                  running at full capacity.
-                </h1>
-
-                <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-white/75">
-                  PulseMD gives South African GPs one intelligent platform for
-                  appointments, patients, billing, inventory, and compliance —
-                  with zero paper.
-                </p>
-
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center gap-2 rounded-md bg-blue px-5 py-3 text-[14px] font-medium text-white shadow-lg shadow-blue/20 transition hover:bg-blue/90"
-                  >
-                    Start free 30-day trial
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-
-                  <a
-                    href="#demo"
-                    className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-5 py-3 text-[14px] font-medium text-white backdrop-blur transition hover:bg-white/15"
-                  >
-                    Book a live demo
-                  </a>
-                </div>
-
-                <p className="mt-4 text-[12.5px] text-white/50">
-                  No credit card required · Setup in under 10 minutes
-                </p>
-              </div>
-
-              <DashboardMockup />
-            </div>
-          </div>
-        </div>
-         <div className="absolute bottom-0 left-0 h-1.5 w-full bg-navy" />
-      </section>
-      </div>
-
-      {/* Features */}
-      <section
-        id="features"
-        className="relative overflow-hidden bg-navy px-8 py-24"
-      >
-        <div className="absolute inset-0 bg-[url('/images/clinic-feature-bg.jpg')] bg-cover bg-center opacity-45" />
-        <div className="absolute inset-0 bg-black/55" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-navy/70 to-black/40" />
-
-        <div className="relative z-10 mx-auto grid max-w-[1280px] gap-12 lg:grid-cols-2 lg:items-center">
-          <div>
-            <div className="label-caps text-blue">Platform</div>
-
-            <h2 className="mt-3 max-w-xl text-[44px] font-semibold leading-tight tracking-tight text-white">
-              One platform. Every <span className="text-blue">workflow.</span>
-            </h2>
-
-            <p className="mt-5 max-w-lg text-[15px] leading-7 text-white/70">
-              PulseMD brings bookings, patients, billing, inventory, staff, and
-              compliance into one simple operating system for modern GP practices.
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            {[
-              {
-                icon: Calendar,
-                title: "Smart scheduling",
-                body: "Manage public bookings, working hours, reminders, blocked dates, and patient flow from one calendar.",
-              },
-              {
-                icon: Users,
-                title: "Patient intelligence",
-                body: "Access complete patient records, contact details, history, and clinical notes in one place.",
-              },
-              {
-                icon: Receipt,
-                title: "Billing & payments",
-                body: "Create invoices, track payments, and simplify revenue management for your practice.",
-              },
-              {
-                icon: ShieldCheck,
-                title: "Compliance-ready",
-                body: "Built with POPIA, secure access control, and healthcare privacy in mind.",
-              },
-            ].map((f) => {
-              const active = activeFeature === f.title;
-
-              return (
-                <button
-                  key={f.title}
-                  type="button"
-                  onClick={() =>
-                    setActiveFeature(active ? null : f.title)
-                  }
-                  className={`group w-full rounded-2xl border p-6 text-left shadow-2xl backdrop-blur-md transition-all duration-300 ${
-                    active
-                      ? "border-blue/40 bg-white/15 shadow-blue/10"
-                      : "border-white/10 bg-white/10 hover:border-blue/30 hover:bg-white/15"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-5">
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                          active ? "bg-blue text-white" : "bg-white/15 text-white"
-                        }`}
-                      >
-                        <f.icon className="h-5 w-5" />
-                      </div>
-
-                      <div>
-                        <h3 className="text-[18px] font-semibold text-white">
-                          {f.title}
-                        </h3>
-
-                        {active && (
-                          <p className="mt-3 max-w-xl text-[14px] leading-7 text-white/75">
-                            {f.body}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[20px] font-semibold ${
-                        active ? "bg-blue text-white" : "bg-white text-navy"
-                      }`}
-                    >
-                      {active ? "−" : "+"}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="absolute bottom-0 left-0 h-1.5 w-full bg-navy" />
-      </section>
-
-      {/* Testimonials */}
-      <section id="testimonials" className="bg-surface py-24">
-        <div className="mx-auto max-w-[1280px] px-8">
-          <div className="label-caps text-blue">Trusted by GPs</div>
-          <h2 className="mt-3 text-[32px] font-semibold tracking-tight text-navy">
-            Built with practitioners across South Africa.
-          </h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {[
-              {
-                name: "Dr. Lerato Mahlangu",
-                practice: "Sandton Family Medical",
-                city: "Johannesburg",
-                quote:
-                  "We cut our reception admin time by half in the first month. The reminders alone reduced our no-shows by 40%.",
-              },
-              {
-                name: "Dr. Pieter Botha",
-                practice: "Botha & Partners GP",
-                city: "Stellenbosch",
-                quote:
-                  "Finally a system that understands SA medical aid claims. The ICD-10 lookup is faster than anything I've used.",
-              },
-              {
-                name: "Dr. Ayesha Patel",
-                practice: "Umhlanga Medical Suite",
-                city: "Durban",
-                quote:
-                  "Inventory expiry alerts have already saved us thousands. PulseMD pays for itself.",
-              },
-            ].map((t) => (
-              <div key={t.name} className="pulse-card p-7">
-                <p className="text-[14.5px] leading-relaxed text-navy">
-                  "{t.quote}"
-                </p>
-                <div className="mt-6 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue text-[13px] font-semibold text-white">
-                    {t.name.split(" ")[1][0]}
-                    {t.name.split(" ")[2][0]}
-                  </div>
-                  <div>
-                    <div className="text-[13.5px] font-semibold text-navy">
-                      {t.name}
-                    </div>
-                    <div className="text-[12px] text-muted-foreground">
-                      {t.practice} · {t.city}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="mx-auto max-w-[1280px] px-8 py-24">
-        <div className="text-center">
-          <div className="label-caps text-blue">Pricing</div>
-          <h2 className="mt-3 text-[36px] font-semibold tracking-tight text-navy">
-            Simple plans that scale with your practice.
-          </h2>
-          <p className="mt-3 text-[14px] text-muted-foreground">
-            All prices exclude VAT. Cancel anytime.
-          </p>
-        </div>
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {[
-            {
-              name: "Starter",
-              price: 799,
-              popular: false,
-              blurb: "For solo GPs getting started.",
-              features: [
-                "1 GP",
-                "Up to 3 staff",
-                "500 appointments/mo",
-                "Patient records",
-                "SMS reminders",
-                "Basic reports",
-              ],
-            },
-            {
-              name: "Growth",
-              price: 1799,
-              popular: true,
-              blurb: "Most popular for established practices.",
-              features: [
-                "Up to 3 GPs",
-                "Unlimited staff",
-                "Unlimited appointments",
-                "Inventory & equipment",
-                "Online payments",
-                "All reports",
-                "Patient portal",
-              ],
-            },
-            {
-              name: "Enterprise",
-              price: null,
-              popular: false,
-              blurb: "For multi-branch and groups.",
-              features: [
-                "Unlimited GPs",
-                "Multi-branch",
-                "API access",
-                "Dedicated support",
-                "Custom integrations",
-                "SLA guarantee",
-              ],
-            },
-          ].map((t) => (
+      <main id="main-content" tabIndex={-1}>
+        <section
+          className="landing-hero"
+          aria-label="Meet PulseMD"
+          aria-roledescription="carousel"
+        >
+          {slides.map((item, index) => (
+            <img
+              key={item.image}
+              src={item.image}
+              alt={item.alt}
+              width="1920"
+              height="614"
+              fetchPriority={index === 0 ? "high" : "auto"}
+              className={`landing-hero-image ${index === activeSlide ? "is-active" : ""}`}
+              aria-hidden={index !== activeSlide}
+            />
+          ))}
+          <div className="landing-hero-wash" />
+          <div className="landing-container landing-hero-inner">
             <div
-              key={t.name}
-              className={`pulse-card relative p-8 ${t.popular ? "border-blue ring-2 ring-blue/20" : ""}`}
+              className="landing-hero-copy"
+              aria-live="polite"
+              aria-atomic="true"
             >
-              {t.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue px-3 py-1 text-[11px] font-semibold text-white">
-                  MOST POPULAR
-                </div>
-              )}
-              <div className="text-[14px] font-semibold text-navy">
-                {t.name}
-              </div>
-              <div className="mt-4 flex items-baseline gap-1">
-                {t.price ? (
-                  <>
-                    <span className="text-[40px] font-bold tracking-tight text-navy">
-                      R{t.price.toLocaleString("en-ZA")}
-                    </span>
-                    <span className="text-[14px] text-muted-foreground">
-                      /mo
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-[32px] font-bold tracking-tight text-navy">
-                    Custom
-                  </span>
-                )}
-              </div>
-              <p className="mt-2 text-[13px] text-muted-foreground">
-                {t.blurb}
+              <p className="landing-eyebrow">
+                <span />
+                {slide.eyebrow}
               </p>
+              <h1>
+                {slide.title}
+                <br />
+                <span>{slide.accent}</span>
+                <br />
+                {slide.ending}
+              </h1>
+              <p className="landing-hero-description">{slide.body}</p>
+            </div>
+            <div className="landing-hero-actions">
               <Link
                 to="/register"
-                className={`mt-6 inline-flex w-full items-center justify-center rounded-md px-4 py-2.5 text-[13.5px] font-medium transition-colors ${
-                  t.popular
-                    ? "bg-blue text-white hover:opacity-90"
-                    : "border border-border bg-white text-navy hover:bg-surface"
-                }`}
+                className="landing-button landing-button-yellow"
               >
-                {t.price ? "Start free trial" : "Contact sales"}
+                Start your free trial{" "}
+                <ArrowUpRight size={19} aria-hidden="true" />
               </Link>
-              <ul className="mt-6 space-y-3 border-t border-border pt-6">
-                {t.features.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-center gap-2.5 text-[13.5px] text-navy"
-                  >
-                    <Check className="h-4 w-4 shrink-0 text-blue" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
+              <a href="#features" className="landing-text-link">
+                Explore the platform <ArrowRight size={17} aria-hidden="true" />
+              </a>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Footer */}
-    <footer className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-black/55" /> 
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-navy/95 to-black" />
-
-      <div className="relative z-10 mx-auto max-w-[1280px] px-8 py-20">
-        <div className="grid gap-12 md:grid-cols-4">
-          <div>
-            <PulseLogoOnDark size={34} />
-
-            <p className="mt-5 max-w-xs text-[13px] leading-7 text-white/55">
-              Practice intelligence, delivered. Built specifically for South
-              African healthcare providers and modern medical practices.
+            <p className="landing-trial-note">
+              <ShieldCheck size={15} aria-hidden="true" /> 30-day free trial{" "}
+              <span>·</span> No credit card required
             </p>
-
-            <div className="mt-6 flex gap-3">
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-white/70">
-                POPIA
-              </div>
-
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-white/70">
-                HPCSA
-              </div>
-
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-white/70">
-                South Africa
+            <div className="landing-hero-bottom">
+              <a href="#about" className="landing-discover">
+                <span>
+                  <ArrowDown size={15} aria-hidden="true" />
+                </span>{" "}
+                Discover a better way to practice
+              </a>
+              <div className="landing-slide-controls">
+                <span className="landing-slide-number">
+                  0{activeSlide + 1}
+                  <span> / 02</span>
+                </span>
+                <ActionButton
+                  type="button"
+                  onClick={() =>
+                    setActiveSlide(
+                      (activeSlide + slides.length - 1) % slides.length,
+                    )
+                  }
+                  aria-label="Previous slide"
+                >
+                  <ChevronLeft size={19} />
+                </ActionButton>
+                <ActionButton
+                  type="button"
+                  onClick={() =>
+                    setActiveSlide((activeSlide + 1) % slides.length)
+                  }
+                  aria-label="Next slide"
+                >
+                  <ChevronRight size={19} />
+                </ActionButton>
               </div>
             </div>
           </div>
+          <div className="landing-photo-label">
+            <span />
+            <span>
+              People at the heart.
+              <br />
+              <strong>Technology by your side.</strong>
+            </span>
+          </div>
+        </section>
 
-          {[
-            {
-              title: "Platform",
-              links: [
-                "Appointments",
-                "Patients",
-                "Billing",
-                "Inventory",
-              ],
-            },
-            {
-              title: "Company",
-              links: [
-                "About",
-                "Contact",
-                "Partners",
-                "Careers",
-              ],
-            },
-            {
-              title: "Legal",
-              links: [
-                "POPIA Notice",
-                "Privacy Policy",
-                "Terms of Service",
-                "Data Processing",
-              ],
-            },
-          ].map((col) => (
-            <div key={col.title}>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                {col.title}
-              </div>
-
-              <ul className="mt-5 space-y-3">
-                {col.links.map((l) => (
-                  <li key={l}>
-                    <a
-                      href="#"
-                      className="text-[13.5px] text-white/65 transition hover:text-white"
-                    >
-                      {l}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+        <section
+          className="landing-highlights"
+          aria-label="PulseMD at a glance"
+        >
+          <div className="landing-container">
+            <div>
+              <strong>
+                01<span>.</span>
+              </strong>
+              <p>
+                Connected platform.
+                <br />
+                Your whole practice.
+              </p>
             </div>
-          ))}
-        </div>
+            <div>
+              <strong>
+                06<span>.</span>
+              </strong>
+              <p>
+                Core workflows.
+                <br />
+                Working together.
+              </p>
+            </div>
+            <div>
+              <strong>
+                30<span> days</span>
+              </strong>
+              <p>
+                To explore PulseMD.
+                <br />
+                Start with a free trial.
+              </p>
+            </div>
+            <div className="landing-highlight-local">
+              <MapPin size={33} strokeWidth={1.4} aria-hidden="true" />
+              <p>
+                Made for the way
+                <br />
+                <b>South Africa cares.</b>
+              </p>
+            </div>
+          </div>
+        </section>
 
-        <div className="mt-16 border-t border-white/10 pt-8">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="text-[12px] text-white/40">
+        <section id="about" className="landing-section landing-about">
+          <div className="landing-container landing-about-grid">
+            <div className="landing-about-visual">
+              <div className="landing-about-photo">
+                <img
+                  src="/images/landing/practice-team.webp"
+                  width="700"
+                  height="760"
+                  alt="A medical team collaborating in their practice"
+                  loading="lazy"
+                />
+              </div>
+              <div className="landing-about-badge">
+                <HeartHandshake
+                  size={31}
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
+                <span>
+                  Made for people.
+                  <br />
+                  <strong>Built around your practice.</strong>
+                </span>
+              </div>
+              <div className="landing-about-cross" aria-hidden="true">
+                <Plus strokeWidth={1} />
+              </div>
+            </div>
+            <div className="landing-about-copy">
+              <p className="landing-eyebrow">
+                <span /> A healthier way to run your practice
+              </p>
+              <h2>
+                You care for your patients.
+                <br />
+                We help you care for
+                <br />
+                <span className="landing-muted-heading">your practice.</span>
+              </h2>
+              <p>
+                Great care starts with a practice that runs smoothly. PulseMD
+                brings your people, information and everyday tasks together, so
+                the small things don’t get in the way of the important ones.
+              </p>
+              <div className="landing-about-benefits">
+                <div>
+                  <Stethoscope size={26} strokeWidth={1.5} aria-hidden="true" />
+                  <div>
+                    <h3>Designed around your day</h3>
+                    <p>
+                      From the first appointment to the last invoice, keep your
+                      team in sync.
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <ShieldCheck size={26} strokeWidth={1.5} aria-hidden="true" />
+                  <div>
+                    <h3>Confidence in every workflow</h3>
+                    <p>
+                      Organised records, staff permissions and a clearer view of
+                      your practice.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <a
+                href="#features"
+                className="landing-button landing-button-navy"
+              >
+                Meet your new workspace{" "}
+                <ArrowUpRight size={18} aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section id="features" className="landing-section landing-features">
+          <div className="landing-container">
+            <div className="landing-section-heading">
+              <div>
+                <p className="landing-eyebrow">
+                  <span /> One platform. A more connected practice.
+                </p>
+                <h2>
+                  Everything your day needs.
+                  <br />
+                  <span>All working together.</span>
+                </h2>
+              </div>
+              <p>
+                Less switching between systems. More clarity for your team.
+                Discover the tools that keep your practice moving.
+              </p>
+            </div>
+            <div className="landing-feature-grid">
+              {features.map((feature, index) => (
+                <article
+                  key={feature.title}
+                  className={`landing-feature-card ${activeFeature === index ? "is-expanded" : ""}`}
+                >
+                  <div className="landing-feature-top">
+                    <feature.icon
+                      size={34}
+                      strokeWidth={1.3}
+                      aria-hidden="true"
+                    />
+                    <span>0{index + 1}</span>
+                  </div>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.body}</p>
+                  <ActionButton
+                    type="button"
+                    onClick={() =>
+                      setActiveFeature(activeFeature === index ? null : index)
+                    }
+                    aria-expanded={activeFeature === index}
+                    aria-controls={`feature-detail-${index}`}
+                    aria-label={`${activeFeature === index ? "Show less about" : "Explore"} ${feature.title}`}
+                  >
+                    {activeFeature === index ? "Show less" : "Explore feature"}
+                    <span>
+                      {activeFeature === index ? (
+                        <X size={15} />
+                      ) : (
+                        <ArrowUpRight size={17} />
+                      )}
+                    </span>
+                  </ActionButton>
+                  <p
+                    id={`feature-detail-${index}`}
+                    className="landing-feature-detail"
+                    hidden={activeFeature !== index}
+                  >
+                    {feature.detail}
+                  </p>
+                </article>
+              ))}
+            </div>
+            <div className="landing-features-foot">
+              <span>
+                <HeartHandshake size={20} aria-hidden="true" /> Better tools for
+                the people behind better care.
+              </span>
+              <Link to="/register">
+                Find your fit <ArrowRight size={17} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="landing-section landing-process">
+          <div className="landing-container">
+            <div className="landing-centered-heading">
+              <p className="landing-eyebrow">
+                <span /> Your next chapter starts here
+              </p>
+              <h2>A simpler practice, step by step.</h2>
+              <p>
+                A clear path from getting set up to getting on with your day.
+              </p>
+            </div>
+            <div className="landing-process-grid">
+              {[
+                {
+                  icon: ClipboardList,
+                  title: "Make it your practice",
+                  body: "Register, choose your plan and share your practice details for review.",
+                },
+                {
+                  icon: Users,
+                  title: "Bring your team together",
+                  body: "Once approved, invite your staff, set permissions and organise your workspace.",
+                },
+                {
+                  icon: HeartHandshake,
+                  title: "Get back to great care",
+                  body: "Manage your bookings, patient records and billing from one connected place.",
+                },
+              ].map((step, index) => (
+                <div className="landing-process-step" key={step.title}>
+                  <div className="landing-process-icon">
+                    <step.icon
+                      size={33}
+                      strokeWidth={1.35}
+                      aria-hidden="true"
+                    />
+                    <span>0{index + 1}</span>
+                  </div>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="landing-section landing-pricing">
+          <div className="landing-container">
+            <div className="landing-section-heading">
+              <div>
+                <p className="landing-eyebrow">
+                  <span /> Room to grow
+                </p>
+                <h2>
+                  The right fit for
+                  <br />
+                  your practice.
+                </h2>
+              </div>
+              <p>
+                Start with a 30-day free trial. Choose the plan that fits your
+                team, with pricing in South African rand.
+              </p>
+            </div>
+            <div className="landing-pricing-grid">
+              {plans.map((plan) => (
+                <article
+                  key={plan.name}
+                  className={`landing-plan ${plan.name === "Growth" ? "landing-plan-featured" : ""}`}
+                >
+                  <div className="landing-plan-title">
+                    <h3>{plan.name}</h3>
+                    {plan.name === "Growth" && <span>POPULAR CHOICE</span>}
+                  </div>
+                  <p>{plan.description}</p>
+                  <div className="landing-plan-price">
+                    {plan.price ? (
+                      <>
+                        <span>R</span>
+                        {plan.price}
+                        <small>/ month</small>
+                      </>
+                    ) : (
+                      <>
+                        Let’s talk
+                        <ArrowUpRight
+                          size={31}
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        />
+                      </>
+                    )}
+                  </div>
+                  <p className="landing-plan-note">
+                    {plan.price
+                      ? "Excluding VAT"
+                      : "Tailored to your practice’s needs"}
+                  </p>
+                  <Link
+                    to="/register"
+                    className={`landing-button ${plan.name === "Growth" ? "landing-button-yellow" : "landing-button-outline"}`}
+                  >
+                    {plan.price
+                      ? "Start your free trial"
+                      : "Register your interest"}
+                    <ArrowUpRight size={18} aria-hidden="true" />
+                  </Link>
+                  <ul>
+                    {plan.features.map((feature) => (
+                      <li key={feature}>
+                        <Check size={16} aria-hidden="true" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+            <p className="landing-pricing-note">
+              <ShieldCheck size={15} aria-hidden="true" /> No credit card
+              required to start your trial.
+            </p>
+          </div>
+        </section>
+
+        <section id="faqs" className="landing-section landing-faqs">
+          <div className="landing-container landing-faq-grid">
+            <div>
+              <p className="landing-eyebrow">
+                <span /> A little more clarity
+              </p>
+              <h2>
+                Good questions.
+                <br />
+                Simple answers.
+              </h2>
+              <p>Get to know PulseMD before you take the next step.</p>
+              <Link to="/register" className="landing-text-link">
+                Ready to get started?{" "}
+                <ArrowUpRight size={18} aria-hidden="true" />
+              </Link>
+            </div>
+            <div className="landing-faq-list">
+              {faqs.map((faq) => (
+                <details key={faq.question}>
+                  <summary>
+                    {faq.question}
+                    <Plus size={19} aria-hidden="true" />
+                  </summary>
+                  <p>{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+        <section className="landing-cta">
+          <div className="landing-container">
+            <div className="landing-cta-icon">
+              <Activity size={48} strokeWidth={1.2} aria-hidden="true" />
+            </div>
+            <div>
+              <p>Your practice. Your people. Your next step.</p>
+              <h2>Make more room for better care.</h2>
+            </div>
+            <Link to="/register" className="landing-button landing-button-navy">
+              Let’s get started <ArrowUpRight size={19} aria-hidden="true" />
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <footer className="landing-footer">
+        <div className="landing-container">
+          <div className="landing-footer-grid">
+            <div className="landing-footer-brand">
+              <Link to="/" aria-label="PulseMD home">
+                <PulseLogoOnDark size={42} />
+              </Link>
+              <p>
+                A more connected practice.
+                <br />
+                More time for the people who need you.
+              </p>
+              <span>
+                <MapPin size={15} aria-hidden="true" /> Built for South African
+                healthcare.
+              </span>
+            </div>
+            <div>
+              <h2>Discover PulseMD</h2>
+              <a href="#about">About us</a>
+              <a href="#features">Our platform</a>
+              <a href="#how-it-works">How it works</a>
+              <a href="#pricing">Plans & pricing</a>
+            </div>
+            <div>
+              <h2>Take the next step</h2>
+              <Link to="/register">Register your practice</Link>
+              <Link to="/login">Admin sign in</Link>
+              <Link to="/book">Find a doctor</Link>
+              <a href="#faqs">Frequently asked questions</a>
+            </div>
+            <div className="landing-footer-patient">
+              <Stethoscope size={29} strokeWidth={1.4} aria-hidden="true" />
+              <h2>Here as a patient?</h2>
+              <p>Find a practice and take the next step towards your care.</p>
+              <Link to="/book">
+                Book an appointment{" "}
+                <ArrowUpRight size={17} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+          <div className="landing-footer-bottom">
+            <span>
               © {new Date().getFullYear()} PulseMD. All rights reserved.
-            </div>
-
-            <div className="flex items-center gap-6 text-[12px] text-white/40">
-              <span>POPIA-compliant</span>
-              <span>Hosted in South Africa</span>
-              <span>Healthcare SaaS Platform</span>
-            </div>
+            </span>
+            <span>Practice intelligence, delivered.</span>
+            <a href="#top">
+              Back to top <ArrowUpRight size={15} aria-hidden="true" />
+            </a>
           </div>
         </div>
-      </div>
-    </footer>
-    </div>
-  );
-}
-
-function DashboardMockup() {
-  const slots = [
-    {
-      time: "08:00",
-      name: "Thandiwe Mokoena",
-      type: "Consultation",
-      color: "bg-blue",
-    },
-    {
-      time: "08:30",
-      name: "Sipho Dlamini",
-      type: "Follow-up",
-      color: "bg-[#6366F1]",
-    },
-    {
-      time: "09:00",
-      name: "Ayesha Patel",
-      type: "Procedure",
-      color: "bg-[#9333EA]",
-    },
-    {
-      time: "09:45",
-      name: "Johan van der Merwe",
-      type: "Telehealth",
-      color: "bg-teal",
-    },
-    {
-      time: "10:30",
-      name: "Naledi Khumalo",
-      type: "Consultation",
-      color: "bg-blue",
-    },
-  ];
-  return (
-    <div className="rounded-xl border border-white/10 bg-[#0F1424] p-5 shadow-2xl">
-      <div className="flex items-center justify-between border-b border-white/5 pb-4">
-        <div className="flex items-center gap-2">
-          <Activity className="h-4 w-4 text-blue" />
-          <div className="text-[13px] font-medium text-white">
-            Today · Thursday 12 May
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-white/50">
-          <span className="h-1.5 w-1.5 rounded-full bg-teal" /> Live
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <div className="rounded-lg bg-white/[0.03] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-white/40">
-            Booked
-          </div>
-          <div className="mt-1 text-[22px] font-semibold text-white">18</div>
-        </div>
-        <div className="rounded-lg bg-white/[0.03] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-white/40">
-            Seen
-          </div>
-          <div className="mt-1 text-[22px] font-semibold text-white">12</div>
-        </div>
-        <div className="rounded-lg bg-white/[0.03] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-white/40">
-            Revenue
-          </div>
-          <div className="mt-1 text-[22px] font-semibold text-white">R8.4k</div>
-        </div>
-      </div>
-      <div className="mt-5 space-y-2">
-        {slots.map((s) => (
-          <div
-            key={s.time}
-            className="flex items-center gap-3 rounded-md bg-white/[0.02] px-3 py-2.5"
-          >
-            <div className="font-mono text-[11px] text-white/40 w-12">
-              {s.time}
-            </div>
-            <div className={`h-7 w-1 rounded-full ${s.color}`} />
-            <div className="flex-1">
-              <div className="text-[13px] font-medium text-white">{s.name}</div>
-              <div className="text-[11px] text-white/50">{s.type}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      </footer>
     </div>
   );
 }

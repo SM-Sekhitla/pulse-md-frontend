@@ -36,6 +36,8 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
+      // Avoid silently serving PulseMD on a different port when 8080 is occupied.
+      strictPort: true,
       allowedHosts: allowedHost ? [allowedHost] : [],
       proxy: {
         "/api": {
@@ -49,6 +51,7 @@ export default defineConfig(({ mode }) => {
     preview: {
       host: "::",
       port: 8080,
+      strictPort: true,
     },
   };
 });

@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 
 import API from "@/utils/api";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 import {
   inventorySchema,
@@ -104,6 +105,7 @@ export function InventoryProvider({
   children: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const canFetchInventory = useModuleAccess(["inventory", "prescriptions"]);
 
   //
   // ---------------- GET ALL ----------------
@@ -113,6 +115,7 @@ export function InventoryProvider({
     isLoading,
   } = useQuery({
     queryKey: inventoryKeys.lists(),
+    enabled: canFetchInventory,
 
     queryFn: async (): Promise<
       Inventory[]
@@ -191,34 +194,30 @@ export function InventoryProvider({
     id: string,
     data: InventoryUpdate
   ): Promise<Inventory | null> => {
-    try {
-      const parsedInput =
-        inventoryUpdateSchema.parse(
-          data
-        );
-
-      const res = await API.patch(
-        `/inventory/${id}`,
-        parsedInput
+    const parsedInput =
+      inventoryUpdateSchema.parse(
+        data
       );
 
-      const parsed = inventorySchema.parse(
-        res.data
-      );
+    const res = await API.patch(
+      `/inventory/${id}`,
+      parsedInput
+    );
 
-      queryClient.invalidateQueries({
-        queryKey: inventoryKeys.lists(),
-      });
+    const parsed = inventorySchema.parse(
+      res.data
+    );
 
-      queryClient.invalidateQueries({
-        queryKey:
-          inventoryKeys.detail(id),
-      });
+    queryClient.invalidateQueries({
+      queryKey: inventoryKeys.lists(),
+    });
 
-      return parsed;
-    } catch {
-      return null;
-    }
+    queryClient.invalidateQueries({
+      queryKey:
+        inventoryKeys.detail(id),
+    });
+
+    return parsed;
   };
 
   //
@@ -228,34 +227,30 @@ export function InventoryProvider({
     id: string,
     data: InventoryStockUpdate
   ): Promise<Inventory | null> => {
-    try {
-      const parsedInput =
-        inventoryStockUpdateSchema.parse(
-          data
-        );
-
-      const res = await API.patch(
-        `/inventory/${id}/stock`,
-        parsedInput
+    const parsedInput =
+      inventoryStockUpdateSchema.parse(
+        data
       );
 
-      const parsed = inventorySchema.parse(
-        res.data
-      );
+    const res = await API.patch(
+      `/inventory/${id}/stock`,
+      parsedInput
+    );
 
-      queryClient.invalidateQueries({
-        queryKey: inventoryKeys.lists(),
-      });
+    const parsed = inventorySchema.parse(
+      res.data
+    );
 
-      queryClient.invalidateQueries({
-        queryKey:
-          inventoryKeys.detail(id),
-      });
+    queryClient.invalidateQueries({
+      queryKey: inventoryKeys.lists(),
+    });
 
-      return parsed;
-    } catch {
-      return null;
-    }
+    queryClient.invalidateQueries({
+      queryKey:
+        inventoryKeys.detail(id),
+    });
+
+    return parsed;
   };
 
   //
@@ -283,7 +278,7 @@ export function InventoryProvider({
     <InventoryContext.Provider
       value={{
         inventory,
-        isLoading,
+        isLoading: canFetchInventory && isLoading,
 
         getInventoryItem,
 

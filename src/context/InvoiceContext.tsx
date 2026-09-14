@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 
 import API from "@/utils/api";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 import {
   invoiceSchema,
@@ -104,6 +105,7 @@ export function InvoiceProvider({
   children: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const canFetchInvoices = useModuleAccess("billing");
 
   //
   // ---------------- GET ALL ----------------
@@ -113,6 +115,7 @@ export function InvoiceProvider({
     isLoading,
   } = useQuery({
     queryKey: invoiceKeys.lists(),
+    enabled: canFetchInvoices,
 
     queryFn: async (): Promise<
       Invoice[]
@@ -281,7 +284,7 @@ export function InvoiceProvider({
     <InvoiceContext.Provider
       value={{
         invoices,
-        isLoading,
+        isLoading: canFetchInvoices && isLoading,
 
         getInvoice,
 

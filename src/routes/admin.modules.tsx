@@ -1,8 +1,10 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, RotateCcw, Save, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
+import { AdminPagination } from "@/components/admin-pagination";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import { useData } from "@/context/AppDataProvider";
@@ -15,12 +17,14 @@ export const Route = createFileRoute("/admin/modules")({
 });
 
 type Drafts = Record<string, ModuleKey[]>;
+const PAGE_SIZE = 20;
 
 function ModulesPage() {
   const { tenant } = useData();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Drafts>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const tenants = useMemo(
     () =>
@@ -29,6 +33,17 @@ function ModulesPage() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [tenant.tenants],
   );
+  const pageCount = Math.max(1, Math.ceil(tenants.length / PAGE_SIZE));
+  const pageTenants = useMemo(
+    () => tenants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [page, tenants],
+  );
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   useEffect(() => {
     setDrafts((current) => {
@@ -114,7 +129,7 @@ function ModulesPage() {
       </div>
 
       <div className="space-y-3">
-        {tenants.map((practice) => {
+        {pageTenants.map((practice) => {
           const saved = modulesFor(practice);
           const draft = drafts[practice.id] ?? saved;
           const dirty = !sameModules(saved, draft);
@@ -123,7 +138,7 @@ function ModulesPage() {
 
           return (
             <section key={practice.id} className="pulse-card overflow-hidden">
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => setOpen((current) => ({ ...current, [practice.id]: !expanded }))}
                 className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
@@ -145,7 +160,7 @@ function ModulesPage() {
                     expanded && "rotate-180",
                   )}
                 />
-              </button>
+              </ActionButton>
 
               {expanded && (
                 <div className="border-t border-border px-5 py-4">
@@ -155,21 +170,21 @@ function ModulesPage() {
                       Module switches
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button
+                      <ActionButton
                         type="button"
                         onClick={() => setAll(practice.id, true)}
                         className="rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
                       >
                         Enable all
-                      </button>
-                      <button
+                      </ActionButton>
+                      <ActionButton
                         type="button"
                         onClick={() => setAll(practice.id, false)}
                         className="rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
                       >
                         Disable all
-                      </button>
-                      <button
+                      </ActionButton>
+                      <ActionButton
                         type="button"
                         onClick={() => reset(practice)}
                         disabled={!dirty || savingId === practice.id}
@@ -177,8 +192,8 @@ function ModulesPage() {
                       >
                         <RotateCcw className="h-3.5 w-3.5" />
                         Reset
-                      </button>
-                      <button
+                      </ActionButton>
+                      <ActionButton
                         type="button"
                         onClick={() => save(practice)}
                         disabled={!dirty || savingId === practice.id}
@@ -186,7 +201,7 @@ function ModulesPage() {
                       >
                         <Save className="h-3.5 w-3.5" />
                         {savingId === practice.id ? "Saving..." : "Save"}
-                      </button>
+                      </ActionButton>
                     </div>
                   </div>
 
@@ -230,7 +245,21 @@ function ModulesPage() {
           );
         })}
 
-        {tenants.length === 0 && (
+        <AdminPagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalItems={tenants.length}
+          onPageChange={setPage}
+          className="rounded-md border border-border"
+        />
+
+        {tenant.isLoading && tenants.length === 0 && (
+          <div className="pulse-card p-10 text-center text-[13px] text-muted-foreground">
+            Loading practices...
+          </div>
+        )}
+
+        {!tenant.isLoading && tenants.length === 0 && (
           <div className="pulse-card p-10 text-center text-[13px] text-muted-foreground">
             No active or suspended practices.
           </div>

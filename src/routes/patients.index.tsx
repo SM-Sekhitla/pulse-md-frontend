@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -41,9 +42,9 @@ function PatientsList() {
           </h2>
         </div>
         <div className="flex gap-2">
-          <button className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-2 text-[13px] font-medium text-navy hover:bg-surface">
+          <ActionButton className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-2 text-[13px] font-medium text-navy hover:bg-surface">
             <Download className="h-4 w-4" /> Export CSV
-          </button>
+          </ActionButton>
           <Link
             to="/patients/new"
             className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90"
@@ -76,9 +77,9 @@ function PatientsList() {
               </option>
             ))}
           </select>
-          <button className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-white px-3 text-[13px] text-navy hover:bg-surface">
+          <ActionButton className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-white px-3 text-[13px] text-navy hover:bg-surface">
             <Filter className="h-4 w-4" /> More filters
-          </button>
+          </ActionButton>
         </div>
 
         <div className="overflow-x-auto">

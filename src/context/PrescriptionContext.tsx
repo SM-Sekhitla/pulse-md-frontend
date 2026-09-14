@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 
 import API from "@/utils/api";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 import {
   prescriptionSchema,
@@ -116,6 +117,7 @@ export function PrescriptionProvider({
   children: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const canFetchPrescriptions = useModuleAccess("prescriptions");
 
   //
   // ---------------- GET ALL ----------------
@@ -126,6 +128,7 @@ export function PrescriptionProvider({
   } = useQuery({
     queryKey:
       prescriptionKeys.lists(),
+    enabled: canFetchPrescriptions,
 
     queryFn: async (): Promise<
       Prescription[]
@@ -284,7 +287,7 @@ export function PrescriptionProvider({
     <PrescriptionContext.Provider
       value={{
         prescriptions,
-        isLoading,
+        isLoading: canFetchPrescriptions && isLoading,
 
         getPrescription,
 

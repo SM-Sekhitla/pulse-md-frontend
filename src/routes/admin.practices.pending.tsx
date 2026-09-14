@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
@@ -105,18 +106,18 @@ function Pending() {
                     {format(parseISO(t.createdAt), "d MMM yyyy")}
                   </Td>
                   <Td className="text-right">
-                    <button
+                    <ActionButton
                       onClick={() => approve(t.id, t.name)}
                       className="mr-2 rounded-md bg-success px-3 py-1.5 text-[12.5px] font-medium text-white hover:opacity-90"
                     >
                       Approve
-                    </button>
-                    <button
+                    </ActionButton>
+                    <ActionButton
                       onClick={() => reject(t.id, t.name)}
                       className="rounded-md border border-border bg-white px-3 py-1.5 text-[12.5px] font-medium text-[#991B1B] hover:bg-[#FEF2F2]"
                     >
                       Reject
-                    </button>
+                    </ActionButton>
                   </Td>
                 </tr>
               );

@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -174,39 +175,39 @@ function AvailabilityPage() {
               </p>
             </div>
 
-            <button
+            <ActionButton
               type="button"
               onClick={save}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue px-5 py-3 text-[13px] font-semibold text-white hover:bg-blue/90"
             >
               <Save className="h-4 w-4" />
               Save changes
-            </button>
+            </ActionButton>
           </div>
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
           <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
             <div className="mb-5 flex items-center justify-between">
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => setMonth((m) => addMonths(m, -1))}
                 className="rounded-xl border border-border bg-white p-2 text-navy hover:bg-surface"
               >
                 <ChevronLeft className="h-4 w-4" />
-              </button>
+              </ActionButton>
 
               <div className="text-[18px] font-semibold text-navy">
                 {format(month, "MMMM yyyy")}
               </div>
 
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => setMonth((m) => addMonths(m, 1))}
                 className="rounded-xl border border-border bg-white p-2 text-navy hover:bg-surface"
               >
                 <ChevronRight className="h-4 w-4" />
-              </button>
+              </ActionButton>
             </div>
 
             <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -225,7 +226,7 @@ function AvailabilityPage() {
                 const muted = !isSameMonth(day, month);
 
                 return (
-                  <button
+                  <ActionButton
                     type="button"
                     key={key}
                     onClick={() => setSelectedDate(day)}
@@ -262,7 +263,7 @@ function AvailabilityPage() {
                     >
                       {blocked ? "Blocked" : working ? `${slotsPerDay} slots` : "Closed"}
                     </div>
-                  </button>
+                  </ActionButton>
                 );
               })}
             </div>
@@ -282,7 +283,7 @@ function AvailabilityPage() {
                 {format(selectedDate, "d MMMM yyyy")}
               </div>
 
-             <button
+             <ActionButton
                 type="button"
                 onClick={toggleSelectedDayAvailability}
                 className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-semibold text-white transition ${
@@ -302,7 +303,7 @@ function AvailabilityPage() {
                     Block this day
                   </>
                 )}
-              </button>
+              </ActionButton>
             </div>
 
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
@@ -371,32 +372,32 @@ function AvailabilityPage() {
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
 
               <div className="mt-4 grid gap-2">
-                <button
+                <ActionButton
                   type="button"
                   onClick={applyToAllWorkingDays}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-3 text-[13px] font-semibold text-navy hover:bg-surface"
                 >
                   <Copy className="h-4 w-4" />
                   Apply to Monday - Friday
-                </button>
+                </ActionButton>
 
-                <button
+                <ActionButton
                   type="button"
                   onClick={openEveryDay}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-3 text-[13px] font-semibold text-navy hover:bg-surface"
                 >
                   <Sun className="h-4 w-4" />
                   Open all days
-                </button>
+                </ActionButton>
 
-                <button
+                <ActionButton
                   type="button"
                   onClick={closeEveryDay}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-3 text-[13px] font-semibold text-red-600 hover:bg-red-50"
                 >
                   <Lock className="h-4 w-4" />
                   Close all days
-                </button>
+                </ActionButton>
               </div>
             </div>
           </aside>

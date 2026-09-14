@@ -1,4 +1,5 @@
-import { createFileRoute } from "@/lib/router-compat";
+import { ActionButton } from "@/components/action-feedback";
+import { createFileRoute, Link } from "@/lib/router-compat";
 import { AppShell } from "@/components/app-shell";
 import { formatZAR } from "@/lib/pricing";
 import {
@@ -14,7 +15,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { differenceInCalendarDays, format, parseISO, subMonths } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
 import { useQuery } from "@tanstack/react-query";
@@ -45,9 +46,9 @@ function Reports() {
   if (view) {
     return (
       <AppShell title="Reports">
-        <button onClick={() => setView("")} className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-navy">
+        <ActionButton onClick={() => setView("")} className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-navy">
           <ArrowLeft className="h-3.5 w-3.5" /> Reports hub
-        </button>
+        </ActionButton>
         {view === "claims_summary" && <ClaimsSummary invoices={invoice.invoices} />}
         {view === "aging" && <ClaimsAging invoices={invoice.invoices} />}
         {view === "revenue_split" && <RevenueSplit invoices={invoice.invoices} />}
@@ -60,7 +61,7 @@ function Reports() {
     <AppShell title="Reports">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {REPORTS.map((report) => (
-          <button
+          <ActionButton
             key={report.name}
             onClick={() => report.view && setView(report.view)}
             className="pulse-card p-5 text-left transition-colors hover:bg-blue-tint"
@@ -70,7 +71,7 @@ function Reports() {
             </div>
             <div className="mt-4 text-[14.5px] font-semibold text-navy">{report.name}</div>
             <div className="mt-1 text-[12.5px] text-muted-foreground">{report.desc}</div>
-          </button>
+          </ActionButton>
         ))}
       </div>
     </AppShell>
@@ -150,11 +151,11 @@ function ClaimsAging({ invoices }: { invoices: any[] }) {
     <ReportShell title="Claims aging analysis">
       <div className="grid gap-3 md:grid-cols-4">
         {buckets.map((bucket) => (
-          <button key={bucket.key} onClick={() => setBand(bucket.key)} className={`rounded-lg border p-4 text-left ${band === bucket.key ? "border-blue bg-blue-tint" : "border-border bg-white"}`}>
+          <ActionButton key={bucket.key} onClick={() => setBand(bucket.key)} className={`rounded-lg border p-4 text-left ${band === bucket.key ? "border-blue bg-blue-tint" : "border-border bg-white"}`}>
             <div className="text-[12px] font-semibold text-navy">{bucket.label}</div>
             <div className="mt-2 text-[20px] font-bold text-navy">{bucket.rows.length}</div>
             <div className="text-[12px] text-muted-foreground">{formatZAR(bucket.total)}</div>
-          </button>
+          </ActionButton>
         ))}
       </div>
       <div className="mt-6 space-y-3">
@@ -262,7 +263,12 @@ function RevenueLeaks({ invoices, appointments }: { invoices: any[]; appointment
           appointment.type,
           "20 min",
           formatZAR(prices[appointment.type] ?? 650),
-          "Create invoice",
+          <Link
+            to={`/billing?new=1&patientId=${appointment.patientId}`}
+            className="font-medium text-blue hover:underline"
+          >
+            Create invoice
+          </Link>,
         ])}
       />
     </ReportShell>
@@ -281,7 +287,7 @@ function ReportShell({ title, actions, children }: { title: string; actions?: Re
   );
 }
 
-function DataTable({ headings, rows, footer }: { headings: string[]; rows: any[][]; footer?: any[] }) {
+function DataTable({ headings, rows, footer }: { headings: string[]; rows: ReactNode[][]; footer?: ReactNode[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="min-w-full text-[12.5px]">
@@ -291,7 +297,7 @@ function DataTable({ headings, rows, footer }: { headings: string[]; rows: any[]
         <tbody>
           {rows.map((row, index) => (
             <tr key={index} className="border-t border-border">
-              {row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 text-navy">{String(cell ?? "")}</td>)}
+              {row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 text-navy">{cell}</td>)}
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={headings.length} className="px-4 py-8 text-center text-muted-foreground">No records found.</td></tr>}
@@ -334,8 +340,8 @@ function ExportButtons({ rows }: { rows: any[] }) {
   };
   return (
     <div className="flex gap-2">
-      <button onClick={exportCsv} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-surface"><Download className="h-3.5 w-3.5" /> CSV</button>
-      <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-surface"><Download className="h-3.5 w-3.5" /> PDF</button>
+      <ActionButton onClick={exportCsv} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-surface"><Download className="h-3.5 w-3.5" /> CSV</ActionButton>
+      <ActionButton onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12.5px] font-medium text-navy hover:bg-surface"><Download className="h-3.5 w-3.5" /> PDF</ActionButton>
     </div>
   );
 }

@@ -1,414 +1,734 @@
-import { createFileRoute, Link } from "@/lib/router-compat";
-import { useEffect, useMemo, useState } from "react";
-import { AppShell } from "@/components/app-shell";
-import { Badge, StatusDot } from "@/components/badge-pill";
-import { formatZAR } from "@/lib/pricing";
-import type { Appointment } from "@/types/appointment";
-import type { Inventory } from "@/types/inventory";
+import { ActionButton } from "@/components/action-feedback";
+import { type ReactNode, useEffect, useState } from "react";
 import {
-  format,
-  isToday,
-  isThisMonth,
-  isThisWeek,
-  parseISO,
-  subDays,
-  addDays,
-} from "date-fns";
-import {
-  ArrowDown,
-  ArrowUp,
-  Plus,
-  AlertTriangle,
   Activity,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  Clock,
+  FileText,
+  HeartHandshake,
+  Package,
+  Plus,
+  Receipt,
+  Stethoscope,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
-  BarChart,
+  Area,
+  AreaChart,
   Bar,
-  XAxis,
-  YAxis,
+  BarChart,
+  CartesianGrid,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
+import {
+  format,
+  isSameDay,
+  isSameMonth,
+  parseISO,
+  startOfWeek,
+  subDays,
+  subWeeks,
+} from "date-fns";
+import { createFileRoute, Link } from "@/lib/router-compat";
+import { AppShell } from "@/components/app-shell";
+import { Badge } from "@/components/badge-pill";
 import { useData } from "@/context/AppDataProvider";
+import { useAuth } from "@/context/AuthContext";
+import { useCurrentTenant } from "@/hooks/use-current-tenant";
+import { practiceModules } from "@/lib/practice-navigation";
+import { formatZAR } from "@/lib/pricing";
 
-export const Route = createFileRoute("/dashboard")({
-  component: Dashboard,
-});
+export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
-const TYPE_COLOR: Record<string, string> = {
-  Consultation: "#3B7BF8",
-  "Follow-up": "#6366F1",
-  Procedure: "#9333EA",
-  Telehealth: "#5DEBD7",
-  Emergency: "#E53E3E",
-  "Walk-in": "#D97706",
-};
-
-const STATUS_VARIANT = (s: string) =>
-  s === "Completed"
+const STATUS_VARIANT = (status: string) =>
+  status === "Completed"
     ? "success"
-    : s === "In progress"
+    : status === "In progress"
       ? "blue"
-      : s === "Checked-in"
+      : status === "Checked-in"
         ? "teal"
-        : s === "Confirmed"
-          ? "indigo"
-          : s === "No-show"
-            ? "danger"
-            : s === "Cancelled"
-              ? "neutral"
-              : "neutral";
+        : status === "No-show"
+          ? "danger"
+          : status === "Confirmed"
+            ? "warning"
+            : "neutral";
+const INACTIVE = new Set(["Cancelled", "No-show", "Completed"]);
 
 function Dashboard() {
   const { appointment, invoice, inventory, patient } = useData();
-  
+  const { user } = useAuth();
+  const tenant = useCurrentTenant();
+  const enabled = practiceModules(tenant, user?.role);
+  const canSchedule = enabled.has("appointments") || enabled.has("calendar");
+  const [now, setNow] = useState(() => new Date());
+  const [scheduleFilter, setScheduleFilter] = useState("All visits");
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-  const today = new Date();
-  const todays = useMemo(
-    () =>
-      appointment.appointments
-        .filter((a) => isToday(parseISO(a.start)))
-        .sort((a, b) => a.start.localeCompare(b.start)),
-    [appointment.appointments],
+  const appointments = appointment.appointments.filter(
+    (item) => !item.tenantId || item.tenantId === user?.tenantId,
   );
-  const seenThisWeek = appointment.appointments.filter(
-    (a) => isThisWeek(parseISO(a.start)) && a.status === "Completed",
-  ).length;
-  const monthRevenue = invoice.invoices
-    .filter((i) => isThisMonth(parseISO(i.date)) && i.status === "Paid")
-    .reduce((s, i) => s + i.amount, 0);
-  const outstanding = invoice.invoices.filter(
-    (i) =>
-      i.status === "Sent" ||
-      i.status === "Overdue" ||
-      i.status === "Partially paid",
+  const invoices = invoice.invoices.filter(
+    (item) => !item.tenantId || item.tenantId === user?.tenantId,
   );
-  const lowStock: Inventory[] = inventory.inventoryList.filter(
-    (i) => i.stock <= i.reorderLevel,
+  const patients = patient.patients.filter(
+    (item) => !item.tenantId || item.tenantId === user?.tenantId,
   );
-  const expiringSoon = inventory.inventoryList.filter((i) => {
-    const d = parseISO(i.expiry).getTime() - Date.now();
-    return d > 0 && d < 60 * 24 * 60 * 60 * 1000;
+  const stock = inventory.inventoryList.filter(
+    (item) => !item.tenantId || item.tenantId === user?.tenantId,
+  );
+  const todays = appointments
+    .filter((item) => isSameDay(parseISO(item.start), now))
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const completed = todays.filter((item) => item.status === "Completed").length;
+  const waiting = todays.filter((item) => item.status === "Checked-in").length;
+  const visibleVisits = todays.filter(
+    (item) =>
+      scheduleFilter === "All visits" ||
+      (scheduleFilter === "Waiting"
+        ? item.status === "Checked-in"
+        : item.status === "Completed"),
+  );
+  const next = appointments
+    .filter(
+      (item) =>
+        !INACTIVE.has(item.status) && Date.parse(item.end) > now.getTime(),
+    )
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))[0];
+  const paid = invoices.filter((item) => item.status === "Paid");
+  const monthPaid = paid
+    .filter((item) => isSameMonth(parseISO(item.date), now))
+    .reduce((sum, item) => sum + item.amount, 0);
+  const outstanding = invoices.filter((item) =>
+    ["Sent", "Overdue", "Partially paid"].includes(item.status),
+  );
+  const lowStock = stock.filter((item) => item.stock <= item.reorderLevel);
+  const expiring = stock.filter((item) => {
+    const remaining = Date.parse(item.expiry) - now.getTime();
+    return remaining >= 0 && remaining <= 60 * 86400000;
   });
-
-  const chartData = Array.from({ length: 30 }, (_, i) => {
-    const d = subDays(today, 29 - i);
-    const count = appointment.appointments.filter(
-      (a) =>
-        format(parseISO(a.start), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"),
-    ).length;
-    return { day: format(d, "dd MMM"), count };
+  const dailyCounts = Array.from({ length: 14 }, (_, index) => {
+    const day = subDays(now, 13 - index);
+    return {
+      day: format(day, "d MMM"),
+      visits: appointments.filter(
+        (item) =>
+          item.status !== "Cancelled" && isSameDay(parseISO(item.start), day),
+      ).length,
+    };
   });
-
-  const revenueWeekly = Array.from({ length: 8 }, (_, i) => ({
-    week: `W${i + 1}`,
-    revenue: 12000 + Math.round(Math.sin(i * 0.7) * 3000) + i * 850,
-  }));
-
-  const typeBreakdown = Object.entries(
-    appointment.appointments.reduce<Record<string, number>>((acc, a) => {
-      acc[a.type] = (acc[a.type] || 0) + 1;
-      return acc;
-    }, {}),
-  ).map(([type, count]) => ({ type, count }));
+  const weeklyRevenue = Array.from({ length: 8 }, (_, index) => {
+    const week = startOfWeek(subWeeks(now, 7 - index), { weekStartsOn: 1 });
+    return {
+      week: format(week, "d MMM"),
+      amount: paid
+        .filter((item) =>
+          isSameDay(
+            startOfWeek(parseISO(item.date), { weekStartsOn: 1 }),
+            week,
+          ),
+        )
+        .reduce((sum, item) => sum + item.amount, 0),
+    };
+  });
+  const visitTypes = Object.entries(
+    todays
+      .filter((item) => item.status !== "Cancelled")
+      .reduce<Record<string, number>>((result, item) => {
+        result[item.type] = (result[item.type] ?? 0) + 1;
+        return result;
+      }, {}),
+  ).sort((a, b) => b[1] - a[1]);
+  const totalVisits = visitTypes.reduce((sum, [, count]) => sum + count, 0);
+  const shortcuts = [
+    {
+      to: "/patients/new",
+      title: "Register a patient",
+      detail: "Start a connected care record",
+      icon: Users,
+      visible: enabled.has("patients"),
+    },
+    {
+      to: "/prescriptions/new",
+      title: "Write a prescription",
+      detail: "Prepare the next step in care",
+      icon: FileText,
+      visible: enabled.has("prescriptions"),
+    },
+    {
+      to: "/sick-notes/new",
+      title: "Create a sick note",
+      detail: "Support your patient’s recovery",
+      icon: HeartHandshake,
+      visible: enabled.has("sick_notes"),
+    },
+    {
+      to: "/billing",
+      title: "Manage invoices",
+      detail: "Keep practice finances in view",
+      icon: Receipt,
+      visible: enabled.has("billing"),
+    },
+  ].filter((item) => item.visible);
 
   return (
-    <AppShell title="Dashboard">
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <div className="label-caps">Today</div>
-          <div className="text-[22px] font-semibold text-navy">
-            {format(today, "EEEE, d MMMM yyyy")}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button className="rounded-md border border-border bg-white px-3.5 py-2 text-[13px] font-medium text-navy hover:bg-surface">
-            Walk-in
-          </button>
-          <Link
-            to="/appointments/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" /> New appointment
-          </Link>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KPI
-          label="Today's appointments"
-          value={`${todays.filter((a) => a.status === "Completed").length} / ${todays.length}`}
-          sub="seen / booked"
+    <AppShell title="Practice overview">
+      <section className="gp-welcome">
+        <img
+          src="/images/landing/medical-care.webp"
+          alt=""
+          aria-hidden="true"
         />
-        <KPI
-          label="Patients this week"
-          value={seenThisWeek}
-          trend="up"
-          trendValue="+12%"
-        />
-        <KPI
-          label="Revenue this month"
-          value={formatZAR(monthRevenue)}
-          trend="up"
-          trendValue="+8.4%"
-        />
-        <KPI
-          label="Outstanding invoices"
-          value={outstanding.length}
-          sub={formatZAR(outstanding.reduce((s, i) => s + i.amount, 0))}
-        />
-      </div>
-
-      {/* Alerts */}
-      {(lowStock.length > 0 || expiringSoon.length > 0) && (
-        <div className="mt-4 rounded-lg border border-[#FEE2C2] bg-[#FFFBEB] px-4 py-3">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" />
-            <div className="text-[13px] text-navy">
-              <span className="font-semibold">
-                {lowStock.length} item{lowStock.length === 1 ? "" : "s"} below
-                reorder level
-              </span>
-              {expiringSoon.length > 0 && (
-                <>
-                  {" "}
-                  ·{" "}
-                  <span className="font-semibold">
-                    {expiringSoon.length} expiring within 60 days
-                  </span>
-                </>
-              )}
-              <a
-                href="/inventory"
-                className="ml-2 font-medium text-blue hover:underline"
+        <div className="gp-welcome-wash" />
+        <div className="gp-welcome-copy">
+          <p className="gp-eyebrow">
+            <span /> BETTER PRACTICE. BETTER CARE.
+          </p>
+          <h2>
+            Hello
+            {user
+              ? `, ${[user.title, user.lastName].filter(Boolean).join(" ")}`
+              : ""}
+            .<br />
+            <span>More room for great care.</span>
+          </h2>
+          <p>
+            Your patients come first. Bring the rest of your day together in one
+            connected workspace.
+          </p>
+          <div className="gp-welcome-actions">
+            {enabled.has("appointments") ? (
+              <Link
+                to="/appointments/new"
+                className="gp-button gp-button-yellow"
               >
-                View inventory →
-              </a>
-            </div>
+                Book an appointment{" "}
+                <ArrowUpRight size={17} aria-hidden="true" />
+              </Link>
+            ) : enabled.has("patients") ? (
+              <Link to="/patients/new" className="gp-button gp-button-yellow">
+                Register a patient <ArrowUpRight size={17} aria-hidden="true" />
+              </Link>
+            ) : user?.role !== "receptionist" ? (
+              <Link to="/settings" className="gp-button gp-button-yellow">
+                Your practice settings{" "}
+                <ArrowUpRight size={17} aria-hidden="true" />
+              </Link>
+            ) : null}
+            {enabled.has("calendar") && (
+              <Link to="/calendar" className="gp-inline-link">
+                View calendar <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            )}
           </div>
         </div>
-      )}
+      </section>
 
-      {/* Main grid */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-10">
-        <div className="lg:col-span-7">
-          <div className="pulse-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-              <div>
-                <div className="text-[14px] font-semibold text-navy">
-                  Today's timeline
-                </div>
-                <div className="text-[12px] text-muted-foreground">
-                  8:00 — 18:00
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal animate-pulse" />{" "}
-                Live
-              </div>
+      <section className="gp-kpi-grid" aria-label="Practice statistics">
+        {canSchedule && (
+          <KPI
+            label="Today’s appointments"
+            value={
+              appointment.isLoading
+                ? "—"
+                : todays.filter((item) => item.status !== "Cancelled").length
+            }
+            note={`${completed} completed today`}
+            icon={CalendarDays}
+          />
+        )}
+        {canSchedule && (
+          <KPI
+            label="In the waiting room"
+            value={appointment.isLoading ? "—" : waiting}
+            note="Patients checked in today"
+            icon={Clock}
+            highlight={waiting > 0}
+          />
+        )}
+        {enabled.has("patients") && (
+          <KPI
+            label="Patient records"
+            value={patient.isPatientLoading ? "—" : patients.length}
+            note={`${patients.filter((item) => item.active).length} active patients`}
+            icon={Users}
+          />
+        )}
+        {enabled.has("billing") && (
+          <KPI
+            label="Paid invoices this month"
+            value={invoice.isInvoiceLoading ? "—" : formatZAR(monthPaid)}
+            note="Grouped by invoice date"
+            icon={Receipt}
+          />
+        )}
+      </section>
+
+      {enabled.has("inventory") &&
+        !inventory.isInventoryLoading &&
+        (lowStock.length > 0 || expiring.length > 0) && (
+          <div className="gp-stock-alert">
+            <Package size={20} strokeWidth={1.5} aria-hidden="true" />
+            <div>
+              <strong>A little attention for your inventory</strong>
+              <p>
+                {lowStock.length} item{lowStock.length === 1 ? "" : "s"} at or
+                below reorder level · {expiring.length} expiring within 60 days
+              </p>
             </div>
-            <Timeline appointments={todays} />
+            <Link to="/inventory">
+              View stock <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
           </div>
+        )}
 
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <ChartCard title="Appointments per day" sub="Last 30 days">
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={chartData}>
-                  <XAxis
-                    dataKey="day"
-                    tick={{ fontSize: 10, fill: "#64718A" }}
-                    interval={4}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "#64718A" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    cursor={{ stroke: "#3B7BF8", strokeWidth: 1 }}
-                    contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #E2E5EE",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#3B7BF8"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartCard>
-            <ChartCard title="Revenue by week" sub="Last 8 weeks">
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={revenueWeekly}>
-                  <XAxis
-                    dataKey="week"
-                    tick={{ fontSize: 10, fill: "#64718A" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "#64718A" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "#EEF3FE" }}
-                    contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #E2E5EE",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Bar dataKey="revenue" fill="#3B7BF8" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-
-          <div className="mt-6 pulse-card p-5">
-            <div className="text-[14px] font-semibold text-navy">
-              Top appointment types
-            </div>
-            <div className="mt-4 space-y-3">
-              {typeBreakdown
-                .sort((a, b) => b.count - a.count)
-                .map((t) => {
-                  const max = Math.max(...typeBreakdown.map((x) => x.count));
-                  const pct = (t.count / max) * 100;
-                  return (
-                    <div key={t.type}>
-                      <div className="flex items-center justify-between text-[12.5px]">
-                        <span className="text-navy">{t.type}</span>
-                        <span className="font-mono text-muted-foreground">
-                          {t.count}
+      <div className="gp-dashboard-grid">
+        <div className="gp-dashboard-primary">
+          {canSchedule ? (
+            <section className="pulse-card gp-schedule">
+              <div className="gp-panel-heading">
+                <div>
+                  <p className="gp-eyebrow">
+                    {format(now, "EEEE, d MMMM").toUpperCase()}
+                  </p>
+                  <h2>
+                    Today’s appointments{" "}
+                    <span className="gp-count">
+                      {appointment.isLoading ? "—" : todays.length}
+                    </span>
+                  </h2>
+                </div>
+                {enabled.has("calendar") && (
+                  <Link to="/calendar" className="gp-inline-link">
+                    Open calendar <ArrowUpRight size={16} aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+              <div
+                className="gp-schedule-filters"
+                role="group"
+                aria-label="Filter today's appointments"
+              >
+                {["All visits", "Waiting", "Completed"].map((filter) => (
+                  <ActionButton
+                    key={filter}
+                    type="button"
+                    aria-pressed={scheduleFilter === filter}
+                    onClick={() => setScheduleFilter(filter)}
+                  >
+                    {filter}
+                    {filter === "Waiting" && waiting > 0 && (
+                      <span>{waiting}</span>
+                    )}
+                  </ActionButton>
+                ))}
+              </div>
+              {appointment.isLoading ? (
+                <EmptyState
+                  icon={CalendarDays}
+                  title="Loading today’s appointments…"
+                  loading
+                />
+              ) : visibleVisits.length ? (
+                <div className="gp-visit-list">
+                  {visibleVisits.map((visit) => (
+                    <div key={visit.id} className="gp-visit">
+                      <div className="gp-visit-time">
+                        <time dateTime={visit.start}>
+                          {format(parseISO(visit.start), "HH:mm")}
+                        </time>
+                        <span>
+                          {Math.round(
+                            (Date.parse(visit.end) - Date.parse(visit.start)) /
+                              60000,
+                          )}{" "}
+                          min
                         </span>
                       </div>
-                      <div className="mt-1 h-1.5 rounded-full bg-surface">
-                        <div
-                          className="h-full rounded-full"
+                      <span className="gp-patient-avatar">
+                        {visit.patientName
+                          .split(" ")
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((part) => part[0])
+                          .join("")}
+                      </span>
+                      <div className="gp-visit-person">
+                        {enabled.has("patients") ? (
+                          <Link
+                            to="/patients/$id"
+                            params={{ id: visit.patientId }}
+                          >
+                            {visit.patientName}
+                          </Link>
+                        ) : (
+                          <strong>{visit.patientName}</strong>
+                        )}
+                        <p>
+                          {visit.type}
+                          <span>·</span>
+                          {visit.room}
+                        </p>
+                      </div>
+                      <Badge variant={STATUS_VARIANT(visit.status)}>
+                        {visit.status}
+                      </Badge>
+                      {enabled.has("patients") && (
+                        <Link
+                          to="/patients/$id"
+                          params={{ id: visit.patientId }}
+                          className="gp-visit-link"
+                          aria-label={`Open ${visit.patientName} patient record`}
+                        >
+                          <ArrowUpRight size={17} />
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={CalendarDays}
+                  title={
+                    scheduleFilter === "All visits"
+                      ? "A little breathing room."
+                      : `No ${scheduleFilter.toLowerCase()} visits yet.`
+                  }
+                  description={
+                    scheduleFilter === "All visits"
+                      ? "Appointments for today will appear here as they’re booked."
+                      : "Choose All visits to see the rest of today’s schedule."
+                  }
+                />
+              )}
+              <div className="gp-schedule-footer">
+                <span>
+                  <Check size={14} aria-hidden="true" /> {completed} completed{" "}
+                  <span>·</span> {waiting} waiting
+                </span>
+                {enabled.has("appointments") && (
+                  <Link to="/appointments/new">
+                    <Plus size={14} aria-hidden="true" /> Add appointment
+                  </Link>
+                )}
+              </div>
+            </section>
+          ) : (
+            <section className="pulse-card">
+              <EmptyState
+                icon={HeartHandshake}
+                title="Your practice, your workspace."
+                description="The tools included in your practice’s plan are available in the sidebar. You can manage your practice details in Settings."
+              />
+            </section>
+          )}
+
+          {canSchedule && (
+            <section className="pulse-card gp-chart-panel">
+              <div className="gp-panel-heading">
+                <div>
+                  <p className="gp-eyebrow">YOUR PRACTICE AT A GLANCE</p>
+                  <h2>Appointment activity</h2>
+                </div>
+                <span className="gp-panel-period">Last 14 days</span>
+              </div>
+              <div
+                className="gp-chart"
+                role="img"
+                aria-label={`${dailyCounts.reduce((sum, item) => sum + item.visits, 0)} non-cancelled appointments over the last 14 days`}
+              >
+                <ResponsiveContainer width="100%" height={205}>
+                  <AreaChart
+                    data={dailyCounts}
+                    margin={{ top: 10, right: 12, left: -22, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="gp-activity-fill"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#ffcc53"
+                          stopOpacity={0.35}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#ffcc53"
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      vertical={false}
+                      stroke="#e7edef"
+                      strokeDasharray="3 3"
+                    />
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 10, fill: "#70818b" }}
+                      axisLine={false}
+                      tickLine={false}
+                      minTickGap={30}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 10, fill: "#70818b" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: 6,
+                        border: "1px solid #dfe6e8",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="visits"
+                      name="Appointments"
+                      stroke="#153c55"
+                      strokeWidth={2}
+                      fill="url(#gp-activity-fill)"
+                      isAnimationActive={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="gp-chart-note">
+                Based on booked appointment dates. Cancelled visits are
+                excluded.
+              </p>
+            </section>
+          )}
+
+          {enabled.has("billing") && (
+            <section className="pulse-card gp-chart-panel">
+              <div className="gp-panel-heading">
+                <div>
+                  <p className="gp-eyebrow">A CLEARER VIEW OF YOUR FINANCES</p>
+                  <h2>Paid invoices by week</h2>
+                </div>
+                <Link to="/billing" className="gp-inline-link">
+                  View billing <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+              </div>
+              <div
+                className="gp-chart"
+                role="img"
+                aria-label={`${formatZAR(weeklyRevenue.reduce((sum, item) => sum + item.amount, 0))} in paid invoices over the last 8 weeks`}
+              >
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart
+                    data={weeklyRevenue}
+                    margin={{ left: -10, right: 10 }}
+                  >
+                    <CartesianGrid
+                      vertical={false}
+                      stroke="#e7edef"
+                      strokeDasharray="3 3"
+                    />
+                    <XAxis
+                      dataKey="week"
+                      tick={{ fontSize: 10, fill: "#70818b" }}
+                      axisLine={false}
+                      tickLine={false}
+                      minTickGap={25}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 9, fill: "#70818b" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value: number) =>
+                        value >= 1000 ? `${value / 1000}k` : `${value}`
+                      }
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [
+                        formatZAR(value),
+                        "Paid invoices",
+                      ]}
+                      contentStyle={{
+                        borderRadius: 6,
+                        border: "1px solid #dfe6e8",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar
+                      dataKey="amount"
+                      fill="#d5ad50"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={28}
+                      isAnimationActive={false}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="gp-chart-note">
+                Last 8 weeks · Invoice dates, not payment receipt dates.
+              </p>
+            </section>
+          )}
+        </div>
+        <div className="gp-dashboard-secondary">
+          {canSchedule && (
+            <section className="gp-next">
+              <p className="gp-eyebrow">
+                <span /> NEXT IN YOUR DAY
+              </p>
+              <div className="gp-next-heading">
+                <h2>Up next</h2>
+                <Stethoscope size={25} strokeWidth={1.3} aria-hidden="true" />
+              </div>
+              {appointment.isLoading ? (
+                <p role="status">Loading appointments…</p>
+              ) : next ? (
+                <>
+                  <div className="gp-next-patient">
+                    <span className="gp-patient-avatar">
+                      {next.patientName
+                        .split(" ")
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join("")}
+                    </span>
+                    <h3>{next.patientName}</h3>
+                    <p>{next.type}</p>
+                  </div>
+                  <div className="gp-next-details">
+                    <span>
+                      <CalendarDays size={15} aria-hidden="true" />
+                      {isSameDay(parseISO(next.start), now)
+                        ? "Today"
+                        : format(parseISO(next.start), "d MMM")}
+                    </span>
+                    <span>
+                      <Clock size={15} aria-hidden="true" />
+                      {format(parseISO(next.start), "HH:mm")} –{" "}
+                      {format(parseISO(next.end), "HH:mm")}
+                    </span>
+                  </div>
+                  <p className="gp-next-room">
+                    {next.room} · {next.status}
+                  </p>
+                  {enabled.has("patients") && (
+                    <Link
+                      to="/patients/$id"
+                      params={{ id: next.patientId }}
+                      className="gp-button gp-button-yellow"
+                    >
+                      Open patient record{" "}
+                      <ArrowUpRight size={17} aria-hidden="true" />
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <div className="gp-next-empty">
+                  <Check size={29} aria-hidden="true" />
+                  <h3>Nothing coming up just yet.</h3>
+                  <p>Your next scheduled visit will appear here.</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {shortcuts.length > 0 && (
+            <section className="pulse-card gp-shortcuts">
+              <div className="gp-panel-heading">
+                <div>
+                  <p className="gp-eyebrow">LESS CLICKING. MORE CARING.</p>
+                  <h2>Everyday essentials</h2>
+                </div>
+              </div>
+              {shortcuts.map((item) => (
+                <Link to={item.to} key={item.to}>
+                  <item.icon size={20} strokeWidth={1.5} aria-hidden="true" />
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
+              ))}
+            </section>
+          )}
+
+          {canSchedule && (
+            <section className="pulse-card gp-visit-types">
+              <div className="gp-panel-heading">
+                <div>
+                  <p className="gp-eyebrow">TODAY’S MIX</p>
+                  <h2>Care at a glance</h2>
+                </div>
+                <Activity size={20} strokeWidth={1.5} aria-hidden="true" />
+              </div>
+              <div>
+                {visitTypes.length ? (
+                  visitTypes.map(([type, count], index) => (
+                    <div className="gp-type-row" key={type}>
+                      <div>
+                        <span>
+                          <i
+                            style={{
+                              background: ["#153c55", "#e3b545", "#809f95"][
+                                index % 3
+                              ],
+                            }}
+                          />
+                          {type}
+                        </span>
+                        <strong>{count}</strong>
+                      </div>
+                      <div className="gp-type-track">
+                        <span
                           style={{
-                            width: `${pct}%`,
-                            background: TYPE_COLOR[t.type] || "#3B7BF8",
+                            width: `${(count / totalVisits) * 100}%`,
+                            background: ["#153c55", "#e3b545", "#809f95"][
+                              index % 3
+                            ],
                           }}
                         />
                       </div>
                     </div>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div className="space-y-6 lg:col-span-3">
-          <div className="pulse-card">
-            <div className="border-b border-border px-5 py-3.5 text-[14px] font-semibold text-navy">
-              Next up
-            </div>
-            <div className="divide-y divide-border">
-              {appointment.appointments
-                .filter((a) => parseISO(a.start) > new Date())
-                .sort((a, b) => a.start.localeCompare(b.start))
-                .slice(0, 5)
-                .map((a) => (
-                  <div key={a.id} className="flex items-start gap-3 px-5 py-3">
-                    <div className="font-mono text-[11px] text-muted-foreground w-12 pt-0.5">
-                      {format(parseISO(a.start), "HH:mm")}
-                    </div>
-                    <div
-                      className="h-8 w-1 rounded-full"
-                      style={{ background: TYPE_COLOR[a.type] }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate text-[13px] font-medium text-navy">
-                        {a.patientName}
-                      </div>
-                      <div className="text-[11.5px] text-muted-foreground">
-                        {a.type} · {a.room}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-
-          <div className="pulse-card">
-            <div className="border-b border-border px-5 py-3.5 text-[14px] font-semibold text-navy">
-              Recent activity
-            </div>
-            <div className="divide-y divide-border">
-              {[
-                {
-                  who: "Receptionist",
-                  what: "checked in Thandiwe Mokoena",
-                  time: "2m ago",
-                },
-                {
-                  who: "Dr. Naidoo",
-                  what: "completed consultation for Sipho Dlamini",
-                  time: "18m ago",
-                },
-                {
-                  who: "System",
-                  what: "sent SMS reminders to 14 patients",
-                  time: "1h ago",
-                },
-                {
-                  who: "Manager",
-                  what: "received stock for Amoxicillin (×60)",
-                  time: "2h ago",
-                },
-                {
-                  who: "Dr. Naidoo",
-                  what: "issued invoice PM-2418",
-                  time: "3h ago",
-                },
-              ].map((a, i) => (
-                <div key={i} className="px-5 py-3 text-[12.5px]">
-                  <div className="text-navy">
-                    <span className="font-semibold">{a.who}</span> {a.what}
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-muted-foreground">
-                    {a.time}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pulse-card p-5">
-            <div className="text-[14px] font-semibold text-navy">
-              Quick stats
-            </div>
-            <div className="mt-3 space-y-2.5 text-[12.5px]">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">No-show rate (mo)</span>
-                <span className="font-mono font-semibold text-navy">4.2%</span>
+                  ))
+                ) : (
+                  <p className="gp-small-empty">
+                    Your appointment mix will appear as visits are booked.
+                  </p>
+                )}
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Avg appointment</span>
-                <span className="font-mono font-semibold text-navy">
-                  22 min
-                </span>
+            </section>
+          )}
+          {enabled.has("billing") && (
+            <Link to="/billing" className="gp-billing-note">
+              <span>
+                <Receipt size={19} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>
+                  {invoice.isInvoiceLoading
+                    ? "Loading invoices…"
+                    : `${outstanding.length} outstanding invoices`}
+                </strong>
+                <p>Keep track of the next payment.</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Active patients</span>
-                <span className="font-mono font-semibold text-navy">
-                  {patient.patients.filter((p) => p.active).length}
-                </span>
-              </div>
-            </div>
-          </div>
+              <ArrowUpRight size={17} aria-hidden="true" />
+            </Link>
+          )}
         </div>
       </div>
     </AppShell>
@@ -418,118 +738,46 @@ function Dashboard() {
 function KPI({
   label,
   value,
-  sub,
-  trend,
-  trendValue,
+  note,
+  icon: Icon,
+  highlight,
 }: {
   label: string;
   value: string | number;
-  sub?: string;
-  trend?: "up" | "down";
-  trendValue?: string;
+  note: string;
+  icon: LucideIcon;
+  highlight?: boolean;
 }) {
   return (
-    <div className="pulse-card p-5">
-      <div className="label-caps">{label}</div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <div className="text-[26px] font-bold text-navy">{value}</div>
-        {trend && (
-          <div
-            className={`flex items-center gap-0.5 text-[12px] font-medium ${trend === "up" ? "text-success" : "text-danger"}`}
-          >
-            {trend === "up" ? (
-              <ArrowUp className="h-3 w-3" />
-            ) : (
-              <ArrowDown className="h-3 w-3" />
-            )}
-            {trendValue}
-          </div>
-        )}
+    <div className={`pulse-card gp-kpi ${highlight ? "gp-kpi-highlight" : ""}`}>
+      <div>
+        <span>{label}</span>
+        <Icon size={19} strokeWidth={1.5} aria-hidden="true" />
       </div>
-      {sub && (
-        <div className="mt-1 text-[12px] text-muted-foreground">{sub}</div>
-      )}
+      <strong>{value}</strong>
+      <p>{note}</p>
     </div>
   );
 }
 
-function ChartCard({
+function EmptyState({
+  icon: Icon,
   title,
-  sub,
-  children,
+  description,
+  loading,
 }: {
+  icon: LucideIcon;
   title: string;
-  sub: string;
-  children: React.ReactNode;
+  description?: ReactNode;
+  loading?: boolean;
 }) {
   return (
-    <div className="pulse-card p-5">
-      <div className="text-[14px] font-semibold text-navy">{title}</div>
-      <div className="text-[11.5px] text-muted-foreground">{sub}</div>
-      <div className="mt-4">{children}</div>
-    </div>
-  );
-}
-
-function Timeline({ appointments }: { appointments: Appointment[] }) {
-  const HOUR_PX = 70;
-  const startHour = 8;
-  const endHour = 18;
-
-  return (
-    <div className="relative px-5 py-4 overflow-x-auto">
-      <div
-        className="relative"
-        style={{
-          minWidth: 900,
-          height: ((endHour - startHour) * HOUR_PX) / 4 + 32,
-        }}
-      >
-        {/* hour grid */}
-        {Array.from({ length: endHour - startHour + 1 }).map((_, i) => {
-          const left = i * HOUR_PX;
-          return (
-            <div
-              key={i}
-              className="absolute top-0 bottom-0 border-l border-border"
-              style={{ left }}
-            >
-              <div className="ml-2 text-[10px] font-mono text-muted-foreground">
-                {(startHour + i).toString().padStart(2, "0")}:00
-              </div>
-            </div>
-          );
-        })}
-        {/* blocks */}
-        {appointments.map((a) => {
-          const start = parseISO(a.start);
-          const end = parseISO(a.end);
-          const hours = start.getHours() + start.getMinutes() / 60;
-          const dur = (end.getTime() - start.getTime()) / 3600000;
-          const left = (hours - startHour) * HOUR_PX;
-          const width = Math.max(dur * HOUR_PX - 4, 60);
-          return (
-            <div
-              key={a.id}
-              className="absolute rounded-md px-2.5 py-1.5 text-white shadow-sm cursor-pointer hover:scale-[1.02] transition-transform"
-              style={{
-                left,
-                width,
-                top: 22,
-                background: TYPE_COLOR[a.type],
-                color: a.type === "Telehealth" ? "#0A0E1A" : "white",
-              }}
-            >
-              <div className="truncate text-[11.5px] font-semibold">
-                {a.patientName}
-              </div>
-              <div className="truncate text-[10px] opacity-90">
-                {a.type} · {format(start, "HH:mm")}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div className="gp-empty" role={loading ? "status" : undefined}>
+      <span>
+        <Icon size={25} strokeWidth={1.5} aria-hidden="true" />
+      </span>
+      <h3>{title}</h3>
+      {description && <p>{description}</p>}
     </div>
   );
 }

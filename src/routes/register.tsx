@@ -1,5 +1,6 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { PulseLogo } from "@/components/brand";
 import type { Plan } from "@/types/tenant";
 import {
@@ -55,6 +56,43 @@ type WorkingHour = {
   end: string;
 };
 
+type AddressSuggestion = {
+  id: string;
+  province: SAProvince;
+  suburb: string;
+  address: string;
+};
+
+type PhotonProperties = {
+  osm_type?: string;
+  osm_id?: number | string;
+  name?: string;
+  housenumber?: string;
+  street?: string;
+  postcode?: string;
+  suburb?: string;
+  district?: string;
+  city?: string;
+  county?: string;
+  state?: string;
+  country?: string;
+  countrycode?: string;
+};
+
+type PhotonFeature = {
+  properties?: PhotonProperties;
+};
+
+type PhotonResponse = {
+  features?: PhotonFeature[];
+};
+
+const ADDRESS_SEARCH_ENDPOINT =
+  import.meta.env.VITE_ADDRESS_SEARCH_URL ?? "https://photon.komoot.io/api/";
+const STRUCTURED_ADDRESS_SEARCH_ENDPOINT =
+  import.meta.env.VITE_ADDRESS_STRUCTURED_SEARCH_URL ??
+  ADDRESS_SEARCH_ENDPOINT.replace(/\/api\/?$/, "/structured");
+
 const INITIAL_HOURS: WorkingHour[] = DAYS.map((day, index) => ({
   ...day,
   enabled: index < 5,
@@ -85,18 +123,85 @@ function RegisterPage() {
   const [hours, setHours] = useState<WorkingHour[]>(INITIAL_HOURS);
   const [logoPreview, setLogoPreview] = useState("");
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [remoteAddressSuggestions, setRemoteAddressSuggestions] = useState<
+    AddressSuggestion[]
+  >([]);
   const set = (k: keyof typeof form) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const query = form.address.trim();
+    if (query.length < 3) {
+      setRemoteAddressSuggestions([]);
+      return;
+    }
+
+    let cancelled = false;
+    const handle = window.setTimeout(async () => {
+      try {
+        const parsedAddress = parseAddressQuery(query);
+        const params = new URLSearchParams({
+          dedupe: "0",
+          limit: "8",
+          lang: "en",
+          countrycode: "ZA",
+          q: form.province
+            ? `${query}, ${form.province}`
+            : query,
+        });
+        params.append("layer", "house");
+        params.append("layer", "street");
+        params.append("layer", "locality");
+
+        const searches = [fetchAddressResults(ADDRESS_SEARCH_ENDPOINT, params)];
+        if (parsedAddress) {
+          const structuredParams = new URLSearchParams({
+            countrycode: "ZA",
+            housenumber: parsedAddress.houseNumber,
+            lang: "en",
+            limit: "8",
+            street: parsedAddress.street,
+          });
+          if (form.province) structuredParams.set("state", form.province);
+          searches.unshift(
+            fetchAddressResults(
+              STRUCTURED_ADDRESS_SEARCH_ENDPOINT,
+              structuredParams
+            )
+          );
+        }
+
+        const results = await Promise.all(searches);
+        if (!cancelled) {
+          setRemoteAddressSuggestions(
+            results.flatMap((result) =>
+              (result.features ?? []).flatMap((feature) =>
+                toAddressSuggestion(feature)
+              )
+            )
+          );
+        }
+      } catch {
+        if (!cancelled) setRemoteAddressSuggestions([]);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [form.address, form.province]);
 
   const addressSuggestions = useMemo(() => {
     const query = form.address.trim().toLowerCase();
     const provinces = form.province
       ? ([form.province] as SAProvince[])
       : SA_PROVINCES;
-    return provinces
+    const localSuggestions = provinces
       .flatMap((province) =>
         SA_SUBURBS[province].map((suburb) => ({
+          id: `local-${province}-${suburb}`,
           province,
           suburb,
           address: `${suburb}, ${province}, South Africa`,
@@ -105,9 +210,17 @@ function RegisterPage() {
       .filter((item) => {
         if (!query) return true;
         return item.address.toLowerCase().includes(query);
+      });
+    const seen = new Set<string>();
+    return [...remoteAddressSuggestions, ...localSuggestions]
+      .filter((item) => {
+        const key = item.address.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
       })
-      .slice(0, 7);
-  }, [form.address, form.province]);
+      .slice(0, 8);
+  }, [form.address, form.province, remoteAddressSuggestions]);
 
   const validateStep = () => {
     if (step === 0) {
@@ -351,7 +464,7 @@ function RegisterPage() {
             >
               <div className="mt-2 grid gap-4 md:grid-cols-3">
                 {PLANS.map((p) => (
-                  <button
+                  <ActionButton
                     key={p}
                     type="button"
                     onClick={() => set("plan")(p)}
@@ -382,7 +495,7 @@ function RegisterPage() {
                         </div>
                       ))}
                     </div>
-                  </button>
+                  </ActionButton>
                 ))}
               </div>
             </Section>
@@ -395,21 +508,21 @@ function RegisterPage() {
           )}
 
           <div className="mt-8 flex justify-between border-t border-border pt-6">
-            <button
+            <ActionButton
               onClick={back}
               disabled={step === 0}
               className="rounded-md px-4 py-2 text-[13px] font-medium text-muted-foreground disabled:opacity-30 hover:text-navy"
             >
               Back
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               onClick={next}
               disabled={submitting}
               className="inline-flex items-center gap-1.5 rounded-md bg-blue px-5 py-2.5 text-[13px] font-medium text-white hover:opacity-90"
             >
               {submitting ? "Submitting..." : continueLabel}
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </ActionButton>
           </div>
         </div>
       </div>
@@ -496,12 +609,6 @@ function SelectInput({
   );
 }
 
-type AddressSuggestion = {
-  province: SAProvince;
-  suburb: string;
-  address: string;
-};
-
 function AddressInput({
   value,
   suggestions,
@@ -536,8 +643,8 @@ function AddressInput({
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-md border border-border bg-white p-1 shadow-lg">
           {suggestions.map((suggestion) => (
-            <button
-              key={`${suggestion.province}-${suggestion.suburb}`}
+            <ActionButton
+              key={suggestion.id}
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onSelect(suggestion)}
@@ -545,7 +652,7 @@ function AddressInput({
             >
               <span className="font-medium text-navy">{suggestion.suburb}</span>
               <span className="text-muted-foreground">{suggestion.province}</span>
-            </button>
+            </ActionButton>
           ))}
         </div>
       )}
@@ -583,29 +690,29 @@ function HoursStep({
       sub="Set booking availability once, then adjust individual days only where needed."
     >
       <div className="mb-5 flex flex-wrap gap-2">
-        <button
+        <ActionButton
           type="button"
           onClick={() => applyWeekdays("08:00", "17:00")}
           className="inline-flex items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-blue-tint"
         >
           <Clock className="h-4 w-4 text-blue" />
           Apply 08:00-17:00 weekdays
-        </button>
-        <button
+        </ActionButton>
+        <ActionButton
           type="button"
           onClick={() => applyAll("08:00", "13:00")}
           className="inline-flex items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-blue-tint"
         >
           <Clock className="h-4 w-4 text-blue" />
           Apply to whole week
-        </button>
-        <button
+        </ActionButton>
+        <ActionButton
           type="button"
           onClick={() => onChange(hours.map((day, index) => ({ ...day, enabled: index < 5 })))}
           className="rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-blue-tint"
         >
           Close weekends
-        </button>
+        </ActionButton>
       </div>
       <div className="space-y-2">
         {hours.map((day) => (
@@ -735,5 +842,82 @@ function inferProvince(value: string): SAProvince | null {
       return province;
     }
   }
+  return null;
+}
+
+function toAddressSuggestion(feature: PhotonFeature): AddressSuggestion[] {
+  const properties = feature.properties;
+  if (!properties) return [];
+  if (properties.countrycode && properties.countrycode.toLowerCase() !== "za") {
+    return [];
+  }
+
+  const province = inferProvince(
+    [properties.state, properties.county, properties.city].filter(Boolean).join(", ")
+  );
+  if (!province) return [];
+
+  const street = [properties.housenumber, properties.street]
+    .filter(Boolean)
+    .join(" ");
+  const suburb =
+    street ||
+    properties.name ||
+    properties.suburb ||
+    properties.district ||
+    properties.city;
+  if (!suburb) return [];
+
+  const address = [
+    street || properties.name,
+    properties.suburb || properties.district,
+    properties.city,
+    properties.postcode,
+    properties.state,
+    "South Africa",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return [
+    {
+      id: `remote-${properties.osm_type ?? "place"}-${properties.osm_id ?? address}`,
+      province,
+      suburb,
+      address,
+    },
+  ];
+}
+
+async function fetchAddressResults(endpoint: string, params: URLSearchParams) {
+  const response = await fetch(buildAddressSearchUrl(endpoint, params), {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error("Address lookup failed");
+  return (await response.json()) as PhotonResponse;
+}
+
+function buildAddressSearchUrl(endpoint: string, params: URLSearchParams) {
+  const separator = endpoint.includes("?") ? "&" : "?";
+  return `${endpoint}${separator}${params.toString()}`;
+}
+
+function parseAddressQuery(query: string) {
+  const leadingNumber = query.match(/^(\d+[a-zA-Z]?)\s+(.+)$/);
+  if (leadingNumber) {
+    return {
+      houseNumber: leadingNumber[1],
+      street: leadingNumber[2].trim(),
+    };
+  }
+
+  const trailingNumber = query.match(/^(.+?)\s+(\d+[a-zA-Z]?)$/);
+  if (trailingNumber) {
+    return {
+      houseNumber: trailingNumber[2],
+      street: trailingNumber[1].trim(),
+    };
+  }
+
   return null;
 }

@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -24,12 +25,12 @@ export const Route = createFileRoute("/calendar")({
 });
 
 const TYPE_COLOR: Record<string, string> = {
-  Consultation: "#3B7BF8",
-  "Follow-up": "#6366F1",
-  Procedure: "#9333EA",
-  Telehealth: "#5DEBD7",
-  Emergency: "#E53E3E",
-  "Walk-in": "#D97706",
+  Consultation: "#153C55",
+  "Follow-up": "#8C6A24",
+  Procedure: "#656581",
+  Telehealth: "#A4C7BA",
+  Emergency: "#B94343",
+  "Walk-in": "#967247",
 };
 
 const HOUR_HEIGHT = 56;
@@ -38,7 +39,7 @@ const END_HOUR = 18;
 
 function CalendarPage() {
   const { appointment } = useData();
-  
+
   const [anchor, setAnchor] = useState<Date>(new Date());
   const [view, setView] = useState<"day" | "week" | "month" | "agenda">("week");
   const [selected, setSelected] = useState<Appointment | null>(null);
@@ -61,25 +62,27 @@ function CalendarPage() {
     <AppShell title="Calendar">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
+          <ActionButton
             onClick={() => setAnchor(new Date())}
             className="rounded-md border border-border bg-white px-3 py-1.5 text-[13px] font-medium text-navy hover:bg-surface"
           >
             Today
-          </button>
+          </ActionButton>
           <div className="flex items-center gap-1">
-            <button
+            <ActionButton
               onClick={() => setAnchor(subWeeks(anchor, 1))}
+              aria-label="Previous week"
               className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white hover:bg-surface"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               onClick={() => setAnchor(addWeeks(anchor, 1))}
+              aria-label="Next week"
               className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white hover:bg-surface"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </ActionButton>
           </div>
           <div className="text-[16px] font-semibold text-navy">
             {format(weekStart, "d MMM")} — {format(days[6], "d MMM yyyy")}
@@ -88,13 +91,14 @@ function CalendarPage() {
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-md border border-border bg-white p-0.5">
             {(["day", "week", "month", "agenda"] as const).map((v) => (
-              <button
+              <ActionButton
                 key={v}
                 onClick={() => setView(v)}
+                aria-pressed={view === v}
                 className={`rounded px-3 py-1 text-[12.5px] capitalize ${view === v ? "bg-blue text-white" : "text-navy hover:bg-surface"}`}
               >
                 {v}
-              </button>
+              </ActionButton>
             ))}
           </div>
           <Link
@@ -120,7 +124,10 @@ function CalendarPage() {
             onSelect={setSelected}
           />
         ) : (
-          <AgendaList appointments={appointment.appointments} onSelect={setSelected} />
+          <AgendaList
+            appointments={appointment.appointments}
+            onSelect={setSelected}
+          />
         )}
       </div>
 
@@ -155,12 +162,12 @@ function CalendarPage() {
               <div className="text-[15px] font-semibold text-navy">
                 Appointment
               </div>
-              <button
+              <ActionButton
                 onClick={() => setSelected(null)}
                 className="text-muted-foreground hover:text-navy"
               >
                 <X className="h-5 w-5" />
-              </button>
+              </ActionButton>
             </div>
             <div className="px-6 py-5 space-y-5">
               <div>
@@ -211,7 +218,7 @@ function CalendarPage() {
                     "In progress",
                     "Completed",
                   ].map((s) => (
-                    <button
+                    <ActionButton
                       key={s}
                       className={`rounded-md border px-2.5 py-1 text-[12px] ${
                         s === selected.status
@@ -220,17 +227,17 @@ function CalendarPage() {
                       }`}
                     >
                       {s}
-                    </button>
+                    </ActionButton>
                   ))}
                 </div>
               </div>
               <div className="flex gap-2 border-t border-border pt-4">
-                <button className="flex-1 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-surface">
+                <ActionButton className="flex-1 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-surface">
                   Reschedule
-                </button>
-                <button className="flex-1 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-danger hover:bg-surface">
+                </ActionButton>
+                <ActionButton className="flex-1 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-danger hover:bg-surface">
                   Cancel
-                </button>
+                </ActionButton>
               </div>
             </div>
           </div>
@@ -311,7 +318,7 @@ function WeekGrid({
                   ((end.getTime() - start.getTime()) / 3600000) * HOUR_HEIGHT -
                   2;
                 return (
-                  <button
+                  <ActionButton
                     key={a.id}
                     onClick={() => onSelect(a)}
                     className="absolute left-1 right-1 rounded-md px-2 py-1 text-left transition-transform hover:scale-[1.01]"
@@ -328,7 +335,7 @@ function WeekGrid({
                     <div className="truncate text-[10px] opacity-90">
                       {format(start, "HH:mm")} · {a.type}
                     </div>
-                  </button>
+                  </ActionButton>
                 );
               })}
             </div>
@@ -384,14 +391,14 @@ function MonthGrid({
               </div>
               <div className="mt-1 space-y-1">
                 {dayAppts.slice(0, 3).map((a) => (
-                  <button
+                  <ActionButton
                     key={a.id}
                     onClick={() => onSelect(a)}
                     className="block w-full truncate rounded px-1.5 py-0.5 text-left text-[10.5px] text-white"
                     style={{ background: TYPE_COLOR[a.type] }}
                   >
                     {format(parseISO(a.start), "HH:mm")} {a.patientName}
-                  </button>
+                  </ActionButton>
                 ))}
                 {dayAppts.length > 3 && (
                   <div className="text-[10px] text-muted-foreground">
@@ -420,7 +427,7 @@ function AgendaList({
   return (
     <div className="divide-y divide-border">
       {sorted.map((a) => (
-        <button
+        <ActionButton
           key={a.id}
           onClick={() => onSelect(a)}
           className="grid w-full grid-cols-[120px_1fr_auto] items-center gap-4 px-5 py-3 text-left hover:bg-blue-tint"
@@ -442,7 +449,7 @@ function AgendaList({
             </div>
           </div>
           <Badge variant="blue">{a.type}</Badge>
-        </button>
+        </ActionButton>
       ))}
     </div>
   );

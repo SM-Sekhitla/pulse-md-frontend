@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
@@ -123,13 +124,13 @@ function Row({ appt, patient, onConfirm, onCancel, readOnly }: any) {
       {!readOnly && appt.status !== "Cancelled" && appt.status !== "Completed" && (
         <div className="flex gap-1.5">
           {appt.status !== "Confirmed" && (
-            <button onClick={onConfirm} className="inline-flex items-center gap-1 rounded-md bg-success px-2.5 py-1.5 text-[11.5px] font-medium text-white hover:opacity-90">
+            <ActionButton onClick={onConfirm} className="inline-flex items-center gap-1 rounded-md bg-success px-2.5 py-1.5 text-[11.5px] font-medium text-white hover:opacity-90">
               <CheckCircle2 className="h-3 w-3" /> Confirm
-            </button>
+            </ActionButton>
           )}
-          <button onClick={onCancel} className="inline-flex items-center gap-1 rounded-md border border-[#FCA5A5] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#991B1B] hover:bg-[#FEF2F2]">
+          <ActionButton onClick={onCancel} className="inline-flex items-center gap-1 rounded-md border border-[#FCA5A5] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#991B1B] hover:bg-[#FEF2F2]">
             <XCircle className="h-3 w-3" /> Cancel
-          </button>
+          </ActionButton>
         </div>
       )}
     </div>

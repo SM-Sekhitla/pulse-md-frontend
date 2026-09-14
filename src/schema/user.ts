@@ -57,7 +57,7 @@ export const userSchema = z.object({
 
   invitedBy: z.string().nullable().optional(),
   inviteSentAt: apiDateTimeSchema.nullable().optional(),
-  inviteToken: z.string().optional(),
+  inviteToken: z.string().nullable().optional(),
 
   deletedAt: apiDateTimeSchema.nullable().optional(),
   lastLogin: apiDateTimeSchema.nullable().optional(),

@@ -1,3 +1,4 @@
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -19,6 +20,15 @@ import { useCurrentTenant } from "@/hooks/use-current-tenant";
 export const Route = createFileRoute("/prescriptions/new")({
   component: NewPrescription,
 });
+
+const normalizeInventoryCategory = (category: string) =>
+  category.trim().toLowerCase();
+
+const isPrescriptionMedication = (category: string) =>
+  normalizeInventoryCategory(category) === "prescription medication";
+
+const isOtcMedication = (category: string) =>
+  normalizeInventoryCategory(category) === "otc medication";
 
 function NewPrescription() {
   const navigate = useNavigate();
@@ -70,11 +80,19 @@ function NewPrescription() {
       inventory.inventoryList
         .filter(
           (i) =>
-            i.category === "Prescription medication" ||
-            i.category === "OTC medication",
+            isPrescriptionMedication(i.category) ||
+            isOtcMedication(i.category),
         )
         .sort((a, b) => a.name.localeCompare(b.name)),
     [inventory.inventoryList],
+  );
+  const prescriptionMedications = useMemo(
+    () => medications.filter((m) => isPrescriptionMedication(m.category)),
+    [medications],
+  );
+  const otcMedications = useMemo(
+    () => medications.filter((m) => isOtcMedication(m.category)),
+    [medications],
   );
 
   const updateItem = (i: number, patch: Partial<PrescriptionItem>) =>
@@ -126,7 +144,7 @@ function NewPrescription() {
 
   return (
     <AppShell title="New prescription">
-      <form onSubmit={submit} className="mx-auto max-w-[820px] space-y-5">
+      <ActionForm onSubmit={submit} className="mx-auto max-w-[820px] space-y-5">
         <div className="pulse-card p-6">
           <h2 className="text-[16px] font-semibold text-navy">
             Issue a prescription
@@ -233,13 +251,13 @@ function NewPrescription() {
                 <div className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <Pill className="h-4 w-4" /> Medications
                 </div>
-                <button
+                <ActionButton
                   type="button"
                   onClick={addItem}
                   className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1 text-[12px] font-medium text-navy hover:bg-surface"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add medication
-                </button>
+                </ActionButton>
               </div>
               <div className="space-y-3">
                 {items.map((it, i) => (
@@ -257,30 +275,34 @@ function NewPrescription() {
                       >
                         <option value="">— Select medication —</option>
                         <optgroup label="Prescription medication">
-                          {medications
-                            .filter(
-                              (m) => m.category === "Prescription medication",
-                            )
-                            .map((m) => (
-                              <option key={m.id} value={m.name}>
-                                {m.name}{" "}
-                                {m.stock <= 0
-                                  ? "(out of stock)"
-                                  : `· stock ${m.stock}`}
-                              </option>
-                            ))}
+                          {prescriptionMedications.length === 0 && (
+                            <option value="" disabled>
+                              No prescription medication in inventory
+                            </option>
+                          )}
+                          {prescriptionMedications.map((m) => (
+                            <option key={m.id} value={m.name}>
+                              {m.name}{" "}
+                              {m.stock <= 0
+                                ? "(out of stock)"
+                                : `· stock ${m.stock}`}
+                            </option>
+                          ))}
                         </optgroup>
                         <optgroup label="OTC medication">
-                          {medications
-                            .filter((m) => m.category === "OTC medication")
-                            .map((m) => (
-                              <option key={m.id} value={m.name}>
-                                {m.name}{" "}
-                                {m.stock <= 0
-                                  ? "(out of stock)"
-                                  : `· stock ${m.stock}`}
-                              </option>
-                            ))}
+                          {otcMedications.length === 0 && (
+                            <option value="" disabled>
+                              No OTC medication in inventory
+                            </option>
+                          )}
+                          {otcMedications.map((m) => (
+                            <option key={m.id} value={m.name}>
+                              {m.name}{" "}
+                              {m.stock <= 0
+                                ? "(out of stock)"
+                                : `· stock ${m.stock}`}
+                            </option>
+                          ))}
                         </optgroup>
                       </select>
                       <input
@@ -307,14 +329,14 @@ function NewPrescription() {
                         placeholder="Duration (5 days)"
                         className="col-span-2 rounded-md border border-border bg-white px-2.5 py-1.5 text-[13px] outline-none focus:border-blue"
                       />
-                      <button
+                      <ActionButton
                         type="button"
                         onClick={() => removeItem(i)}
                         disabled={items.length === 1}
                         className="col-span-1 inline-flex items-center justify-center rounded-md border border-border bg-white text-muted-foreground hover:bg-surface disabled:opacity-40"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </ActionButton>
                     </div>
                     <input
                       value={it.notes || ""}
@@ -341,23 +363,23 @@ function NewPrescription() {
             )}
 
             <div className="flex justify-end gap-2 pt-1">
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => navigate({ to: "/prescriptions" })}
                 className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface"
               >
                 Cancel
-              </button>
-              <button
+              </ActionButton>
+              <ActionButton
                 type="submit"
                 className="inline-flex items-center gap-1.5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
               >
                 <FileText className="h-4 w-4" /> Issue prescription
-              </button>
+              </ActionButton>
             </div>
           </div>
         </div>
-      </form>
+      </ActionForm>
     </AppShell>
   );
 }

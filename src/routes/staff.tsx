@@ -1,3 +1,4 @@
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -37,12 +38,12 @@ function Staff() {
             : `You have ${staff.length} receptionist${staff.length === 1 ? "" : "s"}.`}
           </h2>
         </div>
-        <button
+        <ActionButton
           onClick={() => setOpenAdd(true)}
           className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Add receptionist
-        </button>
+        </ActionButton>
       </div>
 
       {staff.length === 0 ? (
@@ -57,12 +58,12 @@ function Staff() {
             Add a receptionist to help manage appointments and patient
             check-ins.
           </p>
-          <button
+          <ActionButton
             onClick={() => setOpenAdd(true)}
             className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
           >
             <Plus className="h-4 w-4" /> Add receptionist
-          </button>
+          </ActionButton>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -127,12 +128,12 @@ function StaffCard({ u, onManage }: { u: User; onManage: () => void }) {
           </div>
         )}
       </div>
-      <button
+      <ActionButton
         onClick={onManage}
         className="mt-4 w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-surface"
       >
         Manage
-      </button>
+      </ActionButton>
     </div>
   );
 }
@@ -177,7 +178,7 @@ function AddModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Add receptionist" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-4">
+      <ActionForm onSubmit={submit} className="space-y-4">
         <div className="grid gap-3 md:grid-cols-2">
           <Input label="First name" value={first} onChange={setFirst} />
           <Input label="Last name" value={last} onChange={setLast} />
@@ -195,21 +196,21 @@ function AddModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
         <div className="flex justify-end gap-2 pt-2">
-          <button
+          <ActionButton
             type="button"
             onClick={onClose}
             className="rounded-md px-4 py-2 text-[13px] text-muted-foreground hover:text-navy"
           >
             Cancel
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="submit"
             className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
           >
             Send invite
-          </button>
+          </ActionButton>
         </div>
-      </form>
+      </ActionForm>
     </Modal>
   );
 }
@@ -270,18 +271,18 @@ function ManageModal({ u, onClose }: { u: User; onClose: () => void }) {
             </div>
             <Input label="Phone" value={phone} onChange={setPhone} />
             <div className="flex justify-end gap-2">
-              <button
+              <ActionButton
                 onClick={() => setEditing(false)}
                 className="rounded-md px-3 py-1.5 text-[13px] text-muted-foreground"
               >
                 Cancel
-              </button>
-              <button
+              </ActionButton>
+              <ActionButton
                 onClick={save}
                 className="rounded-md bg-blue px-3 py-1.5 text-[13px] font-medium text-white"
               >
                 Save
-              </button>
+              </ActionButton>
             </div>
           </div>
         ) : (
@@ -294,43 +295,43 @@ function ManageModal({ u, onClose }: { u: User; onClose: () => void }) {
 
         <div className="grid gap-2">
           {!editing && (
-            <button
+            <ActionButton
               onClick={() => setEditing(true)}
               className="rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-surface"
             >
               Edit details
-            </button>
+            </ActionButton>
           )}
           {u.status === "invited" && (
-            <button
+            <ActionButton
               onClick={resend}
               className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-surface"
             >
               <Mail className="h-4 w-4" /> Resend invite
-            </button>
+            </ActionButton>
           )}
           {u.status === "active" && (
-            <button
+            <ActionButton
               onClick={deactivate}
               className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-surface"
             >
               <UserX className="h-4 w-4" /> Deactivate
-            </button>
+            </ActionButton>
           )}
           {u.status === "inactive" && (
-            <button
+            <ActionButton
               onClick={reactivate}
               className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-surface"
             >
               <UserCheck className="h-4 w-4" /> Reactivate
-            </button>
+            </ActionButton>
           )}
-          <button
+          <ActionButton
             onClick={remove}
             className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-[#FEE2E2] bg-[#FEF2F2] px-3 py-2 text-[13px] font-medium text-[#991B1B] hover:bg-[#FEE2E2]"
           >
             <Trash2 className="h-4 w-4" /> Remove permanently
-          </button>
+          </ActionButton>
         </div>
       </div>
     </Modal>
@@ -351,12 +352,12 @@ function Modal({
       <div className="w-full max-w-[480px] rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <h3 className="text-[15px] font-semibold text-navy">{title}</h3>
-          <button
+          <ActionButton
             onClick={onClose}
             className="text-muted-foreground hover:text-navy"
           >
             <X className="h-4 w-4" />
-          </button>
+          </ActionButton>
         </div>
         <div className="p-5">{children}</div>
       </div>

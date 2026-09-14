@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+const optionalString = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.string().optional(),
+);
+
+const dateOnlyString = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+
+  return Number.isNaN(Date.parse(value)) ? value : value.slice(0, 10);
+}, z.string().date());
+
+const optionalDateOnlyString = z.preprocess((value) => {
+  if (value === null || value === "") return undefined;
+  if (typeof value !== "string") return value;
+
+  return Number.isNaN(Date.parse(value)) ? value : value.slice(0, 10);
+}, z.string().date().optional());
+
 //
 // -------------------------------------------------
 // Enums
@@ -43,20 +61,20 @@ const tariffCodeSchema = z.object({
 
 const medicalAidInvoiceFields = {
   billingType: billingTypeSchema.default("private"),
-  medicalAidSchemeId: z.string().optional(),
-  medicalAidSchemeName: z.string().optional(),
-  medicalAidPlan: z.string().optional(),
-  medicalAidNumber: z.string().optional(),
-  mainMemberName: z.string().optional(),
-  dependantCode: z.string().optional(),
+  medicalAidSchemeId: optionalString,
+  medicalAidSchemeName: optionalString,
+  medicalAidPlan: optionalString,
+  medicalAidNumber: optionalString,
+  mainMemberName: optionalString,
+  dependantCode: optionalString,
   claimStatus: claimStatusSchema.optional().default("not_submitted"),
   schemeBilledAmount: z.number().min(0).optional().default(0),
   schemePaidAmount: z.number().min(0).optional().default(0),
   patientCopayment: z.number().min(0).optional().default(0),
   icd10Codes: z.array(icd10CodeSchema).optional().default([]),
   tariffCodes: z.array(tariffCodeSchema).optional().default([]),
-  claimReference: z.string().optional(),
-  serviceDate: z.string().optional(),
+  claimReference: optionalString,
+  serviceDate: optionalDateOnlyString,
 };
 
 //
@@ -67,15 +85,15 @@ export const invoiceSchema = z
   .object({
     id: z.string(),
 
-    tenantId: z.string().optional(),
+    tenantId: optionalString,
 
     number: z.string().min(1),
 
     patientId: z.string(),
     patientName: z.string().min(1),
 
-    date: z.string().date(),
-    dueDate: z.string().date(),
+    date: dateOnlyString,
+    dueDate: dateOnlyString,
 
     amount: z.number().min(0),
 
@@ -94,15 +112,15 @@ export const invoiceSchema = z
 // -------------------------------------------------
 export const invoiceCreateSchema = z
   .object({
-    tenantId: z.string().optional(),
+    tenantId: optionalString,
 
     number: z.string().min(1),
 
     patientId: z.string(),
     patientName: z.string().min(1),
 
-    date: z.string().date(),
-    dueDate: z.string().date(),
+    date: dateOnlyString,
+    dueDate: dateOnlyString,
 
     amount: z.number().min(0),
 
@@ -121,35 +139,35 @@ export const invoiceCreateSchema = z
 // -------------------------------------------------
 export const invoiceUpdateSchema = z
   .object({
-    tenantId: z.string().optional(),
+    tenantId: optionalString,
 
     number: z.string().min(1).optional(),
 
     patientId: z.string().optional(),
     patientName: z.string().min(1).optional(),
 
-    date: z.string().date().optional(),
-    dueDate: z.string().date().optional(),
+    date: optionalDateOnlyString,
+    dueDate: optionalDateOnlyString,
 
     amount: z.number().min(0).optional(),
 
     type: invoiceTypeSchema.optional(),
     status: invoiceStatusSchema.optional(),
     billingType: billingTypeSchema.optional(),
-    medicalAidSchemeId: z.string().optional(),
-    medicalAidSchemeName: z.string().optional(),
-    medicalAidPlan: z.string().optional(),
-    medicalAidNumber: z.string().optional(),
-    mainMemberName: z.string().optional(),
-    dependantCode: z.string().optional(),
+    medicalAidSchemeId: optionalString,
+    medicalAidSchemeName: optionalString,
+    medicalAidPlan: optionalString,
+    medicalAidNumber: optionalString,
+    mainMemberName: optionalString,
+    dependantCode: optionalString,
     claimStatus: claimStatusSchema.optional(),
     schemeBilledAmount: z.number().min(0).optional(),
     schemePaidAmount: z.number().min(0).optional(),
     patientCopayment: z.number().min(0).optional(),
     icd10Codes: z.array(icd10CodeSchema).optional(),
     tariffCodes: z.array(tariffCodeSchema).optional(),
-    claimReference: z.string().optional(),
-    serviceDate: z.string().optional(),
+    claimReference: optionalString,
+    serviceDate: optionalDateOnlyString,
   })
   .refine(
     (data) =>

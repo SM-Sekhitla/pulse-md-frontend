@@ -1,4 +1,20 @@
 import { z } from "zod";
+import { apiDateTimeSchema } from "./user";
+
+const optionalString = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.string().optional(),
+);
+
+const optionalIcd10Schema = z.preprocess(
+  (value) => (value === null || value === "" ? undefined : value),
+  z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/)
+    .optional(),
+);
 
 //
 // -------------------------------------------------
@@ -13,29 +29,24 @@ export const sickNoteSchema = z
     patientId: z.string(),
     patientName: z.string().min(1),
 
-    appointmentId: z.string().optional(),
+    appointmentId: optionalString,
 
     gpName: z.string().min(1),
     hpcsa: z.string().min(1),
 
-    issuedAt: z.string().datetime(),
+    issuedAt: apiDateTimeSchema,
 
     fromDate: z.string().min(1),
     toDate: z.string().min(1),
 
     reason: z.string().min(1),
 
-    icd10: z
-      .string()
-      .trim()
-      .toUpperCase()
-      .regex(/^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/)
-      .optional(),
-    recommendation: z.string().optional(),
+    icd10: optionalIcd10Schema,
+    recommendation: optionalString,
 
-    securityCode: z.string().min(1).optional(),
-    qrHash: z.string().min(1).optional(),
-    qrCodeDataUrl: z.string().min(1).optional(),
+    securityCode: optionalString,
+    qrHash: optionalString,
+    qrCodeDataUrl: optionalString,
   })
   .refine((data) => new Date(data.toDate) >= new Date(data.fromDate), {
     message: "toDate must be on or after fromDate",
@@ -48,27 +59,27 @@ export const sickNoteSchema = z
 // -------------------------------------------------
 export const sickNoteCreateSchema = z
   .object({
-    tenantId: z.string().optional(),
+    tenantId: optionalString,
 
     patientId: z.string(),
     patientName: z.string().min(1),
 
-    appointmentId: z.string().optional(),
+    appointmentId: optionalString,
 
     gpName: z.string().min(1),
     hpcsa: z.string().min(1),
 
-    issuedAt: z.string().datetime().optional(),
+    issuedAt: apiDateTimeSchema.optional(),
 
     fromDate: z.string().min(1),
     toDate: z.string().min(1),
 
     reason: z.string().min(1),
 
-    icd10: z.string().optional(),
-    recommendation: z.string().optional(),
+    icd10: optionalString,
+    recommendation: optionalString,
 
-    securityCode: z.string().min(1).optional(),
+    securityCode: optionalString,
   })
   .refine((data) => new Date(data.toDate) >= new Date(data.fromDate), {
     message: "toDate must be on or after fromDate",
@@ -81,27 +92,27 @@ export const sickNoteCreateSchema = z
 // -------------------------------------------------
 export const sickNoteUpdateSchema = z
   .object({
-    tenantId: z.string().optional(),
+    tenantId: optionalString,
 
     patientId: z.string().optional(),
     patientName: z.string().min(1).optional(),
 
-    appointmentId: z.string().optional(),
+    appointmentId: optionalString,
 
     gpName: z.string().min(1).optional(),
     hpcsa: z.string().min(1).optional(),
 
-    issuedAt: z.string().datetime().optional(),
+    issuedAt: apiDateTimeSchema.optional(),
 
     fromDate: z.string().min(1).optional(),
     toDate: z.string().min(1).optional(),
 
     reason: z.string().min(1).optional(),
 
-    icd10: z.string().optional(),
-    recommendation: z.string().optional(),
+    icd10: optionalString,
+    recommendation: optionalString,
 
-    securityCode: z.string().min(1).optional(),
+    securityCode: optionalString,
   })
   .refine(
     (data) =>

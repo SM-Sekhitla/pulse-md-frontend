@@ -1,3 +1,4 @@
+import { getLoginRoute } from "@/lib/auth-routing";
 // src/api/axios.ts
 import axios, { AxiosRequestConfig } from 'axios';
 
@@ -9,6 +10,7 @@ declare module "axios" {
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 const REFRESH_PATH = "/auth/refresh";
+const TENANT_SLUG_STORAGE_KEY = "pulse_tenant_slug";
 
 let refreshPromise: Promise<boolean> | null = null;
 let redirectingToLogin = false;
@@ -66,10 +68,24 @@ const isAuthRefreshRequest = (url?: string) => {
   return url.includes(REFRESH_PATH);
 };
 
+API.interceptors.request.use((config) => {
+  const tenantSlug =
+    typeof window !== "undefined"
+      ? window.sessionStorage.getItem(TENANT_SLUG_STORAGE_KEY)
+      : null;
+
+  if (tenantSlug) {
+    config.headers.set("X-Tenant-Slug", tenantSlug);
+  }
+
+  return config;
+});
+
 export const redirectToLogin = () => {
-  if (redirectingToLogin || window.location.pathname === "/login") return;
+  const loginRoute = getLoginRoute();
+  if (redirectingToLogin || window.location.pathname === loginRoute) return;
   redirectingToLogin = true;
-  window.location.href = "/login";
+  window.location.href = loginRoute;
 };
 
 export const refreshSession = async () => {

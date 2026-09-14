@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 
 import API from "@/utils/api";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 import {
   patientSchema,
@@ -104,6 +105,7 @@ export function PatientProvider({
   children: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const canFetchPatients = useModuleAccess("patients");
 
   //
   // ---------------- GET ALL ----------------
@@ -113,6 +115,7 @@ export function PatientProvider({
     isLoading,
   } = useQuery({
     queryKey: patientKeys.lists(),
+    enabled: canFetchPatients,
 
     queryFn: async (): Promise<
       Patient[]
@@ -281,7 +284,7 @@ export function PatientProvider({
     <PatientContext.Provider
       value={{
         patients,
-        isLoading,
+        isLoading: canFetchPatients && isLoading,
 
         getPatient,
 

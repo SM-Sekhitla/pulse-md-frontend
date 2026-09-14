@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { apiDateTimeSchema } from "./user";
+
+const optionalString = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.string().optional(),
+);
 
 //
 // -------------------------------------------------
@@ -9,7 +15,7 @@ export const prescriptionItemSchema = z.object({
   dose: z.string().min(1),
   frequency: z.string().min(1),
   duration: z.string().min(1),
-  notes: z.string().optional(),
+  notes: optionalString,
 });
 
 //
@@ -21,27 +27,27 @@ export const prescriptionSchema = z.object({
 
   tenantId: z.string(),
 
-  patientId: z.string(),
+  patientId: optionalString,
   patientName: z.string().min(1),
 
-  appointmentId: z.string().optional(),
+  appointmentId: optionalString,
 
   gpName: z.string().min(1),
   hpcsa: z.string().min(1),
 
-  issuedAt: z.string().datetime(),
-  fromDate: z.string().min(1).optional(),
-  toDate: z.string().min(1).optional(),
+  issuedAt: apiDateTimeSchema,
+  fromDate: optionalString,
+  toDate: optionalString,
 
   validDays: z.number().int().min(1),
 
-  diagnosis: z.string().optional(),
-  icd10: z.string().optional(),
+  diagnosis: optionalString,
+  icd10: optionalString,
 
   items: z.array(prescriptionItemSchema).min(1),
 
-  securityCode: z.string().min(1).optional(),
-  qrToken: z.string().min(1).optional(),
-  qrHash: z.string().min(1).optional(),
-  qrCodeDataUrl: z.string().min(1).optional(),
+  securityCode: optionalString,
+  qrToken: optionalString,
+  qrHash: optionalString,
+  qrCodeDataUrl: optionalString,
 });

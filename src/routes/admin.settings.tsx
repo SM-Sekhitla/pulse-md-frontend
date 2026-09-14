@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
@@ -78,12 +79,12 @@ function AdminSettings() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
+          <ActionButton
             onClick={save}
             className="rounded-md bg-blue px-5 py-2.5 text-[13px] font-medium text-white hover:opacity-90"
           >
             Save settings
-          </button>
+          </ActionButton>
           {saved && <span className="text-[13px] text-success">Saved.</span>}
         </div>
       </div>

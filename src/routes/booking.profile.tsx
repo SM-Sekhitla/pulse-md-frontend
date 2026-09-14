@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -68,19 +69,19 @@ function BookingProfile() {
             {COMMON_LANGS.map((l) => {
               const on = langs.includes(l);
               return (
-                <button key={l} type="button" onClick={() => toggle(l)}
+                <ActionButton key={l} type="button" onClick={() => toggle(l)}
                   className={`rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition-colors ${on ? "border-blue bg-blue text-white" : "border-border bg-white text-navy hover:bg-surface"}`}>
                   {l}
-                </button>
+                </ActionButton>
               );
             })}
           </div>
         </div>
 
         <div className="flex justify-end">
-          <button type="button" onClick={save} className="inline-flex items-center gap-1.5 rounded-md bg-blue px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-blue/90">
+          <ActionButton type="button" onClick={save} className="inline-flex items-center gap-1.5 rounded-md bg-blue px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-blue/90">
             <Save className="h-3.5 w-3.5" /> Save profile
-          </button>
+          </ActionButton>
         </div>
       </div>
     </AppShell>

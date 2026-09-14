@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -42,13 +43,13 @@ function Settings() {
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <nav className="pulse-card p-2">
           {TABS.map((t) => (
-            <button
+            <ActionButton
               key={t}
               onClick={() => setTab(t)}
               className={`block w-full rounded-md px-3 py-2 text-left text-[13px] transition-colors ${tab === t ? "bg-blue-tint text-blue font-medium" : "text-navy hover:bg-surface"}`}
             >
               {t}
-            </button>
+            </ActionButton>
           ))}
         </nav>
         <div className="pulse-card p-6">
@@ -101,9 +102,9 @@ function Settings() {
             )}
           </div>
           {tab !== "Medical aid schemes" && <div className="mt-6 flex justify-end">
-            <button className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
+            <ActionButton className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
               Save changes
-            </button>
+            </ActionButton>
           </div>}
         </div>
       </div>
@@ -202,14 +203,14 @@ function MedicalAidSchemesPanel({
             {filtered.map((scheme) => (
               <tr key={scheme.id} className="border-t border-border">
                 <td className="w-16 px-4 py-3">
-                  <button
+                  <ActionButton
                     type="button"
                     onClick={() => onToggle(scheme)}
                     className={`relative h-5 w-9 rounded-full transition-colors ${scheme.acceptedByPractice ? "bg-blue" : "bg-muted"}`}
                     aria-label={`${scheme.acceptedByPractice ? "Disable" : "Enable"} ${scheme.name}`}
                   >
                     <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${scheme.acceptedByPractice ? "left-4" : "left-0.5"}`} />
-                  </button>
+                  </ActionButton>
                 </td>
                 <td className="px-4 py-3 text-[14px] font-medium text-navy">{scheme.name}</td>
                 <td className="px-4 py-3">
@@ -220,9 +221,9 @@ function MedicalAidSchemesPanel({
                 <td className="px-4 py-3 text-[12px] text-muted-foreground">{scheme.administrator}</td>
                 <td className="px-4 py-3">
                   <span className="text-muted-foreground">{scheme.plans.length} plans</span>
-                  <button type="button" onClick={() => onManagePlans(scheme)} className="ml-2 text-[12.5px] font-medium text-blue hover:underline">
+                  <ActionButton type="button" onClick={() => onManagePlans(scheme)} className="ml-2 text-[12.5px] font-medium text-blue hover:underline">
                     Manage plans
-                  </button>
+                  </ActionButton>
                 </td>
               </tr>
             ))}
@@ -271,9 +272,9 @@ function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onC
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[12px] font-medium text-success">{saved ? "Saved" : "Saving..."}</span>
-            <button type="button" onClick={onClose} className="rounded-md border border-border p-1.5 text-navy hover:bg-surface" aria-label="Close">
+            <ActionButton type="button" onClick={onClose} className="rounded-md border border-border p-1.5 text-navy hover:bg-surface" aria-label="Close">
               <X className="h-4 w-4" />
-            </button>
+            </ActionButton>
           </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -281,9 +282,9 @@ function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onC
           {plans.map((plan) => (
             <span key={plan} className="inline-flex items-center gap-1 rounded-full border border-blue/20 bg-blue-tint px-3 py-1 text-[12.5px] font-medium text-blue">
               {plan}
-              <button type="button" onClick={() => updatePlans(plans.filter((item) => item !== plan))} aria-label={`Remove ${plan}`}>
+              <ActionButton type="button" onClick={() => updatePlans(plans.filter((item) => item !== plan))} aria-label={`Remove ${plan}`}>
                 <X className="h-3 w-3" />
-              </button>
+              </ActionButton>
             </span>
           ))}
         </div>
@@ -294,7 +295,7 @@ function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onC
             placeholder="Plan / option name"
             className="h-10 flex-1 rounded-md border border-border bg-white px-3 text-[13px] outline-none focus:border-blue"
           />
-          <button
+          <ActionButton
             type="button"
             onClick={() => {
               const clean = planName.trim();
@@ -305,12 +306,12 @@ function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onC
             className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
           >
             Add plan
-          </button>
+          </ActionButton>
         </div>
         <div className="mt-6 flex justify-end">
-          <button type="button" onClick={() => save()} className="rounded-md bg-navy px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
+          <ActionButton type="button" onClick={() => save()} className="rounded-md bg-navy px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
             Save plans
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>

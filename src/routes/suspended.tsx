@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { PulseLogo } from "@/components/brand";
@@ -61,15 +62,12 @@ function Suspended() {
             </a>
             .
           </p>
-          <button
-            onClick={() => {
-              logout();
-              navigate({ to: "/login" });
-            }}
+          <ActionButton
+            onClick={logout}
             className="mt-6 text-[13px] text-muted-foreground hover:text-navy underline"
           >
             Log out
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>

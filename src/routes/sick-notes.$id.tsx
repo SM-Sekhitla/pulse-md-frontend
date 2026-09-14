@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { differenceInCalendarDays, format } from "date-fns";
 import { ArrowLeft, Printer, ShieldCheck } from "lucide-react";
@@ -74,12 +75,12 @@ function SickNoteDetail() {
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
-        <button
+        <ActionButton
           onClick={() => window.print()}
           className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90"
         >
           <Printer className="h-4 w-4" /> Print
-        </button>
+        </ActionButton>
       </div>
 
       <div className="mx-auto max-w-[820px]">

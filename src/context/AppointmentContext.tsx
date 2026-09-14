@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import API from "@/utils/api";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 import {
   appointmentSchema,
@@ -76,12 +77,14 @@ export const AppointmentProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
+  const canFetchAppointments = useModuleAccess(["appointments", "calendar"]);
 
   //
   // ---------------- GET ALL APPOINTMENTS ----------------
   //
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: appointmentKeys.lists(),
+    enabled: canFetchAppointments,
     queryFn: async (): Promise<Appointment[]> => {
       const res = await API.get("/appointments");
 
@@ -209,7 +212,7 @@ export const AppointmentProvider: React.FC<{ children: React.ReactNode }> = ({
     <AppointmentContext.Provider
       value={{
         appointments,
-        isLoading,
+        isLoading: canFetchAppointments && isLoading,
         getAppointment,
         createAppointment,
         createAppointmentByUser,

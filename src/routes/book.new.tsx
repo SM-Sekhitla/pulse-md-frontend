@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useParams, useNavigate } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -221,7 +222,7 @@ function BookingForm() {
                     const open = d.slots.length > 0;
                     const selected = form.date === d.date;
                     return (
-                      <button
+                      <ActionButton
                         type="button"
                         key={d.date}
                         disabled={!open}
@@ -235,7 +236,7 @@ function BookingForm() {
                         <div className="text-[10.5px] uppercase tracking-wide opacity-80">{format(dt, "EEE")}</div>
                         <div className="text-[15px] font-semibold">{format(dt, "d")}</div>
                         <div className="text-[10.5px] opacity-80">{open ? `${d.slots.length}` : "—"}</div>
-                      </button>
+                      </ActionButton>
                     );
                   })}
                 </div>
@@ -245,14 +246,14 @@ function BookingForm() {
                   <Label>Time slot ({selectedDay.slots.length} available on {format(parseISO(selectedDay.date), "EEE d MMM")})</Label>
                   <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
                     {selectedDay.slots.map((t) => (
-                      <button
+                      <ActionButton
                         type="button"
                         key={t}
                         onClick={() => set("time", t)}
                         className={`rounded-md border px-2 py-1.5 text-[12.5px] font-medium ${form.time === t ? "border-blue bg-blue text-white" : "border-border bg-white text-navy hover:border-blue"}`}
                       >
                         {t}
-                      </button>
+                      </ActionButton>
                     ))}
                   </div>
                 </div>
@@ -403,22 +404,22 @@ function BookingForm() {
           )}
 
           <div className="mt-8 flex items-center justify-between border-t border-border pt-5">
-            <button
+            <ActionButton
               type="button"
               onClick={back}
               disabled={step === 1 || submitting}
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface disabled:opacity-40"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back
-            </button>
+            </ActionButton>
             {step < 4 ? (
-              <button type="button" onClick={next} className="inline-flex items-center gap-1.5 rounded-md bg-navy px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-navy/90">
+              <ActionButton type="button" onClick={next} className="inline-flex items-center gap-1.5 rounded-md bg-navy px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-navy/90">
                 Continue <ArrowRight className="h-3.5 w-3.5" />
-              </button>
+              </ActionButton>
             ) : (
-              <button type="button" onClick={submit} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-md bg-blue px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-blue/90 disabled:opacity-60">
+              <ActionButton type="button" onClick={submit} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-md bg-blue px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-blue/90 disabled:opacity-60">
                 {submitting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Booking…</> : <>Confirm booking <Check className="h-3.5 w-3.5" /></>}
-              </button>
+              </ActionButton>
             )}
           </div>
         </div>
@@ -505,13 +506,13 @@ function PaymentTile({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className={`rounded-xl border p-4 text-left transition-colors ${active ? "border-blue bg-white" : "border-white/60 bg-white/70 hover:border-blue"}`}>
+    <ActionButton type="button" onClick={onClick} className={`rounded-xl border p-4 text-left transition-colors ${active ? "border-blue bg-white" : "border-white/60 bg-white/70 hover:border-blue"}`}>
       <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconClassName}`}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="mt-3 text-[14px] font-semibold text-navy">{title}</div>
       <div className="mt-1 text-[12.5px] text-muted-foreground">{sub}</div>
-    </button>
+    </ActionButton>
   );
 }
 

@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -132,7 +133,7 @@ function PatientDetail() {
             <ActionBtn icon={Calendar}>New appointment</ActionBtn>
             <ActionBtn icon={FileText}>New note</ActionBtn>
             <ActionBtn icon={MessageSquare}>Message</ActionBtn>
-            <ActionBtn icon={Receipt} primary>
+            <ActionBtn icon={Receipt} primary to={`/billing?new=1&patientId=${p.id}`}>
               New invoice
             </ActionBtn>
           </div>
@@ -143,7 +144,7 @@ function PatientDetail() {
       <div className="mt-6 border-b border-border">
         <div className="flex gap-1">
           {TABS.map((t) => (
-            <button
+            <ActionButton
               key={t}
               onClick={() => setTab(t)}
               className={`relative px-4 py-2.5 text-[13px] font-medium transition-colors ${
@@ -156,7 +157,7 @@ function PatientDetail() {
               {tab === t && (
                 <span className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-blue" />
               )}
-            </button>
+            </ActionButton>
           ))}
         </div>
       </div>
@@ -166,7 +167,7 @@ function PatientDetail() {
         {tab === "Visit history" && <VisitHistory visits={visits} />}
         {tab === "Clinical notes" && <ClinicalNotes />}
         {tab === "Documents" && <Documents />}
-        {tab === "Billing" && <BillingTab invoices={invoices} />}
+        {tab === "Billing" && <BillingTab invoices={invoices} patientId={p.id} />}
         {tab === "Prescriptions" && <Prescriptions />}
       </div>
     </AppShell>
@@ -176,22 +177,37 @@ function PatientDetail() {
 function ActionBtn({
   icon: Icon,
   primary,
+  to,
   children,
 }: {
   icon: any;
   primary?: boolean;
+  to?: string;
   children: React.ReactNode;
 }) {
-  return (
-    <button
-      className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12.5px] font-medium transition-opacity hover:opacity-90 ${
-        primary
-          ? "bg-blue text-white"
-          : "border border-border bg-white text-navy"
-      }`}
-    >
+  const className = `inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12.5px] font-medium transition-opacity hover:opacity-90 ${
+    primary
+      ? "bg-blue text-white"
+      : "border border-border bg-white text-navy"
+  }`;
+  const content = (
+    <>
       <Icon className="h-3.5 w-3.5" /> {children}
-    </button>
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link to={to} className={className}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <ActionButton className={className}>
+      {content}
+    </ActionButton>
   );
 }
 
@@ -398,12 +414,12 @@ function ClinicalNotes() {
         ))}
       </div>
       <div className="mt-5 flex justify-end gap-2">
-        <button className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
+        <ActionButton className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
           Save draft
-        </button>
-        <button className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
+        </ActionButton>
+        <ActionButton className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
           Lock & sign
-        </button>
+        </ActionButton>
       </div>
     </div>
   );
@@ -428,13 +444,14 @@ function Prescriptions() {
   );
 }
 
-function BillingTab({ invoices }: { invoices: any[] }) {
+function BillingTab({ invoices, patientId }: { invoices: any[]; patientId: string }) {
   if (invoices.length === 0)
     return (
       <Empty
         title="No invoices for this patient"
         sub="Create an invoice from a completed appointment."
         cta="Create invoice"
+        ctaHref={`/billing?new=1&patientId=${patientId}`}
       />
     );
   return (
@@ -492,10 +509,12 @@ function Empty({
   title,
   sub,
   cta,
+  ctaHref,
 }: {
   title: string;
   sub: string;
   cta?: string;
+  ctaHref?: string;
 }) {
   return (
     <div className="pulse-card flex flex-col items-center justify-center py-16 text-center">
@@ -505,9 +524,12 @@ function Empty({
       <div className="mt-4 text-[15px] font-semibold text-navy">{title}</div>
       <div className="mt-1 text-[13px] text-muted-foreground">{sub}</div>
       {cta && (
-        <button className="mt-5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
+        <Link
+          to={ctaHref ?? "/billing?new=1"}
+          className="mt-5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
+        >
           {cta}
-        </button>
+        </Link>
       )}
     </div>
   );

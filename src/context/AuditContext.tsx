@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 
 import API from "@/utils/api";
+import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
 
 import {
   auditCreateSchema,
@@ -112,6 +113,8 @@ export function AuditProvider({
   children: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const { user, loading } = useAuth();
+  const canFetchAudits = !loading && isSuperAdminRole(user?.role);
 
   //
   // ---------------- GET ALL ----------------
@@ -121,6 +124,7 @@ export function AuditProvider({
     isLoading,
   } = useQuery({
     queryKey: auditKeys.lists(),
+    enabled: canFetchAudits,
 
     queryFn: async (): Promise<Audit[]> => {
       const res = await API.get("/audits");
@@ -321,7 +325,7 @@ export function AuditProvider({
     <AuditContext.Provider
       value={{
         audits,
-        isLoading,
+        isLoading: canFetchAudits && isLoading,
 
         getAudit,
 

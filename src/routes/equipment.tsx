@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
@@ -55,9 +56,9 @@ function Equipment() {
         <h2 className="text-[22px] font-semibold text-navy">
           {EQ.length} assets
         </h2>
-        <button className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90">
+        <ActionButton className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90">
           <Plus className="h-4 w-4" /> Add equipment
-        </button>
+        </ActionButton>
       </div>
       <div className="pulse-card overflow-x-auto">
         <table className="min-w-full text-[13px]">

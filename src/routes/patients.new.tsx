@@ -1,3 +1,4 @@
+import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -104,7 +105,7 @@ function NewPatient() {
       <Link to="/patients" className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-navy">
         <ArrowLeft className="h-3.5 w-3.5" /> All patients
       </Link>
-      <form onSubmit={submit} className="space-y-6">
+      <ActionForm onSubmit={submit} className="space-y-6">
         <Section title="Personal details">
           <Grid>
             <Field label="Title"><Sel value={title} onChange={setTitle} options={["Mr","Mrs","Ms","Dr","Prof"]} /></Field>
@@ -211,9 +212,9 @@ function NewPatient() {
         {error && <div className="rounded-md bg-[#FEE2E2] px-3 py-2 text-[12.5px] text-[#991B1B]">{error}</div>}
         <div className="flex justify-end gap-2">
           <Link to="/patients" className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">Cancel</Link>
-          <button type="submit" className="rounded-md bg-blue px-5 py-2 text-[13px] font-medium text-white hover:opacity-90">Register patient</button>
+          <ActionButton type="submit" className="rounded-md bg-blue px-5 py-2 text-[13px] font-medium text-white hover:opacity-90">Register patient</ActionButton>
         </div>
-      </form>
+      </ActionForm>
     </AppShell>
   );
 }
@@ -258,7 +259,7 @@ function BillingTile({
   onClick: () => void;
 }) {
   return (
-    <button
+    <ActionButton
       type="button"
       onClick={onClick}
       className={`rounded-xl border p-4 text-left transition-colors ${active ? "border-blue bg-blue-tint" : "border-border bg-white hover:border-blue"}`}
@@ -268,6 +269,6 @@ function BillingTile({
       </div>
       <div className="mt-3 text-[14px] font-semibold text-navy">{title}</div>
       <div className="mt-1 text-[12.5px] text-muted-foreground">{sub}</div>
-    </button>
+    </ActionButton>
   );
 }

@@ -42,6 +42,40 @@ export const tenantKeys = {
     [...tenantKeys.all, "detail", id] as const,
 };
 
+export const fetchTenants = async (): Promise<
+  TenantOut[]
+> => {
+  const res = await API.get("/tenants");
+
+  const result =
+    tenantOutSchema
+      .array()
+      .safeParse(res.data);
+
+  if (!result.success) {
+    console.error(
+      "TENANT ZOD ERROR:",
+      result.error
+    );
+
+    if (!Array.isArray(res.data)) {
+      return [];
+    }
+
+    return res.data.flatMap((item) => {
+      const parsed = tenantOutSchema.safeParse(item);
+
+      if (!parsed.success) {
+        console.error("TENANT ITEM ZOD ERROR:", parsed.error, item);
+      }
+
+      return parsed.success ? [parsed.data] : [];
+    });
+  }
+
+  return result.data;
+};
+
 //
 // -------------------------------------------------
 // Context Type
@@ -141,41 +175,7 @@ export function TenantProvider({
   } = useQuery({
     queryKey: tenantKeys.lists(),
 
-    queryFn: async (): Promise<
-      TenantOut[]
-    > => {
-      const res = await API.get(
-        "/tenants"
-      );
-
-      const result =
-        tenantOutSchema
-          .array()
-          .safeParse(res.data);
-
-      if (!result.success) {
-        console.error(
-          "TENANT ZOD ERROR:",
-          result.error
-        );
-
-        if (!Array.isArray(res.data)) {
-          return [];
-        }
-
-        return res.data.flatMap((item) => {
-          const parsed = tenantOutSchema.safeParse(item);
-
-          if (!parsed.success) {
-            console.error("TENANT ITEM ZOD ERROR:", parsed.error, item);
-          }
-
-          return parsed.success ? [parsed.data] : [];
-        });
-      }
-
-      return result.data;
-    },
+    queryFn: fetchTenants,
   });
 
   //

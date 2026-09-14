@@ -415,13 +415,13 @@ export const AppDataProvider = ({
   children,
 }: ProviderProps) => {
   return (
-    <AppointmentProvider>
-      <InvoiceProvider>
-        <InventoryProvider>
-          <PrescriptionProvider>
-            <SickNoteProvider>
-              <PatientProvider>
-                <TenantProvider>
+    <TenantProvider>
+      <AppointmentProvider>
+        <InvoiceProvider>
+          <InventoryProvider>
+            <PrescriptionProvider>
+              <SickNoteProvider>
+                <PatientProvider>
                   <AuditProvider>
                     <UserProvider>
                       <PlatformSettingsProvider>
@@ -431,13 +431,13 @@ export const AppDataProvider = ({
                       </PlatformSettingsProvider>
                     </UserProvider>
                   </AuditProvider>
-                </TenantProvider>
-              </PatientProvider>
-            </SickNoteProvider>
-          </PrescriptionProvider>
-        </InventoryProvider>
-      </InvoiceProvider>
-    </AppointmentProvider>
+                </PatientProvider>
+              </SickNoteProvider>
+            </PrescriptionProvider>
+          </InventoryProvider>
+        </InvoiceProvider>
+      </AppointmentProvider>
+    </TenantProvider>
   );
 };
 

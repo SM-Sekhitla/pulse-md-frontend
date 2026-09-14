@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useData } from "@/context/AppDataProvider";
+import { getApiErrorMessage } from "@/utils/api";
 
 export const Route = createFileRoute("/inventory")({
   component: Inventory,
@@ -69,11 +71,11 @@ function Inventory() {
             <option value="">All categories</option>
             {cats.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button
+          <ActionButton
             onClick={() => setReceiveOpen(true)}
             className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-1.5 text-[13px] font-medium text-white hover:opacity-90">
             <Plus className="h-4 w-4" /> Receive stock
-          </button>
+          </ActionButton>
         </div>
 
         <div className="overflow-x-auto">
@@ -148,11 +150,11 @@ function Row({ item, onAdjust }: { item: InventoryItem; onAdjust: () => void }) 
           : <Badge variant="success">In stock</Badge>}
       </td>
       <td className="px-5 py-3">
-        <button
+        <ActionButton
           onClick={onAdjust}
           className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1 text-[12px] font-medium text-navy hover:bg-blue-tint">
           <Minus className="h-3 w-3" /> Adjust
-        </button>
+        </ActionButton>
       </td>
     </tr>
   );
@@ -195,32 +197,37 @@ function ReceiveStockDialog({
     if (quantity <= 0) { toast.error("Quantity must be greater than 0"); return; }
     if (mode === "new" && !name.trim()) { toast.error("Product name required"); return; }
     if (mode === "existing" && !itemId) { toast.error("Select a product"); return; }
-    if (mode === "existing") {
-      const existingItem = existing.find((item) => item.id === itemId);
-      if (!existingItem) { toast.error("Select a product"); return; }
-      await inventory.updateInventory(itemId, {
-        stock: existingItem.stock + quantity,
-        unitCost: unitCost || existingItem.unitCost,
-        sellingPrice: sellingPrice || existingItem.sellingPrice,
-        expiry: expiry || existingItem.expiry,
-        supplier: supplier || existingItem.supplier,
-      });
-    } else {
-      await inventory.createInventory({
-        name: name.trim(),
-        category,
-        sku: sku || `SKU-${Date.now().toString(36).toUpperCase()}`,
-        stock: quantity,
-        unitCost,
-        sellingPrice,
-        reorderLevel,
-        expiry: expiry || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
-        supplier: supplier || "Unknown",
-      });
+    try {
+      if (mode === "existing") {
+        const existingItem = existing.find((item) => item.id === itemId);
+        if (!existingItem) { toast.error("Select a product"); return; }
+        const updated = await inventory.updateInventory(itemId, {
+          stock: existingItem.stock + quantity,
+          unitCost: unitCost || existingItem.unitCost,
+          sellingPrice: sellingPrice || existingItem.sellingPrice,
+          expiry: expiry || existingItem.expiry,
+          supplier: supplier || existingItem.supplier,
+        });
+        if (!updated) throw new Error("Could not add stock");
+      } else {
+        await inventory.createInventory({
+          name: name.trim(),
+          category,
+          sku: sku || `SKU-${Date.now().toString(36).toUpperCase()}`,
+          stock: quantity,
+          unitCost,
+          sellingPrice,
+          reorderLevel,
+          expiry: expiry || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+          supplier: supplier || "Unknown",
+        });
+      }
+      toast.success(mode === "existing" ? "Stock added" : "Item received");
+      onDone();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     }
-    toast.success(mode === "existing" ? "Stock added" : "Item received");
-    onDone();
-    onOpenChange(false);
   };
 
   return (
@@ -232,19 +239,19 @@ function ReceiveStockDialog({
         </DialogHeader>
 
         <div className="flex gap-2 rounded-md border border-border p-1">
-          <button
+          <ActionButton
             type="button"
             onClick={() => setMode("existing")}
             disabled={existing.length === 0}
             className={`flex-1 rounded px-3 py-1.5 text-[13px] font-medium ${mode === "existing" ? "bg-blue text-white" : "text-navy"} disabled:opacity-50`}>
             Add to existing
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
             onClick={() => setMode("new")}
             className={`flex-1 rounded px-3 py-1.5 text-[13px] font-medium ${mode === "new" ? "bg-blue text-white" : "text-navy"}`}>
             New product
-          </button>
+          </ActionButton>
         </div>
 
         <div className="space-y-3">
@@ -350,9 +357,14 @@ function AdjustStockDialog({
       toast.error(`Only ${item.stock} in stock`);
       return;
     }
-    await inventory.updateStock(item.id, { stock: Math.max(0, item.stock + delta) });
-    toast.success(`Stock updated · ${item.name}`);
-    onDone();
+    try {
+      const updated = await inventory.updateStock(item.id, { stock: Math.max(0, item.stock + delta) });
+      if (!updated) throw new Error("Could not update stock");
+      toast.success(`Stock updated · ${item.name}`);
+      onDone();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -364,18 +376,18 @@ function AdjustStockDialog({
         </DialogHeader>
 
         <div className="flex gap-2 rounded-md border border-border p-1">
-          <button
+          <ActionButton
             type="button"
             onClick={() => setAction("remove")}
             className={`flex-1 rounded px-3 py-1.5 text-[13px] font-medium ${action === "remove" ? "bg-blue text-white" : "text-navy"}`}>
             Take out
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
             onClick={() => setAction("add")}
             className={`flex-1 rounded px-3 py-1.5 text-[13px] font-medium ${action === "add" ? "bg-blue text-white" : "text-navy"}`}>
             Add back
-          </button>
+          </ActionButton>
         </div>
 
         <div className="space-y-3">

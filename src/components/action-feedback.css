@@ -1,0 +1,26 @@
+.action-feedback-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.action-feedback-button[aria-busy="true"] {
+  cursor: progress;
+}
+.action-feedback-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.4em;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+  animation: action-feedback-spin 0.8s linear infinite;
+}
+@keyframes action-feedback-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-feedback-spinner {
+    animation: none;
+  }
+}

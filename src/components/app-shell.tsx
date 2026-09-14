@@ -1,186 +1,407 @@
-import { ReactNode, useEffect, useState } from "react";
+import { getLoginRoute } from "@/lib/auth-routing";
+import { ActionButton } from "@/components/action-feedback";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@/lib/router-compat";
 import {
-  LayoutDashboard, Calendar, Users, UserPlus, Stethoscope, Pill,
-  FileText, Package, Wrench, Receipt, BarChart3, UserCog, Settings,
-  Search, Bell, Plus, LogOut, ChevronLeft,Globe,
+  ArrowUpRight,
+  Building2,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  ShieldCheck,
 } from "lucide-react";
 import { PulseLogoOnDark } from "@/components/brand";
-import { cn } from "@/lib/utils";
-import { tenantEnabledModules } from "@/lib/modules";
-import type { ModuleKey } from "@/types/tenant";
-import { Badge } from "@/components/badge-pill";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { isSuperAdminRole, useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/AppDataProvider";
+import { practiceModules, practiceNavigation } from "@/lib/practice-navigation";
+import "./practice.css";
 
-interface NavItem { to: string; label: string; icon: any; module?: ModuleKey; }
-interface NavGroup { label: string; items: NavItem[]; }
+const DESCRIPTIONS: Record<string, string> = {
+  "/dashboard":
+    "Your day, connected. A little less admin, a little more time for care.",
+  "/calendar":
+    "A clear view of your appointments and the people you’ll see next.",
+  "/patients":
+    "The people at the heart of your practice. Find their details and care history.",
+  "/patients/new":
+    "Start a patient’s care journey with an organised, connected record.",
+  "/appointments":
+    "Make room for the next patient. Arrange a visit with your practice.",
+  "/appointments/new":
+    "The next step in great care starts with a well-planned appointment.",
+  "/prescriptions":
+    "Patient prescriptions, organised and ready when you need them.",
+  "/sick-notes":
+    "Create and manage the documents that support your patients’ recovery.",
+  "/inventory":
+    "Keep everyday essentials in view, from stock levels to expiry dates.",
+  "/equipment": "Take care of the equipment your team relies on.",
+  "/billing": "Invoices, payments and practice finances, brought together.",
+  "/reports": "Understand your practice’s activity and finances at a glance.",
+  "/staff": "Bring your team together with the right roles and access.",
+  "/settings": "Make PulseMD work for your practice, your team and your day.",
+  "/booking/inbox":
+    "Connect with patients online and manage incoming booking requests.",
+  "/booking/availability":
+    "Make time for your patients. Set when your practice is available.",
+  "/booking/profile":
+    "Help patients get to know your practice before their first visit.",
+};
 
-const OWNER_NAV: NavGroup[] = [
-  { label: "Overview", items: [
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/calendar", label: "Calendar", icon: Calendar, module: "calendar" },
-  ]},
-  { label: "Patients", items: [
-    { to: "/patients", label: "All patients", icon: Users, module: "patients" },
-    { to: "/patients/new", label: "New patient", icon: UserPlus, module: "patients" },
-  ]},
-  { label: "Clinical", items: [
-    { to: "/appointments", label: "Appointments", icon: Stethoscope, module: "appointments" },
-    { to: "/prescriptions", label: "Prescriptions", icon: Pill, module: "prescriptions" },
-    { to: "/sick-notes", label: "Sick notes", icon: FileText, module: "sick_notes" },
-  ]},
-  { label: "Operations", items: [
-    { to: "/inventory", label: "Medical inventory", icon: Package, module: "inventory" },
-    { to: "/equipment", label: "Equipment", icon: Wrench, module: "equipment" },
-  ]},
-  { label: "Finance", items: [
-    { to: "/billing", label: "Billing & invoices", icon: Receipt, module: "billing" },
-    { to: "/reports", label: "Financial reports", icon: BarChart3, module: "reports" },
-  ]},
-  { label: "Practice", items: [
-    { to: "/staff", label: "Staff & roles", icon: UserCog, module: "staff" },
-    { to: "/settings", label: "Settings", icon: Settings },
-  ]},
-];
-
-const RECEPTIONIST_NAV: NavGroup[] = [
-  { label: "Overview", items: [
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  ]},
-  { label: "Patients", items: [
-    { to: "/patients", label: "All patients", icon: Users, module: "patients" },
-    { to: "/patients/new", label: "New patient", icon: UserPlus, module: "patients" },
-  ]},
-  { label: "Appointments", items: [
-    { to: "/calendar", label: "Calendar", icon: Calendar, module: "calendar" },
-    { to: "/appointments", label: "Today's schedule", icon: Stethoscope, module: "appointments" },
-  ]},
-];
-
-export function AppShell({ children, title }: { children: ReactNode; title: string }) {
+export function AppShell({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title: string;
+}) {
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
-  const { tenant: tenantData } = useData();
+  const { tenant: tenantData, patient } = useData();
   const [collapsed, setCollapsed] = useState(false);
-  const path = useRouterState({ select: (s) => s.location.pathname });
-  const tenant = user?.tenantId
-    ? tenantData.tenants.find((t) => t.id === user.tenantId) || null
-    : null;
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const path = useRouterState({ select: (s) => s.location.pathname }).replace(
+    /\/$/,
+    "",
+  );
+  const tenant =
+    tenantData.tenants.find((item) => item.id === user?.tenantId) ?? null;
 
   useEffect(() => {
     if (loading) return;
-    if (!user) { navigate({ to: "/login" }); return; }
-    if (user.mustChangePassword) { navigate({ to: "/change-password" }); return; }
-    if (isSuperAdminRole(user.role)) { navigate({ to: "/admin" }); return; }
-    if (tenant) {
-      if (tenant.status === "pending_approval") { navigate({ to: "/pending" }); return; }
-      if (tenant.status === "suspended") { navigate({ to: "/suspended" }); return; }
-      if (tenant.status === "rejected") { navigate({ to: "/rejected" }); return; }
+    if (!user) {
+      navigate({ to: getLoginRoute() });
+      return;
     }
+    if (user.mustChangePassword) {
+      navigate({ to: "/change-password" });
+      return;
+    }
+    if (isSuperAdminRole(user.role)) {
+      navigate({ to: "/admin" });
+      return;
+    }
+    if (tenant?.status === "pending_approval") navigate({ to: "/pending" });
+    if (tenant?.status === "suspended") navigate({ to: "/suspended" });
+    if (tenant?.status === "rejected") navigate({ to: "/rejected" });
   }, [loading, navigate, path, tenant, user]);
 
-  if (loading || !user) return null;
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const onResize = () => {
+      if (media.matches) setMobileOpen(false);
+    };
+    media.addEventListener("change", onResize);
+    return () => media.removeEventListener("change", onResize);
+  }, []);
 
-  const handleLogout = async () => { await logout(); navigate({ to: "/" }); };
-  const baseNav = user.role === "receptionist" ? RECEPTIONIST_NAV : OWNER_NAV;
-  const enabled = new Set(tenantEnabledModules(tenant));
-  let NAV: NavGroup[] = baseNav
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.module || enabled.has(i.module)) }))
-    .filter((g) => g.items.length > 0);
-  if (tenant?.bookingEnabled) {
-    NAV = [
-      ...NAV,
-      { label: "Public booking", items: [
-        { to: "/booking/inbox", label: "Bookings inbox", icon: Globe },
-        { to: "/booking/availability", label: "Availability", icon: Calendar },
-        ...(user.role !== "receptionist" ? [{ to: "/booking/profile", label: "Public profile", icon: UserCog }] : []),
-      ]},
-    ];
-  }
+  if (
+    loading ||
+    !user ||
+    user.mustChangePassword ||
+    isSuperAdminRole(user.role) ||
+    (tenant && tenant.status !== "active")
+  )
+    return null;
 
-  return (
-    <div className="flex min-h-screen bg-surface">
-      <aside className={cn("fixed left-0 top-0 z-30 flex h-screen flex-col bg-navy text-white transition-all", collapsed ? "w-[64px]" : "w-[240px]")}>
-        <div className={cn("flex items-center justify-between px-4 py-4", collapsed && "justify-center px-0")}>
-          <Link to="/dashboard"><PulseLogoOnDark size={32} withWordmark={!collapsed} /></Link>
-          {!collapsed && (
-            <button onClick={() => setCollapsed(true)} className="text-white/40 hover:text-white"><ChevronLeft className="h-4 w-4" /></button>
-          )}
+  const nav = practiceNavigation(tenant, user.role);
+  const enabled = practiceModules(tenant, user.role);
+  const activeItem = nav
+    .flatMap((group) => group.items)
+    .filter((item) => path === item.to || path.startsWith(`${item.to}/`))
+    .sort((a, b) => b.to.length - a.to.length)[0];
+  const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`;
+  const matches = query.trim()
+    ? patient.patients
+        .filter(
+          (item) =>
+            (!item.tenantId || item.tenantId === user.tenantId) &&
+            `${item.firstName} ${item.lastName} ${item.idNumber} ${item.phone}`
+              .toLowerCase()
+              .includes(query.trim().toLowerCase()),
+        )
+        .slice(0, 8)
+    : [];
+  const closeNavigation = () => setMobileOpen(false);
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  const navigation = (compact: boolean, mobile = false) => (
+    <>
+      <div className="gp-brand">
+        <Link
+          to="/dashboard"
+          aria-label="PulseMD practice overview"
+          onClick={closeNavigation}
+        >
+          <PulseLogoOnDark size={38} withWordmark={!compact} />
+        </Link>
+        {!mobile && (
+          <ActionButton
+            type="button"
+            className="gp-collapse"
+            aria-label={compact ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!compact}
+            onClick={() => setCollapsed(!compact)}
+          >
+            {compact ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </ActionButton>
+        )}
+      </div>
+      {!compact && (
+        <div className="gp-practice">
+          <span>
+            <Building2 size={18} strokeWidth={1.5} aria-hidden="true" />
+          </span>
+          <div>
+            <strong
+              title={tenant?.name ?? user.practiceName ?? "Your practice"}
+            >
+              {tenant?.name ?? user.practiceName ?? "Your practice"}
+            </strong>
+            <small>
+              {tenant?.plan ? `${tenant.plan} plan` : "Practice workspace"}
+            </small>
+          </div>
         </div>
-        {!collapsed && (
-          <div className="px-4 pb-3">
-            <div className="text-[13px] font-medium text-white/90 truncate">{tenant?.name || user.practiceName}</div>
-            <div className="mt-1"><Badge variant="blue">{tenant?.plan || "Growth"} plan</Badge></div>
+      )}
+      <nav
+        className="gp-navigation"
+        aria-label={
+          mobile ? "Mobile practice navigation" : "Practice navigation"
+        }
+      >
+        {nav.map((group) => (
+          <div className="gp-nav-group" key={group.label}>
+            {!compact && <p>{group.label}</p>}
+            {group.items.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={closeNavigation}
+                className={`gp-nav-link ${activeItem?.to === item.to ? "is-active" : ""}`}
+                aria-current={activeItem?.to === item.to ? "page" : undefined}
+                aria-label={compact ? item.label : undefined}
+                title={compact ? item.label : undefined}
+              >
+                <item.icon size={17} strokeWidth={1.5} aria-hidden="true" />
+                {!compact && <span>{item.label}</span>}
+              </Link>
+            ))}
+          </div>
+        ))}
+      </nav>
+      <div className="gp-account">
+        <span className="gp-avatar">{initials}</span>
+        {!compact && (
+          <div>
+            <strong>
+              {user.title} {user.firstName} {user.lastName}
+            </strong>
+            <small>{user.role.replaceAll("_", " ")}</small>
           </div>
         )}
-        <nav className="flex-1 overflow-y-auto px-2 pb-4">
-          {NAV.map((group) => (
-            <div key={group.label} className="mt-4">
-              {!collapsed && (
-                <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">{group.label}</div>
-              )}
-              <div>
-                {group.items.map((item) => {
-                  const active = path === item.to || (item.to !== "/dashboard" && path.startsWith(item.to));
-                  const Icon = item.icon;
-                  return (
-                    <Link key={item.to} to={item.to}
-                      className={cn(
-                        "relative flex items-center gap-3 rounded-md px-3 py-2 text-[13.5px] transition-colors",
-                        active ? "bg-[rgba(59,123,248,0.10)] text-white" : "text-white/70 hover:bg-white/5 hover:text-white",
-                        collapsed && "justify-center px-0"
-                      )}
-                    >
-                      {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-blue" />}
-                      <Icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.label}</span>}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-        <div className={cn("border-t border-white/10 px-3 py-3", collapsed && "px-1")}>
-          {!collapsed ? (
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue text-[12px] font-semibold text-white">
-                {user.firstName[0]}{user.lastName[0]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="truncate text-[13px] font-medium text-white">{user.title} {user.firstName} {user.lastName}</div>
-                <div className="text-[11px] capitalize text-white/50">{user.role.replace("_", " ")}</div>
-              </div>
-              <button onClick={handleLogout} className="text-white/50 hover:text-white" title="Log out"><LogOut className="h-4 w-4" /></button>
-            </div>
-          ) : (
-            <button onClick={() => setCollapsed(false)} className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-blue text-[12px] font-semibold text-white">
-              {user.firstName[0]}
-            </button>
-          )}
-        </div>
-      </aside>
+        <ActionButton
+          type="button"
+          onClick={handleLogout}
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut size={17} />
+        </ActionButton>
+      </div>
+    </>
+  );
 
-      <div className={cn("flex-1 transition-all", collapsed ? "ml-[64px]" : "ml-[240px]")}>
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-white px-8">
-          <h1 className="text-[16px] font-semibold text-navy">{title}</h1>
-          <div className="flex items-center gap-3">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input placeholder="Search patients, invoices…  ⌘K"
-                className="h-9 w-[320px] rounded-md border border-border bg-surface pl-9 pr-3 text-[13px] outline-none transition-colors focus:border-blue" />
-            </div>
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white text-navy hover:bg-surface">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">3</span>
-            </button>
-            <Link to="/appointments/new" className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue px-3.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90">
-              <Plus className="h-4 w-4" /> New appointment
-            </Link>
+  return (
+    <div className={`gp-portal ${collapsed ? "gp-is-collapsed" : ""}`}>
+      <a href="#gp-main" className="gp-skip">
+        Skip to content
+      </a>
+      <aside className="gp-sidebar">{navigation(collapsed)}</aside>
+      <div className="gp-workspace">
+        <header className="gp-topbar">
+          <div className="gp-breadcrumb">
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <ActionButton
+                  type="button"
+                  className="gp-mobile-trigger"
+                  aria-label="Open practice navigation"
+                >
+                  <Menu size={21} />
+                </ActionButton>
+              </SheetTrigger>
+              <SheetContent side="left" className="gp-mobile-drawer">
+                <SheetTitle className="sr-only">
+                  PulseMD practice navigation
+                </SheetTitle>
+                <SheetDescription className="sr-only">
+                  Manage patients, appointments and your practice.
+                </SheetDescription>
+                {navigation(false, true)}
+              </SheetContent>
+            </Sheet>
+            <span className="gp-breadcrumb-root">My practice</span>
+            <ChevronRight
+              size={13}
+              className="gp-breadcrumb-root"
+              aria-hidden="true"
+            />
+            <span>{activeItem?.label ?? title}</span>
+          </div>
+          <div className="gp-topbar-actions">
+            {enabled.has("patients") && (
+              <Dialog
+                open={searchOpen}
+                onOpenChange={(open) => {
+                  setSearchOpen(open);
+                  if (!open) setQuery("");
+                }}
+              >
+                <DialogTrigger asChild>
+                  <ActionButton
+                    type="button"
+                    className="gp-search-trigger"
+                    aria-label="Find a patient"
+                  >
+                    <Search size={16} aria-hidden="true" />
+                    <span>Find a patient</span>
+                  </ActionButton>
+                </DialogTrigger>
+                <DialogContent className="gp-search-dialog">
+                  <DialogTitle>Find a patient</DialogTitle>
+                  <DialogDescription>
+                    Search your practice records by name, ID number or phone.
+                  </DialogDescription>
+                  <label className="gp-search-field">
+                    <Search size={18} aria-hidden="true" />
+                    <span className="sr-only">Search patient records</span>
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Start with a name, ID or phone…"
+                    />
+                  </label>
+                  <div className="gp-search-results" aria-live="polite">
+                    {patient.isPatientLoading ? (
+                      <p>Loading patient records…</p>
+                    ) : matches.length ? (
+                      matches.map((item) => (
+                        <Link
+                          to="/patients/$id"
+                          params={{ id: item.id }}
+                          key={item.id}
+                          onClick={() => {
+                            setSearchOpen(false);
+                            setQuery("");
+                          }}
+                        >
+                          <span className="gp-avatar">
+                            {item.firstName[0]}
+                            {item.lastName[0]}
+                          </span>
+                          <span>
+                            <strong>
+                              {item.firstName} {item.lastName}
+                            </strong>
+                            <small>
+                              {item.phone || "No phone number recorded"}
+                            </small>
+                          </span>
+                          <ArrowUpRight size={17} aria-hidden="true" />
+                        </Link>
+                      ))
+                    ) : (
+                      <p>
+                        {query.trim()
+                          ? "No patients match your search."
+                          : "Enter a search to find a patient’s record."}
+                      </p>
+                    )}
+                  </div>
+                  <Link
+                    to="/patients"
+                    className="gp-inline-link"
+                    onClick={() => setSearchOpen(false)}
+                  >
+                    View all patients{" "}
+                    <ArrowUpRight size={15} aria-hidden="true" />
+                  </Link>
+                </DialogContent>
+              </Dialog>
+            )}
+            {enabled.has("appointments") && (
+              <Link
+                to="/appointments/new"
+                className="gp-button gp-button-yellow gp-topbar-appointment"
+                aria-label="New appointment"
+              >
+                <Plus size={16} aria-hidden="true" />
+                <span>New appointment</span>
+              </Link>
+            )}
+            <span
+              className="gp-avatar gp-topbar-avatar"
+              title={`${user.firstName} ${user.lastName}`}
+            >
+              {initials}
+            </span>
           </div>
         </header>
-        <main className="mx-auto max-w-[1280px] px-8 py-8">{children}</main>
+        <main id="gp-main" className="gp-main" tabIndex={-1}>
+          <div className="gp-page-heading">
+            <div>
+              <p className="gp-eyebrow">
+                <span /> YOUR PRACTICE, CONNECTED
+              </p>
+              <h1>{title}</h1>
+              <p>
+                {DESCRIPTIONS[path] ??
+                  "The details you need, connected to the care you provide."}
+              </p>
+            </div>
+            <div className="gp-date">
+              <CalendarDays size={16} aria-hidden="true" />
+              <time dateTime={new Date().toLocaleDateString("en-CA")}>
+                {new Date().toLocaleDateString("en-ZA", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </time>
+            </div>
+          </div>
+          {children}
+          <footer className="gp-footer">
+            <span>© {new Date().getFullYear()} PulseMD</span>
+            <span>
+              <ShieldCheck size={13} aria-hidden="true" /> Practice
+              intelligence, delivered.
+            </span>
+          </footer>
+        </main>
       </div>
     </div>
   );

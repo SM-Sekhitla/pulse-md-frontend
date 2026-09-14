@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { AppShell } from "@/components/app-shell";
 import { AppointmentForm } from "@/components/appointment-form";
@@ -17,12 +18,12 @@ function AppointmentsPage() {
           </h2>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Book a new visit for any patient. Open the{" "}
-            <button
+            <ActionButton
               onClick={() => navigate({ to: "/calendar" })}
               className="text-blue underline"
             >
               calendar
-            </button>{" "}
+            </ActionButton>{" "}
             to see day, week, month, and agenda views.
           </p>
           <div className="mt-6">
