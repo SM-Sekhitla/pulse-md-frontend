@@ -121,6 +121,11 @@ const OWNER_NAV: NavGroup[] = [
     items: [
       { to: "/staff", label: "Staff & roles", icon: UserCog, module: "staff" },
       { to: "/settings", label: "Settings", icon: Settings },
+      {
+        to: "/booking/profile",
+        label: "Brand & doctor profile",
+        icon: UserCog,
+      },
     ],
   },
 ];
@@ -202,9 +207,6 @@ export function practiceNavigation(
       items: [
         { to: "/booking/inbox", label: "Bookings inbox", icon: Globe },
         { to: "/booking/availability", label: "Availability", icon: Calendar },
-        ...(role !== "receptionist"
-          ? [{ to: "/booking/profile", label: "Public profile", icon: UserCog }]
-          : []),
       ],
     });
   return groups;

@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Routes, Route } from "react-router-dom";
+import { getLoginRoute } from "@/lib/auth-routing";
 import { Toaster } from "@/components/ui/sonner";
 
 import { Route as Landing } from "./routes/index";
@@ -90,7 +91,7 @@ function ProtectedDataLayout() {
   const { loading, user } = useAuth();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to={getLoginRoute()} replace />;
 
   return (
     <AppDataProvider>

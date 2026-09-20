@@ -1,3 +1,5 @@
+import { SearchableSelect } from "@/components/searchable-select";
+import { ICD10_CODES } from "@/lib/medical-aid";
 import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
@@ -19,14 +21,16 @@ export const Route = createFileRoute("/sick-notes/new")({
 
 function NewSickNote() {
   const navigate = useNavigate();
-  const { user: me} = useAuth();
+  const { user: me } = useAuth();
   const { appointment, user, patient, sicknote } = useData();
   const tenant = useCurrentTenant();
 
   const allUsers = user.users;
   const patients = useMemo(
     () =>
-      patient.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)),
+      patient.patients
+        .slice()
+        .sort((a, b) => a.lastName.localeCompare(b.lastName)),
     [patient.patients],
   );
   const owner = allUsers.find(
@@ -59,7 +63,9 @@ function NewSickNote() {
     .slice(0, 50);
   const selectedPatient = patients.find((p) => p.id === patientId);
   const apptOptions = selectedPatient
-    ? appointment.appointments.filter((item) => item.patientId === selectedPatient.id)
+    ? appointment.appointments.filter(
+        (item) => item.patientId === selectedPatient.id,
+      )
     : [];
   const days = (() => {
     try {
@@ -72,6 +78,15 @@ function NewSickNote() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (
+      icd10.trim() &&
+      !/^[A-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/.test(icd10.trim().toUpperCase())
+    ) {
+      setError(
+        "Select an ICD-10 code or enter a code such as J02.9, without its description.",
+      );
+      return;
+    }
     if (!selectedPatient) {
       setError("Please select a patient.");
       return;
@@ -206,11 +221,16 @@ function NewSickNote() {
 
             <div className="grid grid-cols-2 gap-4">
               <Section title="ICD-10 code">
-                <input
+                <SearchableSelect
+                  label="ICD-10 code"
                   value={icd10}
-                  onChange={(e) => setIcd10(e.target.value)}
-                  placeholder="e.g. J06.9"
-                  className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] font-mono outline-none focus:border-blue"
+                  onChange={setIcd10}
+                  allowCustom
+                  className="w-full"
+                  options={ICD10_CODES.map((item) => ({
+                    value: item.code,
+                    label: `${item.code} — ${item.description}`,
+                  }))}
                 />
               </Section>
               <Section title="Recommendation (optional)">

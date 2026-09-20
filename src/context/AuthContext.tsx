@@ -85,6 +85,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = isSuperAdminRole(user?.role);
 
   useEffect(() => {
+    const practicePath = window.location.pathname.match(/^\/practice\/([^/]+)\/login\/?$/);
+    if (practicePath) {
+      window.sessionStorage.setItem(TENANT_SLUG_STORAGE_KEY, decodeURIComponent(practicePath[1]));
+    }
     checkAuth();
   }, []);
 
@@ -207,7 +211,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       setUser(null);
       setIsAuthenticated(false);
-      rememberTenantSlug(null);
   
     } finally {
       setLoading(false);

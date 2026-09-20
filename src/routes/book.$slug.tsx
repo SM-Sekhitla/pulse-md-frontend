@@ -1,11 +1,7 @@
+import { ProfileImage } from "@/components/profile-image";
 import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { useMemo } from "react";
-import {
-  Building2,
-  MapPin,
-  Languages,
-  ArrowLeft,
-} from "lucide-react";
+import { Building2, MapPin, Languages, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getPublicGPBySlug,
@@ -34,7 +30,9 @@ function GPProfile() {
         <PublicHeader />
         <main className="mx-auto max-w-3xl px-6 py-16 text-center">
           <div className="rounded-3xl border border-border bg-white p-10 shadow-sm">
-            <h2 className="text-[22px] font-semibold text-navy">Loading GP profile...</h2>
+            <h2 className="text-[22px] font-semibold text-navy">
+              Loading GP profile...
+            </h2>
           </div>
         </main>
       </div>
@@ -48,7 +46,9 @@ function GPProfile() {
 
         <main className="mx-auto max-w-3xl px-6 py-16 text-center">
           <div className="rounded-3xl border border-border bg-white p-10 shadow-sm">
-            <h2 className="text-[22px] font-semibold text-navy">GP not found</h2>
+            <h2 className="text-[22px] font-semibold text-navy">
+              GP not found
+            </h2>
             <p className="mt-2 text-[13px] text-muted-foreground">
               This GP is not available for public booking right now.
             </p>
@@ -67,11 +67,14 @@ function GPProfile() {
   }
 
   const { tenant, gp } = item;
-  const initials = `${gp.firstName?.[0] || ""}${gp.lastName?.[0] || ""}`.toUpperCase();
+  const initials =
+    `${gp.firstName?.[0] || ""}${gp.lastName?.[0] || ""}`.toUpperCase();
   const next = nextAvailableSlot(days);
 
   const languages =
-    tenant.gpLanguages && tenant.gpLanguages.length > 0 ? tenant.gpLanguages : ["English"];
+    tenant.gpLanguages && tenant.gpLanguages.length > 0
+      ? tenant.gpLanguages
+      : ["English"];
 
   const bio =
     tenant.gpBio ||
@@ -102,28 +105,51 @@ function GPProfile() {
               <div className="rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
                   <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl border border-white/15 bg-white/15 text-[26px] font-bold text-white shadow-lg">
-                    {initials || "GP"}
+                    <ProfileImage
+                      src={tenant.gpPhotoDataUrl}
+                      alt={`${gp.title} ${gp.firstName} ${gp.lastName}`}
+                      className="h-full w-full rounded-2xl object-cover"
+                      fallback={initials || "GP"}
+                    />
                   </div>
 
                   <div className="min-w-0 flex-1">
-
                     <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
                       {gp.title} {gp.firstName} {gp.lastName}
                     </h1>
 
-                    <div className="mt-2 flex items-center gap-2 text-[14px] text-white/70"> 
+                    <div className="mt-2 flex items-center gap-2 text-[14px] text-white/70">
                       General Practitioner
                     </div>
 
-                     <div className="mt-3 space-y-1 text-[13px] text-white/80">
-                    <div className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-white" /> {tenant.name}</div>
-                    <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-white" /> {tenant.address || tenant.province || "South Africa"}</div>
-                    <div className="flex items-center gap-1.5"><Languages className="h-3.5 w-3.5 text-white" /> {languages.join(", ")}</div>
-                  </div>
+                    <div className="mt-3 space-y-1 text-[13px] text-white/80">
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5 text-white" />{" "}
+                        <>
+                          {tenant.logoDataUrl && (
+                            <ProfileImage
+                              src={tenant.logoDataUrl}
+                              alt={`${tenant.name} logo`}
+                              className="inline-block h-8 w-8 rounded bg-white p-1 object-contain mr-2"
+                              fallback={null}
+                            />
+                          )}
+                          {tenant.name}
+                        </>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-white" />{" "}
+                        {tenant.address || tenant.province || "South Africa"}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Languages className="h-3.5 w-3.5 text-white" />{" "}
+                        {languages.join(", ")}
+                      </div>
+                    </div>
                   </div>
 
                   <Link
-                  to={`/book/${tenant.bookingSlug || tenant.slug}/new`}
+                    to={`/book/${tenant.bookingSlug || tenant.slug}/new`}
                     className="shrink-0 rounded-xl bg-blue px-5 py-3 text-[13px] font-semibold text-white shadow-lg shadow-blue/30 transition hover:bg-blue/90"
                   >
                     Book appointment
@@ -143,12 +169,18 @@ function GPProfile() {
                 </div>
 
                 <div className="mt-3 text-[22px] font-semibold leading-snug text-white">
-                  {next ? `${format(parseISO(next.date), "EEE d MMM")} at ${next.time}` : "No slots available"}
+                  {next
+                    ? `${format(parseISO(next.date), "EEE d MMM")} at ${next.time}`
+                    : "No slots available"}
                 </div>
 
                 <Link
-                to={next ? `/book/${tenant.bookingSlug || tenant.slug}/new?date=${next.date}&time=${next.time}` : `/book/${tenant.bookingSlug || tenant.slug}/new`}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-blue px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-blue/90"
+                  to={
+                    next
+                      ? `/book/${tenant.bookingSlug || tenant.slug}/new?date=${next.date}&time=${next.time}`
+                      : `/book/${tenant.bookingSlug || tenant.slug}/new`
+                  }
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-blue px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-blue/90"
                 >
                   Book this slot
                 </Link>
@@ -200,16 +232,26 @@ function GPProfile() {
                         {format(date, "d")}
                       </div>
 
-                      <div className={`mt-1 text-[11px] ${open ? "text-success" : "text-muted-foreground"}`}>
+                      <div
+                        className={`mt-1 text-[11px] ${open ? "text-success" : "text-muted-foreground"}`}
+                      >
                         {open ? `${d.slots.length} slots` : "—"}
                       </div>
-                     </>
+                    </>
                   );
                   const cls = `rounded-md border p-2 text-center transition-colors ${open ? "border-border bg-white hover:border-blue" : "border-transparent bg-muted text-muted-foreground"} ${isToday(date) ? "ring-2 ring-blue/40" : ""}`;
                   return open ? (
-                    <Link key={d.date} to={`/book/${slug}/new?date=${d.date}`} className={cls}>{inner}</Link>
+                    <Link
+                      key={d.date}
+                      to={`/book/${slug}/new?date=${d.date}`}
+                      className={cls}
+                    >
+                      {inner}
+                    </Link>
                   ) : (
-                    <div key={d.date} className={cls}>{inner}</div>
+                    <div key={d.date} className={cls}>
+                      {inner}
+                    </div>
                   );
                 })}
               </div>
@@ -218,12 +260,26 @@ function GPProfile() {
 
           <aside>
             <div className="rounded-3xl border border-border bg-white p-6 shadow-sm">
-              <div className="text-[15px] font-semibold text-navy">Practice details</div>
+              <div className="text-[15px] font-semibold text-navy">
+                Practice details
+              </div>
 
               <div className="mt-4 space-y-3 text-[13px] text-muted-foreground">
                 <div className="flex gap-2">
                   <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-blue" />
-                  <div>{tenant.name}</div>
+                  <div>
+                    <>
+                      {tenant.logoDataUrl && (
+                        <ProfileImage
+                          src={tenant.logoDataUrl}
+                          alt={`${tenant.name} logo`}
+                          className="inline-block h-8 w-8 rounded bg-white p-1 object-contain mr-2"
+                          fallback={null}
+                        />
+                      )}
+                      {tenant.name}
+                    </>
+                  </div>
                 </div>
 
                 {tenant.address && (

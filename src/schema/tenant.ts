@@ -12,11 +12,7 @@ export const tenantStatusSchema = z.enum([
   "rejected",
 ]);
 
-export const planSchema = z.enum([
-  "Starter",
-  "Growth",
-  "Enterprise",
-]);
+export const planSchema = z.enum(["Starter", "Growth", "Enterprise"]);
 
 // If already defined elsewhere, import instead
 export const moduleKeySchema = z.enum([
@@ -79,10 +75,7 @@ const withPlanFromSubscription = (value: unknown) => {
 
   return {
     ...tenant,
-    plan:
-      tenant.plan ??
-      subscription?.plan ??
-      "Starter",
+    plan: tenant.plan ?? subscription?.plan ?? "Starter",
   };
 };
 
@@ -90,48 +83,52 @@ const withPlanFromSubscription = (value: unknown) => {
 // -------------------------------------------------
 // Base Tenant
 // -------------------------------------------------
-export const tenantSchema = z.object({
-  id: z.string(),
+export const tenantSchema = z
+  .object({
+    id: z.string(),
 
-  name: z.string().min(1),
-  slug: z.string().min(1),
+    name: z.string().min(1),
+    slug: z.string().min(1),
 
-  address: nullableString,
-  province: nullableString,
+    address: nullableString,
+    province: nullableString,
 
-  hpcsa: nullableString,
-  vat: nullableString,
-  companyProfile: nullableString,
-  logoName: nullableString,
-  logoDataUrl: nullableString,
-  workingHours: nullableWorkingHours,
-  bookingEnabled: z.boolean().nullable().optional(),
-  bookingSlug: nullableString,
-  gpBio: nullableString,
-  gpLanguages: nullableStringArray,
+    hpcsa: nullableString,
+    vat: nullableString,
+    companyProfile: nullableString,
+    logoName: nullableString,
+    logoDataUrl: nullableString,
+    gpPhotoDataUrl: nullableString,
+    gpPhotoName: nullableString,
+    workingHours: nullableWorkingHours,
+    bookingEnabled: z.boolean().nullable().optional(),
+    bookingSlug: nullableString,
+    gpBio: nullableString,
+    gpLanguages: nullableStringArray,
 
-  plan: planSchema.default("Starter"),
-  gpUserId: z.string(),
+    plan: planSchema.default("Starter"),
+    gpUserId: z.string(),
 
-  status: tenantStatusSchema,
+    status: tenantStatusSchema,
 
-  currentSubscriptionId: z.string().nullable().optional(),
-  subscriptionStatus: subscriptionStatusSchema.optional(),
-  subscription: subscriptionOutSchema.nullable().optional(),
+    currentSubscriptionId: z.string().nullable().optional(),
+    subscriptionStatus: subscriptionStatusSchema.optional(),
+    subscription: subscriptionOutSchema.nullable().optional(),
 
-  createdAt: apiDateTimeSchema,
-  updatedAt: apiDateTimeSchema.nullable().optional(),
+    createdAt: apiDateTimeSchema,
+    updatedAt: apiDateTimeSchema.nullable().optional(),
 
-  approvedAt: apiDateTimeSchema.nullable().optional(),
-  approvedBy: z.string().nullable().optional(),
+    approvedAt: apiDateTimeSchema.nullable().optional(),
+    approvedBy: z.string().nullable().optional(),
 
-  rejectionReason: z.string().nullable().optional(),
+    rejectionReason: z.string().nullable().optional(),
 
-  suspendedAt: apiDateTimeSchema.nullable().optional(),
-  suspensionReason: z.string().nullable().optional(),
+    suspendedAt: apiDateTimeSchema.nullable().optional(),
+    suspensionReason: z.string().nullable().optional(),
 
-  enabledModules: nullableModuleKeys,
-}).passthrough();
+    enabledModules: nullableModuleKeys,
+  })
+  .passthrough();
 
 //
 // -------------------------------------------------
@@ -149,6 +146,8 @@ export const tenantCreateSchema = z.object({
   companyProfile: nullableString,
   logoName: nullableString,
   logoDataUrl: nullableString,
+  gpPhotoDataUrl: nullableString,
+  gpPhotoName: nullableString,
   workingHours: nullableWorkingHours,
   bookingEnabled: z.boolean().nullable().optional(),
   bookingSlug: nullableString,
@@ -179,6 +178,8 @@ export const tenantUpdateSchema = z.object({
   companyProfile: nullableString,
   logoName: nullableString,
   logoDataUrl: nullableString,
+  gpPhotoDataUrl: nullableString,
+  gpPhotoName: nullableString,
   workingHours: nullableWorkingHours,
   bookingEnabled: z.boolean().nullable().optional(),
   bookingSlug: nullableString,
@@ -205,46 +206,53 @@ export const tenantUpdateSchema = z.object({
 // -------------------------------------------------
 // Safe Output
 // -------------------------------------------------
-export const tenantOutSchema = z.preprocess(withPlanFromSubscription, z.object({
-  id: z.string(),
+export const tenantOutSchema = z.preprocess(
+  withPlanFromSubscription,
+  z
+    .object({
+      id: z.string(),
 
-  name: z.string().min(1),
-  slug: z.string().min(1),
+      name: z.string().min(1),
+      slug: z.string().min(1),
 
-  address: nullableString,
-  province: nullableString,
+      address: nullableString,
+      province: nullableString,
 
-  hpcsa: nullableString,
-  vat: nullableString,
-  companyProfile: nullableString,
-  logoName: nullableString,
-  logoDataUrl: nullableString,
-  workingHours: nullableWorkingHours,
-  bookingEnabled: z.boolean().nullable().optional(),
-  bookingSlug: nullableString,
-  gpBio: nullableString,
-  gpLanguages: nullableStringArray,
+      hpcsa: nullableString,
+      vat: nullableString,
+      companyProfile: nullableString,
+      logoName: nullableString,
+      logoDataUrl: nullableString,
+      gpPhotoDataUrl: nullableString,
+      gpPhotoName: nullableString,
+      workingHours: nullableWorkingHours,
+      bookingEnabled: z.boolean().nullable().optional(),
+      bookingSlug: nullableString,
+      gpBio: nullableString,
+      gpLanguages: nullableStringArray,
 
-  plan: planSchema.default("Starter"),
-  gpUserId: z.string(),
-  owner: userOutSchema.nullable().optional(),
+      plan: planSchema.default("Starter"),
+      gpUserId: z.string(),
+      owner: userOutSchema.nullable().optional(),
 
-  status: tenantStatusSchema,
+      status: tenantStatusSchema,
 
-  currentSubscriptionId: z.string().nullable().optional(),
-  subscriptionStatus: subscriptionStatusSchema.optional(),
-  subscription: subscriptionOutSchema.nullable().optional(),
+      currentSubscriptionId: z.string().nullable().optional(),
+      subscriptionStatus: subscriptionStatusSchema.optional(),
+      subscription: subscriptionOutSchema.nullable().optional(),
 
-  createdAt: apiDateTimeSchema.nullable().optional(),
-  updatedAt: apiDateTimeSchema.nullable().optional(),
+      createdAt: apiDateTimeSchema.nullable().optional(),
+      updatedAt: apiDateTimeSchema.nullable().optional(),
 
-  approvedAt: apiDateTimeSchema.nullable().optional(),
-  approvedBy: z.string().nullable().optional(),
+      approvedAt: apiDateTimeSchema.nullable().optional(),
+      approvedBy: z.string().nullable().optional(),
 
-  rejectionReason: z.string().nullable().optional(),
+      rejectionReason: z.string().nullable().optional(),
 
-  suspendedAt: apiDateTimeSchema.nullable().optional(),
-  suspensionReason: z.string().nullable().optional(),
+      suspendedAt: apiDateTimeSchema.nullable().optional(),
+      suspensionReason: z.string().nullable().optional(),
 
-  enabledModules: nullableModuleKeys,
-}).passthrough());
+      enabledModules: nullableModuleKeys,
+    })
+    .passthrough(),
+);

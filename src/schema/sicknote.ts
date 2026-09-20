@@ -12,7 +12,7 @@ const optionalIcd10Schema = z.preprocess(
     .string()
     .trim()
     .toUpperCase()
-    .regex(/^[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/)
+    .regex(/^[A-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?$/)
     .optional(),
 );
 
@@ -41,7 +41,8 @@ export const sickNoteSchema = z
 
     reason: z.string().min(1),
 
-    icd10: optionalIcd10Schema,
+    // Existing API records may contain legacy free-text codes.
+    icd10: optionalString,
     recommendation: optionalString,
 
     securityCode: optionalString,
@@ -76,7 +77,7 @@ export const sickNoteCreateSchema = z
 
     reason: z.string().min(1),
 
-    icd10: optionalString,
+    icd10: optionalIcd10Schema,
     recommendation: optionalString,
 
     securityCode: optionalString,
@@ -109,7 +110,7 @@ export const sickNoteUpdateSchema = z
 
     reason: z.string().min(1).optional(),
 
-    icd10: optionalString,
+    icd10: optionalIcd10Schema,
     recommendation: optionalString,
 
     securityCode: optionalString,
@@ -122,7 +123,7 @@ export const sickNoteUpdateSchema = z
     {
       message: "toDate must be on or after fromDate",
       path: ["toDate"],
-    }
+    },
   );
 
 //

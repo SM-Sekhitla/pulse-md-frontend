@@ -21,7 +21,41 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: "pulse-local-cache-recovery",
+        apply: "serve",
+        transformIndexHtml() {
+          return [
+            {
+              tag: "script",
+              injectTo: "head-prepend",
+              children: `
+              (async () => {
+                if (!['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) return;
+                if (!('caches' in window) || !('serviceWorker' in navigator)) return;
+                const keys = await caches.keys();
+                const legacy = keys.filter(key => key.startsWith('prism-crm-'));
+                if (!legacy.length) return;
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                  const worker = registration.active || registration.waiting || registration.installing;
+                  if (worker && new URL(worker.scriptURL).pathname === '/sw.js'
+                    && new URL(registration.scope).pathname === '/') {
+                    await registration.unregister();
+                  }
+                }
+                await Promise.all(legacy.map(key => caches.delete(key)));
+                location.reload();
+              })().catch(error => console.warn('Local development cache cleanup failed', error));
+            `,
+            },
+          ];
+        },
+      },
+    ],
 
     define: {
       __APP_VERSION__: JSON.stringify(gitVersion),
@@ -38,6 +72,14 @@ export default defineConfig(({ mode }) => {
       port: 8080,
       // Avoid silently serving PulseMD on a different port when 8080 is occupied.
       strictPort: true,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+      hmr: {
+        // Use the browser's hostname, with PulseMD's fixed development port.
+        clientPort: 8080,
+        path: "/__pulsemd_hmr",
+      },
       allowedHosts: allowedHost ? [allowedHost] : [],
       proxy: {
         "/api": {

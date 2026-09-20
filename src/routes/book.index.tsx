@@ -1,3 +1,4 @@
+import { ProfileImage } from "@/components/profile-image";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
@@ -64,18 +65,20 @@ function PublicBookingList() {
 
   const filtered = useMemo(() => {
     return all.filter(({ tenant, gp }) => {
-      if (applied.province && tenant.province !== applied.province) return false;
+      if (applied.province && tenant.province !== applied.province)
+        return false;
 
       if (applied.search) {
         const q = applied.search.toLowerCase();
-        const hay = `${gp.title} ${gp.firstName} ${gp.lastName} ${tenant.name}`.toLowerCase();
+        const hay =
+          `${gp.title} ${gp.firstName} ${gp.lastName} ${tenant.name}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
 
-    //   if (applied.type) {
-    //     const visitTypes = tenant.appointmentTypes || [];
-    //     if (visitTypes.length > 0 && !visitTypes.includes(applied.type)) return false;
-    //   }
+      //   if (applied.type) {
+      //     const visitTypes = tenant.appointmentTypes || [];
+      //     if (visitTypes.length > 0 && !visitTypes.includes(applied.type)) return false;
+      //   }
 
       if (applied.avail !== "any") {
         const next = nextAvailableSlot(availabilityFromTenant(tenant, 14));
@@ -130,8 +133,9 @@ function PublicBookingList() {
             </h1>
 
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-white/75">
-              Search available doctors, compare practices, and reserve a time that works for you.
-              Fast, simple, and designed for patients who need care without the back-and-forth.
+              Search available doctors, compare practices, and reserve a time
+              that works for you. Fast, simple, and designed for patients who
+              need care without the back-and-forth.
             </p>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -203,9 +207,12 @@ function PublicBookingList() {
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <h2 className="text-2xl font-semibold text-navy">Available healthcare providers</h2>
+            <h2 className="text-2xl font-semibold text-navy">
+              Available healthcare providers
+            </h2>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Showing {filtered.length} matching result{filtered.length === 1 ? "" : "s"}.
+              Showing {filtered.length} matching result
+              {filtered.length === 1 ? "" : "s"}.
             </p>
           </div>
         </div>
@@ -276,16 +283,24 @@ function HeroStat({
 
 function GPCard({ item }: { item: PublicGP }) {
   const { tenant, gp } = item;
-  const initials = `${gp.firstName?.[0] || ""}${gp.lastName?.[0] || ""}`.toUpperCase();
+  const initials =
+    `${gp.firstName?.[0] || ""}${gp.lastName?.[0] || ""}`.toUpperCase();
   const next = nextAvailableSlot(availabilityFromTenant(tenant, 14));
-  const nextLabel = next ? formatNextLabel(next.date, next.time) : "No availability";
+  const nextLabel = next
+    ? formatNextLabel(next.date, next.time)
+    : "No availability";
   const slug = tenant.bookingSlug || tenant.slug;
 
   return (
     <div className="group rounded-2xl border border-border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue/50 hover:shadow-lg">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue/10 text-[17px] font-bold text-blue">
-          {initials || "GP"}
+          <ProfileImage
+            src={tenant.gpPhotoDataUrl}
+            alt={`${gp.title} ${gp.firstName} ${gp.lastName}`}
+            className="h-full w-full rounded-2xl object-cover"
+            fallback={initials || "GP"}
+          />
         </div>
 
         <div className="min-w-0 flex-1">
@@ -300,7 +315,17 @@ function GPCard({ item }: { item: PublicGP }) {
           <div className="mt-3 grid gap-2 text-[12.5px] text-navy/80 md:grid-cols-3">
             <div className="flex items-center gap-1.5 truncate">
               <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-              {tenant.name}
+              <>
+                {tenant.logoDataUrl && (
+                  <ProfileImage
+                    src={tenant.logoDataUrl}
+                    alt={`${tenant.name} logo`}
+                    className="inline-block h-8 w-8 rounded bg-white p-1 object-contain mr-2"
+                    fallback={null}
+                  />
+                )}
+                {tenant.name}
+              </>
             </div>
 
             <div className="flex items-center gap-1.5 truncate">
