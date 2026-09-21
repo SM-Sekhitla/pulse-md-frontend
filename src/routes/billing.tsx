@@ -1,5 +1,5 @@
 import { ActionButton } from "@/components/action-feedback";
-import { createFileRoute } from "@/lib/router-compat";
+import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
@@ -39,6 +39,13 @@ function Billing() {
   const [showNew, setShowNew] = useState(searchParams.get("new") === "1");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const initialPatientId = searchParams.get("patientId") ?? undefined;
+
+  useEffect(() => {
+    const invoiceId = searchParams.get("invoiceId");
+    if (!invoiceId) return;
+    const match = invoice.invoices.find((item) => item.id === invoiceId);
+    if (match) setSelectedInvoice(match);
+  }, [searchParams, invoice.invoices]);
 
   useEffect(() => {
     setShowNew(searchParams.get("new") === "1");
@@ -515,8 +522,13 @@ function InvoiceDetailModal({
               <ClaimBadge status={claimStatus} />
             </div>
             {claimStatus === "not_submitted" && (
+              <Link to={`/claims?invoiceId=${invoice.id}`} className="rounded-md bg-navy px-3 py-1.5 text-[12.5px] font-medium text-white">
+                Prepare claim
+              </Link>
+            )}
+            {claimStatus === "not_submitted" && (
               <ActionButton onClick={markSubmitted} className="rounded-md border border-blue/30 px-3 py-1.5 text-[12.5px] font-medium text-blue hover:bg-blue-tint">
-                Mark as submitted
+                Record external submission
               </ActionButton>
             )}
             {claimStatus === "submitted" && (

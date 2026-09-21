@@ -35,6 +35,7 @@ import { practiceModules, practiceNavigation } from "@/lib/practice-navigation";
 import "./practice.css";
 
 const DESCRIPTIONS: Record<string, string> = {
+  "/claims": "Prepare, review and track your practice’s medical aid claims.",
   "/dashboard":
     "Your day, connected. A little less admin, a little more time for care.",
   "/calendar":

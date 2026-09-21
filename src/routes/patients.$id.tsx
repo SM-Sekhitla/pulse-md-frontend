@@ -1,3 +1,5 @@
+import { PatientDocuments } from "@/components/patient-documents";
+import { StartConsultation } from "@/components/start-consultation";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
@@ -34,16 +36,14 @@ const TABS = [
 
 function PatientDetail() {
   const { id } = useParams({ from: "/patients/$id" });
-  const { appointment, patient, invoice, } = useData();
- 
-  
+  const { appointment, patient, invoice } = useData();
+
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
 
   const [p, setP] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-
     const loadPatient = async () => {
       try {
         const result = await patient.getPatient(id);
@@ -59,7 +59,7 @@ function PatientDetail() {
     loadPatient();
   }, [id, patient]);
 
-  if (patient.isPatientLoading) {
+  if (loading || patient.isPatientLoading) {
     return (
       <AppShell title="Patient">
         <div className="p-6">Loading patient...</div>
@@ -114,7 +114,10 @@ function PatientDetail() {
                 <span className="font-mono">{p.idNumber}</span>
                 <Badge variant="indigo">{p.medicalAid}</Badge>
                 <span>
-                  Last visit: {p.lastVisit ? format(parseISO(p.lastVisit), "d MMM yyyy") : "Never"}
+                  Last visit:{" "}
+                  {p.lastVisit
+                    ? format(parseISO(p.lastVisit), "d MMM yyyy")
+                    : "Never"}
                 </span>
               </div>
               {p.allergies.length > 0 && (
@@ -131,9 +134,19 @@ function PatientDetail() {
           </div>
           <div className="flex flex-wrap gap-2">
             <ActionBtn icon={Calendar}>New appointment</ActionBtn>
-            <ActionBtn icon={FileText}>New note</ActionBtn>
+            <ActionButton
+              className="gp-button"
+              onClick={() => setTab("Clinical notes")}
+            >
+              <FileText size={16} />
+              Clinical notes
+            </ActionButton>
             <ActionBtn icon={MessageSquare}>Message</ActionBtn>
-            <ActionBtn icon={Receipt} primary to={`/billing?new=1&patientId=${p.id}`}>
+            <ActionBtn
+              icon={Receipt}
+              primary
+              to={`/billing?new=1&patientId=${p.id}`}
+            >
               New invoice
             </ActionBtn>
           </div>
@@ -165,10 +178,12 @@ function PatientDetail() {
       <div className="mt-6">
         {tab === "Overview" && <Overview p={p} />}
         {tab === "Visit history" && <VisitHistory visits={visits} />}
-        {tab === "Clinical notes" && <ClinicalNotes />}
-        {tab === "Documents" && <Documents />}
-        {tab === "Billing" && <BillingTab invoices={invoices} patientId={p.id} />}
-        {tab === "Prescriptions" && <Prescriptions />}
+        {tab === "Clinical notes" && <ClinicalNotes visits={visits} />}
+        {tab === "Documents" && <PatientDocuments patientId={p.id} />}
+        {tab === "Billing" && (
+          <BillingTab invoices={invoices} patientId={p.id} />
+        )}
+        {tab === "Prescriptions" && <Prescriptions patientId={p.id} />}
       </div>
     </AppShell>
   );
@@ -186,9 +201,7 @@ function ActionBtn({
   children: React.ReactNode;
 }) {
   const className = `inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12.5px] font-medium transition-opacity hover:opacity-90 ${
-    primary
-      ? "bg-blue text-white"
-      : "border border-border bg-white text-navy"
+    primary ? "bg-blue text-white" : "border border-border bg-white text-navy"
   }`;
   const content = (
     <>
@@ -204,11 +217,7 @@ function ActionBtn({
     );
   }
 
-  return (
-    <ActionButton className={className}>
-      {content}
-    </ActionButton>
-  );
+  return <ActionButton className={className}>{content}</ActionButton>;
 }
 
 function Overview({ p }: { p: Patient }) {
@@ -271,7 +280,10 @@ function Overview({ p }: { p: Patient }) {
 }
 
 function MedicalAidCard({ p }: { p: Patient }) {
-  const isMedicalAid = (p.billingType ?? (p.medicalAid === "Private" ? "private" : "medical_aid")) === "medical_aid";
+  const isMedicalAid =
+    (p.billingType ??
+      (p.medicalAid === "Private" ? "private" : "medical_aid")) ===
+    "medical_aid";
 
   return (
     <div className="pulse-card p-5">
@@ -279,7 +291,10 @@ function MedicalAidCard({ p }: { p: Patient }) {
         <div className="text-[12px] font-semibold text-navy">Medical aid</div>
         <div className="flex items-center gap-2">
           {isMedicalAid && <Badge variant="success">Medical aid</Badge>}
-          <Link to="/patients/new" className="text-[12.5px] font-medium text-blue hover:underline">
+          <Link
+            to="/patients/new"
+            className="text-[12.5px] font-medium text-blue hover:underline"
+          >
             {isMedicalAid ? "Edit" : "Add medical aid"}
           </Link>
         </div>
@@ -297,11 +312,14 @@ function MedicalAidCard({ p }: { p: Patient }) {
           </div>
           <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
             <Shield className="h-3.5 w-3.5 text-blue" />
-            <span className="font-mono">{p.medicalAidNumber || "Member number not recorded"}</span>
+            <span className="font-mono">
+              {p.medicalAidNumber || "Member number not recorded"}
+            </span>
           </div>
           {p.isMainMember === false && (
             <div className="text-[12px] text-muted-foreground">
-              {p.mainMemberName || "Main member"} - dependant {p.dependantCode || "--"}
+              {p.mainMemberName || "Main member"} - dependant{" "}
+              {p.dependantCode || "--"}
             </div>
           )}
         </div>
@@ -311,8 +329,12 @@ function MedicalAidCard({ p }: { p: Patient }) {
             <Banknote className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-[14px] font-medium text-navy">Private patient</div>
-            <div className="text-[12px] text-muted-foreground">No medical aid on file</div>
+            <div className="text-[14px] font-medium text-navy">
+              Private patient
+            </div>
+            <div className="text-[12px] text-muted-foreground">
+              No medical aid on file
+            </div>
           </div>
         </div>
       )}
@@ -397,54 +419,85 @@ function VisitHistory({ visits }: { visits: any[] }) {
   );
 }
 
-function ClinicalNotes() {
+function ClinicalNotes({
+  visits,
+}: {
+  visits: { id: string; status: string; start: string; reason?: string }[];
+}) {
   return (
     <div className="pulse-card p-6">
-      <div className="text-[14px] font-semibold text-navy">New SOAP note</div>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {["Subjective", "Objective", "Assessment", "Plan"].map((s) => (
-          <div key={s}>
-            <div className="label-caps">{s}</div>
-            <textarea
-              rows={4}
-              placeholder={`${s} notes…`}
-              className="mt-1.5 block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
-            />
+      <h2 className="font-semibold">Appointment clinical notes</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Open an appointment to start or resume the consultation. Use Save notes
+        to save typed notes and reviewed transcripts; completed consultations
+        are read-only.
+      </p>
+      {visits.length ? (
+        visits.map((visit) => (
+          <div
+            key={visit.id}
+            className="border-t mt-4 pt-4 flex flex-wrap justify-between items-center gap-3"
+          >
+            <div>
+              <p>
+                {format(parseISO(visit.start), "d MMM yyyy, HH:mm")} ·{" "}
+                {visit.reason}
+              </p>
+              <p className="text-sm text-muted-foreground">{visit.status}</p>
+            </div>
+            <StartConsultation id={visit.id} status={visit.status} />
           </div>
-        ))}
+        ))
+      ) : (
+        <p className="mt-4">
+          No appointments yet. Create an appointment in the calendar first.
+        </p>
+      )}
+    </div>
+  );
+}
+function Prescriptions({ patientId }: { patientId: string }) {
+  const { prescription } = useData();
+  const items = prescription.prescriptions.filter(
+    (item) => item.patientId === patientId,
+  );
+  return (
+    <div className="pulse-card p-6">
+      <div className="flex justify-between items-center gap-3">
+        <h2 className="font-semibold">Prescriptions</h2>
+        <Link
+          className="gp-button gp-button-yellow"
+          to={`/prescriptions/new?patientId=${encodeURIComponent(patientId)}`}
+        >
+          New prescription
+        </Link>
       </div>
-      <div className="mt-5 flex justify-end gap-2">
-        <ActionButton className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface">
-          Save draft
-        </ActionButton>
-        <ActionButton className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
-          Lock & sign
-        </ActionButton>
-      </div>
+      {items.length ? (
+        items.map((item) => (
+          <Link
+            className="block border-t mt-4 pt-4 text-blue"
+            key={item.id}
+            to={`/prescriptions/${item.id}`}
+          >
+            View prescription · {item.id}
+          </Link>
+        ))
+      ) : (
+        <p className="mt-4 text-sm text-muted-foreground">
+          No prescriptions yet.
+        </p>
+      )}
     </div>
   );
 }
 
-function Documents() {
-  return (
-    <Empty
-      title="No documents uploaded"
-      sub="Lab results, referrals and letters will appear here."
-      cta="Upload document"
-    />
-  );
-}
-function Prescriptions() {
-  return (
-    <Empty
-      title="No prescriptions yet"
-      sub="Generate a new prescription from this patient's profile."
-      cta="New prescription"
-    />
-  );
-}
-
-function BillingTab({ invoices, patientId }: { invoices: any[]; patientId: string }) {
+function BillingTab({
+  invoices,
+  patientId,
+}: {
+  invoices: any[];
+  patientId: string;
+}) {
   if (invoices.length === 0)
     return (
       <Empty
@@ -523,9 +576,9 @@ function Empty({
       </div>
       <div className="mt-4 text-[15px] font-semibold text-navy">{title}</div>
       <div className="mt-1 text-[13px] text-muted-foreground">{sub}</div>
-      {cta && (
+      {cta && ctaHref && (
         <Link
-          to={ctaHref ?? "/billing?new=1"}
+          to={ctaHref}
           className="mt-5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
         >
           {cta}

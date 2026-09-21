@@ -41,6 +41,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge-pill";
 import { useData } from "@/context/AppDataProvider";
 import { useAuth } from "@/context/AuthContext";
+import { StartConsultation } from "@/components/start-consultation";
 import { useCurrentTenant } from "@/hooks/use-current-tenant";
 import { practiceModules } from "@/lib/practice-navigation";
 import { formatZAR } from "@/lib/pricing";
@@ -382,6 +383,7 @@ function Dashboard() {
                       <Badge variant={STATUS_VARIANT(visit.status)}>
                         {visit.status}
                       </Badge>
+                      <StartConsultation id={visit.id} status={visit.status} />
                       {enabled.has("patients") && (
                         <Link
                           to="/patients/$id"

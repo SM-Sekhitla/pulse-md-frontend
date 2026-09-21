@@ -109,6 +109,12 @@ const OWNER_NAV: NavGroup[] = [
         module: "billing",
       },
       {
+        to: "/claims",
+        label: "Claims",
+        icon: Receipt,
+        module: "billing",
+      },
+      {
         to: "/reports",
         label: "Financial reports",
         icon: BarChart3,
@@ -197,7 +203,9 @@ export function practiceNavigation(
     .map((group) => ({
       ...group,
       items: group.items.filter(
-        (item) => !item.module || enabled.has(item.module),
+        (item) =>
+          (!item.module || enabled.has(item.module)) &&
+          (item.to !== "/claims" || role === "owner" || role === "manager"),
       ),
     }))
     .filter((group) => group.items.length);

@@ -1,4 +1,5 @@
 import { ActionButton } from "@/components/action-feedback";
+import { StartConsultation } from "@/components/start-consultation";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
@@ -210,6 +211,7 @@ function CalendarPage() {
               </div>
               <div className="border-t border-border pt-4">
                 <div className="label-caps">Workflow</div>
+                <div className="mt-3"><StartConsultation id={selected.id} status={selected.status} /></div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[
                     "Booked",

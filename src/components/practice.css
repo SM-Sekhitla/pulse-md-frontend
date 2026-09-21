@@ -1505,3 +1505,9 @@
     animation: none !important;
   }
 }
+/* Consultation actions remain reachable in narrow schedule cards. */
+.gp-visit:has(> .gp-button) { flex-wrap: wrap; }
+.gp-visit > .gp-button { font-size: 11px; padding: 8px 11px; margin-left: auto; }
+@media (max-width: 767px) {
+  .gp-visit > .gp-button { flex-basis: 100%; }
+}

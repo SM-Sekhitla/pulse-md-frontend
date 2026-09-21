@@ -1,4 +1,6 @@
 import { Navigate, Outlet, Routes, Route } from "react-router-dom";
+import { Route as Claims } from "./routes/claims";
+import { Route as Consultation } from "./routes/consultation";
 import { getLoginRoute } from "@/lib/auth-routing";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -142,6 +144,8 @@ export default function App() {
             <Route path="/sick-notes/:id" element={<C {...SickNoteDetail} />} />
 
             <Route path="/billing" element={<C {...Billing} />} />
+            <Route path="/claims" element={<C {...Claims} />} />
+            <Route path="/appointments/:id/consultation" element={<C {...Consultation} />} />
             <Route path="/inventory" element={<C {...Inventory} />} />
             <Route path="/equipment" element={<C {...Equipment} />} />
             <Route path="/reports" element={<C {...Reports} />} />

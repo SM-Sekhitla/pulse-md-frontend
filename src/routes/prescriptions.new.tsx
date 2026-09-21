@@ -55,7 +55,9 @@ function NewPrescription() {
   const hpcsa = owner?.hpcsa || tenant?.hpcsa || "";
 
   const [search, setSearch] = useState("");
-  const [patientId, setPatientId] = useState<string>("");
+  const [patientId, setPatientId] = useState<string>(
+    () => new URLSearchParams(window.location.search).get("patientId") || "",
+  );
   const [appointmentId, setAppointmentId] = useState<string>("");
   const [diagnosis, setDiagnosis] = useState("");
   const [icd10, setIcd10] = useState("");
@@ -71,7 +73,7 @@ function NewPrescription() {
         .toLowerCase()
         .includes(search.toLowerCase()),
     )
-    .slice(0, 50);
+    .filter((p, index) => index < 50 || p.id === patientId);
   const selectedPatient = patients.find((p) => p.id === patientId);
   const apptOptions = selectedPatient
     ? appointment.appointments.filter(
