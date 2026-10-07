@@ -32,6 +32,7 @@ export const prescriptionSchema = z.object({
 
   appointmentId: optionalString,
 
+  signatureDataUrl: optionalString,
   gpName: z.string().min(1),
   hpcsa: z.string().min(1),
 

@@ -17,32 +17,31 @@ function PrescriptionDetail() {
   const { id } = useParams({ from: "/prescriptions/$id" });
   const { patient, prescription } = useData();
   const [rx, setX] = useState<Prescription | null>(null);
-  
+
   const tenant = useCurrentTenant();
 
   useEffect(() => {
+    const loadPrescription = async () => {
+      try {
+        const result = await prescription.getPrescription(id);
 
-      const loadPrescription = async () => {
-        try {
-          const result = await prescription.getPrescription(id);
-  
-          if (result) {
-            setX(result);
-          }
-        } finally {
+        if (result) {
+          setX(result);
         }
-      };
-  
-      loadPrescription();
-    }, [id, prescription]);
-  
-    if (patient.isPatientLoading) {
-      return (
-        <AppShell title="Patient">
-          <div className="p-6">Loading prescription...</div>
-        </AppShell>
-      );
-    }
+      } finally {
+      }
+    };
+
+    loadPrescription();
+  }, [id, prescription]);
+
+  if (patient.isPatientLoading) {
+    return (
+      <AppShell title="Patient">
+        <div className="p-6">Loading prescription...</div>
+      </AppShell>
+    );
+  }
 
   if (!rx) {
     return (
@@ -180,7 +179,15 @@ function PrescriptionDetail() {
           {/* Signature + QR */}
           <div className="mt-8 flex items-end justify-between border-t border-border pt-6">
             <div>
-              <div className="h-12 border-b border-navy"></div>
+              <div className="flex h-20 w-56 items-end border-b border-navy">
+                {rx.signatureDataUrl && (
+                  <img
+                    src={rx.signatureDataUrl}
+                    alt="GP signature"
+                    className="h-full w-full object-contain object-left-bottom"
+                  />
+                )}
+              </div>
               <div className="mt-1 text-[13px] font-semibold text-navy">
                 {rx.gpName}
               </div>

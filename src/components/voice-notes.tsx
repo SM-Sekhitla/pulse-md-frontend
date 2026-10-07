@@ -50,13 +50,16 @@ export function VoiceNotes({
   onInsert: (section: string) => void;
 }) {
   const ref = useRef<Recognition | null>(null);
+  const stoppedByUser = useRef(false);
+  const startupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [starting, setStarting] = useState(false);
   const appendRef = useRef(onAppend);
   appendRef.current = onAppend;
   const [active, setActive] = useState(false);
   const [audioBusy, setAudioBusy] = useState(false);
   useEffect(() => {
-    onRecording(active || audioBusy);
-  }, [active, audioBusy, onRecording]);
+    onRecording(active || starting || audioBusy);
+  }, [active, starting, audioBusy, onRecording]);
   const [permission, setPermission] = useState(false);
   const [interim, setInterim] = useState("");
   const [error, setError] = useState("");
@@ -64,6 +67,7 @@ export function VoiceNotes({
   const supported = Boolean(recognitionConstructor());
   useEffect(
     () => () => {
+      if (startupTimer.current) clearTimeout(startupTimer.current);
       if (ref.current) {
         ref.current.onresult = null;
         ref.current.onend = null;
@@ -75,7 +79,8 @@ export function VoiceNotes({
   );
   const start = () => {
     const Constructor = recognitionConstructor();
-    if (!Constructor) return;
+    if (!Constructor || starting || active || audioBusy) return;
+    stoppedByUser.current = false;
     setError("");
     const recognition = new Constructor();
     ref.current = recognition;
@@ -93,29 +98,63 @@ export function VoiceNotes({
       if (final.trim()) appendRef.current(final.trim());
       setInterim(partial);
     };
-    recognition.onerror = (event) =>
+    recognition.onerror = (event) => {
+      if (startupTimer.current) clearTimeout(startupTimer.current);
       setError(
         event.error === "not-allowed"
-          ? "Microphone permission was denied. Allow access in your browser or type your notes."
+          ? "Microphone access was denied. Allow microphone access for this site in your browser settings."
           : event.error === "network" || event.error === "service-not-allowed"
-            ? "Your browser’s transcription service is unavailable. Audio recording still works independently above. Type your notes or use a browser with a working speech service."
-            : `Dictation stopped (${event.error}). Your transcript is retained; you can type or try again.`,
+            ? "The browser could not connect to its speech-to-text service. Microphone permission alone cannot fix this; a configured transcription service is needed. Your existing transcript is retained."
+            : event.error === "audio-capture"
+              ? "No microphone could be opened. Check your input device and close other apps using it."
+              : event.error === "no-speech"
+                ? "No speech was detected. Check your microphone input and try again."
+                : `Dictation stopped (${event.error}). Your existing transcript is retained.`,
       );
-    recognition.onend = () => {
+      setStarting(false);
       setActive(false);
-
-      setInterim("");
+      recognition.onerror = null;
+      recognition.abort();
     };
-    setActive(true);
-
+    recognition.onstart = () => {
+      if (startupTimer.current) clearTimeout(startupTimer.current);
+      setStarting(false);
+      setActive(true);
+    };
+    recognition.onend = () => {
+      if (startupTimer.current) clearTimeout(startupTimer.current);
+      setActive(false);
+      setStarting(false);
+      setInterim("");
+      if (!stoppedByUser.current) {
+        setError(
+          (current) =>
+            current ||
+            "The browser ended dictation unexpectedly. Your transcript is retained. A dedicated transcription service is recommended for continuous dictation.",
+        );
+      }
+    };
+    setStarting(true);
+    startupTimer.current = setTimeout(() => {
+      setError(
+        "Speech recognition did not start. Check microphone permission; the browser's speech service may be unavailable.",
+      );
+      setStarting(false);
+      recognition.onerror = null;
+      recognition.abort();
+    }, 15000);
     try {
       recognition.start();
     } catch {
+      if (startupTimer.current) clearTimeout(startupTimer.current);
+      setStarting(false);
       setActive(false);
-
-      setError("Could not start dictation. Try again or type your notes.");
+      setError(
+        "Could not start dictation. Check microphone permission and browser speech support.",
+      );
     }
   };
+
   return (
     <section className="consult-voice">
       <h2>Voice notes</h2>
@@ -126,7 +165,7 @@ export function VoiceNotes({
       <ConsultationRecorder
         patientId={patientId}
         appointmentId={appointmentId}
-        disabled={disabled}
+        disabled={disabled || active || starting}
         onRecording={setAudioBusy}
       />
       <h3 className="font-semibold">Live dictation (browser speech service)</h3>
@@ -140,7 +179,7 @@ export function VoiceNotes({
         <input
           type="checkbox"
           checked={permission}
-          disabled={active || disabled}
+          disabled={active || starting || disabled}
           onChange={(e) => setPermission(e.target.checked)}
         />
         I have permission to dictate this information. Browser speech
@@ -150,17 +189,35 @@ export function VoiceNotes({
         <ActionButton
           type="button"
           className="gp-button gp-button-yellow"
-          disabled={disabled || !supported || (!active && !permission)}
-          onClick={() => (active ? ref.current?.stop() : start())}
+          disabled={
+            disabled ||
+            audioBusy ||
+            !supported ||
+            (!active && !starting && !permission)
+          }
+          onClick={() => {
+            if (active || starting) {
+              stoppedByUser.current = true;
+              ref.current?.stop();
+            } else start();
+          }}
         >
           {active ? <Square size={15} /> : <Mic size={15} />}{" "}
-          {active ? "Stop dictation" : "Start dictation"}
+          {starting
+            ? "Cancel connecting"
+            : active
+              ? "Stop dictation"
+              : "Start dictation"}
         </ActionButton>
         <span
           role="status"
           className={active ? "text-red-700" : "text-muted-foreground"}
         >
-          {active ? "● Microphone active" : "Microphone off"}
+          {starting
+            ? "Connecting to speech service…"
+            : active
+              ? "● Listening — speak now"
+              : "Microphone off"}
         </span>
       </div>
       {interim && (
@@ -179,7 +236,7 @@ export function VoiceNotes({
         rows={7}
         value={value}
         maxLength={60000}
-        disabled={disabled || active}
+        disabled={disabled || active || starting}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Your dictated words appear here. Check names, medicines, numbers and negations before adding them to the notes."
       />
@@ -187,7 +244,7 @@ export function VoiceNotes({
         <select
           aria-label="Insert transcript into"
           value={section}
-          disabled={disabled || active}
+          disabled={disabled || active || starting}
           onChange={(e) => setSection(e.target.value)}
         >
           <option value="history">History</option>
@@ -198,7 +255,7 @@ export function VoiceNotes({
         <ActionButton
           type="button"
           className="gp-button"
-          disabled={disabled || active || !value.trim()}
+          disabled={disabled || active || starting || !value.trim()}
           onClick={() => onInsert(section)}
         >
           Insert reviewed text

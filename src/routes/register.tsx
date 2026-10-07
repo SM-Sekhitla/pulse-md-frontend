@@ -5,17 +5,31 @@ import { PulseLogo } from "@/components/brand";
 import type { Plan } from "@/types/tenant";
 import {
   ArrowRight,
+  ArrowLeft,
+  Stethoscope,
+  Sparkles,
+  ClipboardCheck,
   Building2,
   Check,
   Clock,
   MapPin,
   Upload,
 } from "lucide-react";
-import API from "@/utils/api";
+import API, { getApiErrorMessage } from "@/utils/api";
+import "./register.css";
 import { toast } from "sonner";
 import { SA_PROVINCES, SA_SUBURBS, type SAProvince } from "@/lib/sa-suburbs";
 
 export const Route = createFileRoute("/register")({ component: RegisterPage });
+
+const STEP_DESCRIPTIONS = [
+  "Your practice details",
+  "Introduce your practitioner",
+  "Set your availability",
+  "Make it your own",
+  "Find the right fit",
+];
+const STEP_ICONS = [Building2, Stethoscope, Clock, Sparkles, ClipboardCheck];
 
 const STEPS = ["Practice", "Profile", "Hours", "Branding", "Plan"];
 const PLANS = ["Starter", "Growth", "Enterprise"] as Plan[];
@@ -29,7 +43,10 @@ const DAYS = [
   { key: "sat", label: "Saturday", short: "Sat" },
   { key: "sun", label: "Sunday", short: "Sun" },
 ] as const;
-const PLAN_DETAILS: Record<Plan, { price: string; blurb: string; features: string[] }> = {
+const PLAN_DETAILS: Record<
+  Plan,
+  { price: string; blurb: string; features: string[] }
+> = {
   Starter: {
     price: "R799",
     blurb: "For a solo GP getting the basics live.",
@@ -146,9 +163,7 @@ function RegisterPage() {
           limit: "8",
           lang: "en",
           countrycode: "ZA",
-          q: form.province
-            ? `${query}, ${form.province}`
-            : query,
+          q: form.province ? `${query}, ${form.province}` : query,
         });
         params.append("layer", "house");
         params.append("layer", "street");
@@ -167,8 +182,8 @@ function RegisterPage() {
           searches.unshift(
             fetchAddressResults(
               STRUCTURED_ADDRESS_SEARCH_ENDPOINT,
-              structuredParams
-            )
+              structuredParams,
+            ),
           );
         }
 
@@ -177,9 +192,9 @@ function RegisterPage() {
           setRemoteAddressSuggestions(
             results.flatMap((result) =>
               (result.features ?? []).flatMap((feature) =>
-                toAddressSuggestion(feature)
-              )
-            )
+                toAddressSuggestion(feature),
+              ),
+            ),
           );
         }
       } catch {
@@ -205,7 +220,7 @@ function RegisterPage() {
           province,
           suburb,
           address: `${suburb}, ${province}, South Africa`,
-        }))
+        })),
       )
       .filter((item) => {
         if (!query) return true;
@@ -250,6 +265,7 @@ function RegisterPage() {
   };
 
   const next = async () => {
+    if (submitting) return;
     const validationError = validateStep();
     if (validationError) {
       setError(validationError);
@@ -262,270 +278,353 @@ function RegisterPage() {
     } else {
       setSubmitting(true);
       try {
-        await API.post("/onboarding", {
-          ...form,
-          address: form.address.trim(),
-          practiceName: form.practiceName.trim(),
-          hpcsa: form.hpcsa.trim(),
-          vat: form.vat.trim() || null,
-          email: form.email.trim().toLowerCase(),
-          phone: form.phone.trim(),
-          workingHours: hours,
-          branding: {
-            companyProfile: form.companyProfile.trim(),
-            logoName: form.logoName || null,
-            logoDataUrl: form.logoDataUrl || null,
+        await API.post(
+          "/onboarding",
+          {
+            ...form,
+            address: form.address.trim(),
+            practiceName: form.practiceName.trim(),
+            hpcsa: form.hpcsa.trim(),
+            vat: form.vat.trim() || null,
+            email: form.email.trim().toLowerCase(),
+            phone: form.phone.trim(),
+            workingHours: hours,
+            branding: {
+              companyProfile: form.companyProfile.trim(),
+              logoName: form.logoName || null,
+              logoDataUrl: form.logoDataUrl || null,
+            },
           },
-        }, {
-          headers: {
-            "Idempotency-Key": crypto.randomUUID(),
+          {
+            headers: {
+              "Idempotency-Key": crypto.randomUUID(),
+            },
           },
-        });
+        );
         navigate({ to: "/pending" });
       } catch (err: any) {
-        toast.error(err?.response?.data?.detail || "Application submission failed.");
+        const message = getApiErrorMessage(err);
+        setError(message);
+        toast.error(message);
       } finally {
         setSubmitting(false);
       }
     }
   };
-  const back = () => step > 0 && setStep(step - 1);
-  const continueLabel = step === STEPS.length - 1 ? "Submit application" : "Continue";
+  const back = () => {
+    if (step > 0 && !submitting) {
+      setError("");
+      setStep(step - 1);
+    }
+  };
+  const continueLabel =
+    step === STEPS.length - 1 ? "Submit application" : "Continue";
 
   return (
-    <div className="min-h-screen bg-surface">
-      <div className="border-b border-border bg-white px-8 py-4">
-        <div className="mx-auto flex max-w-[920px] items-center justify-between">
-          <Link to="/">
-            <PulseLogo />
-          </Link>
-          <Link
-            to="/login"
-            className="text-[13px] text-muted-foreground hover:text-navy"
-          >
-            Already have an account?
-          </Link>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-[920px] px-8 py-10">
-        <div className="flex items-center gap-2">
-          {STEPS.map((s, i) => (
-            <div key={s} className="flex flex-1 items-center gap-2">
-              <div
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold ${
-                  i < step
-                    ? "bg-blue text-white"
-                    : i === step
-                      ? "bg-navy text-white"
-                      : "bg-white border border-border text-muted-foreground"
-                }`}
-              >
-                {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
-              </div>
-              <div
-                className={`text-[12.5px] ${i === step ? "font-semibold text-navy" : "text-muted-foreground"}`}
-              >
-                {s}
-              </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  className={`h-px flex-1 ${i < step ? "bg-blue" : "bg-border"}`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 pulse-card p-8">
-          {step === 0 && (
-            <Section
-              title="Tell us about your practice"
-              sub="This creates the tenant record and public booking location."
-            >
-              <Grid>
-                <Input
-                  label="Practice name"
-                  value={form.practiceName}
-                  onChange={set("practiceName")}
-                />
-                <Input
-                  label="HPCSA practice number"
-                  value={form.hpcsa}
-                  onChange={set("hpcsa")}
-                />
-                <AddressInput
-                  value={form.address}
-                  suggestions={addressSuggestions}
-                  showSuggestions={showAddressSuggestions}
-                  onFocus={() => setShowAddressSuggestions(true)}
-                  onBlur={() => window.setTimeout(() => setShowAddressSuggestions(false), 120)}
-                  onChange={(value) => {
-                    const inferredProvince = inferProvince(value);
-                    setForm((current) => ({
-                      ...current,
-                      address: value,
-                      province: inferredProvince ?? current.province,
-                    }));
-                    setShowAddressSuggestions(true);
-                  }}
-                  onSelect={(suggestion) => {
-                    setForm((current) => ({
-                      ...current,
-                      address: suggestion.address,
-                      province: suggestion.province,
-                    }));
-                    setShowAddressSuggestions(false);
-                  }}
-                />
-                <SelectInput
-                  label="Province"
-                  value={form.province}
-                  onChange={set("province")}
-                  placeholder="Select province"
-                  options={SA_PROVINCES}
-                />
-                <Input
-                  label="VAT number (optional)"
-                  value={form.vat}
-                  onChange={set("vat")}
-                />
-              </Grid>
-            </Section>
-          )}
-          {step === 1 && (
-            <Section
-              title="GP profile"
-              sub="Primary practitioner for this account."
-            >
-              <Grid>
-                <SelectInput
-                  label="Title"
-                  value={form.title}
-                  onChange={set("title")}
-                  options={TITLES}
-                />
-                <Input
-                  label="First name"
-                  value={form.firstName}
-                  onChange={set("firstName")}
-                />
-                <Input
-                  label="Last name"
-                  value={form.lastName}
-                  onChange={set("lastName")}
-                />
-                <Input
-                  label="Email"
-                  value={form.email}
-                  onChange={set("email")}
-                  type="email"
-                />
-                <Input
-                  label="Phone"
-                  value={form.phone}
-                  onChange={set("phone")}
-                />
-              </Grid>
-            </Section>
-          )}
-          {step === 2 && <HoursStep hours={hours} onChange={setHours} />}
-          {step === 3 && (
-            <BrandingStep
-              companyProfile={form.companyProfile}
-              logoName={form.logoName}
-              logoPreview={logoPreview}
-              onProfileChange={set("companyProfile")}
-              onLogoChange={(file) => {
-                if (!file) return;
-                if (file.size > 2 * 1024 * 1024) {
-                  setError("Choose a logo smaller than 2 MB.");
-                  return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => {
-                  const dataUrl = String(reader.result || "");
-                  setForm((current) => ({
-                    ...current,
-                    logoName: file.name,
-                    logoDataUrl: dataUrl,
-                  }));
-                  setLogoPreview(dataUrl);
-                  setError("");
-                };
-                reader.readAsDataURL(file);
-              }}
-            />
-          )}
-          {step === 4 && (
-            <Section
-              title="Choose your plan"
-              sub="Start with a 30-day free trial. No credit card required."
-            >
-              <div className="mt-2 grid gap-4 md:grid-cols-3">
-                {PLANS.map((p) => (
-                  <ActionButton
-                    key={p}
-                    type="button"
-                    onClick={() => set("plan")(p)}
-                    className={`rounded-lg border-2 p-5 text-left transition hover:border-blue/70 ${form.plan === p ? "border-blue bg-blue-tint" : "border-border bg-white"}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-[13px] font-semibold text-navy">{p}</div>
-                      {form.plan === p && (
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue text-white">
-                          <Check className="h-3.5 w-3.5" />
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-2 text-[24px] font-bold text-navy">
-                      {PLAN_DETAILS[p].price}
-                      <span className="text-[12px] font-normal text-muted-foreground">
-                        {p === "Enterprise" ? "" : "/mo"}
-                      </span>
-                    </div>
-                    <p className="mt-2 min-h-10 text-[12.5px] text-muted-foreground">
-                      {PLAN_DETAILS[p].blurb}
-                    </p>
-                    <div className="mt-4 space-y-2">
-                      {PLAN_DETAILS[p].features.map((feature) => (
-                        <div key={feature} className="flex items-center gap-2 text-[12.5px] text-navy">
-                          <Check className="h-3.5 w-3.5 text-blue" />
-                          {feature}
-                        </div>
-                      ))}
-                    </div>
-                  </ActionButton>
-                ))}
-              </div>
-            </Section>
-          )}
-
-          {error && (
-            <div className="mt-6 rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
-              {error}
-            </div>
-          )}
-
-          <div className="mt-8 flex justify-between border-t border-border pt-6">
-            <ActionButton
-              onClick={back}
-              disabled={step === 0}
-              className="rounded-md px-4 py-2 text-[13px] font-medium text-muted-foreground disabled:opacity-30 hover:text-navy"
-            >
-              Back
-            </ActionButton>
-            <ActionButton
-              onClick={next}
-              disabled={submitting}
-              className="inline-flex items-center gap-1.5 rounded-md bg-blue px-5 py-2.5 text-[13px] font-medium text-white hover:opacity-90"
-            >
-              {submitting ? "Submitting..." : continueLabel}
-              <ArrowRight className="h-4 w-4" />
-            </ActionButton>
+    <div className="register-page">
+      <header className="register-header">
+        <Link to="/" className="register-logo" aria-label="PulseMD home">
+          <PulseLogo />
+        </Link>
+        <Link to="/" className="register-home">
+          <ArrowLeft size={15} /> Back to home
+        </Link>
+      </header>
+      <main className="register-layout">
+        <aside className="register-aside">
+          <div className="register-eyebrow">
+            <span /> YOUR PRACTICE. CONNECTED.
           </div>
+          <h1>
+            A better day
+            <br />
+            for your <em>practice.</em>
+          </h1>
+          <p className="register-intro">
+            Bring your patients, appointments and everyday practice essentials
+            together. Let’s get you set up.
+          </p>
+          <nav aria-label="Registration progress">
+            <ol className="register-steps">
+              {STEPS.map((name, index) => {
+                const Icon = STEP_ICONS[index];
+                return (
+                  <li
+                    key={name}
+                    className={
+                      index === step
+                        ? "is-current"
+                        : index < step
+                          ? "is-complete"
+                          : ""
+                    }
+                    aria-current={index === step ? "step" : undefined}
+                  >
+                    <span className="register-step-icon">
+                      {index < step ? <Check size={18} /> : <Icon size={18} />}
+                    </span>
+                    <span>
+                      <strong>{name}</strong>
+                      <small>{STEP_DESCRIPTIONS[index]}</small>
+                    </span>
+                    <span className="register-step-number">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+          <div className="register-aside-note">
+            <ClipboardCheck size={20} />
+            <p>
+              <strong>A little setup. A simpler working day.</strong>
+              <span>
+                Submit your details for review. We’ll email you with the next
+                steps.
+              </span>
+            </p>
+          </div>
+        </aside>
+        <div className="register-workspace">
+          <div className="register-progress-heading">
+            <span>PRACTICE REGISTRATION</span>
+            <span>
+              Step {step + 1} of {STEPS.length}
+            </span>
+          </div>
+          <div
+            className="register-progress"
+            role="progressbar"
+            aria-label="Registration progress"
+            aria-valuemin={0}
+            aria-valuemax={5}
+            aria-valuenow={step + 1}
+          >
+            <span style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+          </div>
+          <div className="register-card" aria-busy={submitting}>
+            <div className="register-step-caption">
+              {String(step + 1).padStart(2, "0")} / {STEPS[step]}
+            </div>
+            {step === 0 && (
+              <Section
+                title="Tell us about your practice"
+                sub="Add the details patients will use to find and recognise your practice."
+              >
+                <Grid>
+                  <Input
+                    label="Practice name"
+                    value={form.practiceName}
+                    onChange={set("practiceName")}
+                  />
+                  <Input
+                    label="HPCSA practice number"
+                    value={form.hpcsa}
+                    onChange={set("hpcsa")}
+                  />
+                  <AddressInput
+                    value={form.address}
+                    suggestions={addressSuggestions}
+                    showSuggestions={showAddressSuggestions}
+                    onFocus={() => setShowAddressSuggestions(true)}
+                    onBlur={() =>
+                      window.setTimeout(
+                        () => setShowAddressSuggestions(false),
+                        120,
+                      )
+                    }
+                    onChange={(value) => {
+                      const inferredProvince = inferProvince(value);
+                      setForm((current) => ({
+                        ...current,
+                        address: value,
+                        province: inferredProvince ?? current.province,
+                      }));
+                      setShowAddressSuggestions(true);
+                    }}
+                    onSelect={(suggestion) => {
+                      setForm((current) => ({
+                        ...current,
+                        address: suggestion.address,
+                        province: suggestion.province,
+                      }));
+                      setShowAddressSuggestions(false);
+                    }}
+                  />
+                  <SelectInput
+                    label="Province"
+                    value={form.province}
+                    onChange={set("province")}
+                    placeholder="Select province"
+                    options={SA_PROVINCES}
+                  />
+                  <Input
+                    label="VAT number (optional)"
+                    value={form.vat}
+                    onChange={set("vat")}
+                  />
+                </Grid>
+              </Section>
+            )}
+            {step === 1 && (
+              <Section
+                title="GP profile"
+                sub="Primary practitioner for this account."
+              >
+                <Grid>
+                  <SelectInput
+                    label="Title"
+                    value={form.title}
+                    onChange={set("title")}
+                    options={TITLES}
+                  />
+                  <Input
+                    label="First name"
+                    value={form.firstName}
+                    onChange={set("firstName")}
+                  />
+                  <Input
+                    label="Last name"
+                    value={form.lastName}
+                    onChange={set("lastName")}
+                  />
+                  <Input
+                    label="Email"
+                    value={form.email}
+                    onChange={set("email")}
+                    type="email"
+                  />
+                  <Input
+                    label="Phone"
+                    value={form.phone}
+                    onChange={set("phone")}
+                  />
+                </Grid>
+              </Section>
+            )}
+            {step === 2 && <HoursStep hours={hours} onChange={setHours} />}
+            {step === 3 && (
+              <BrandingStep
+                companyProfile={form.companyProfile}
+                logoName={form.logoName}
+                logoPreview={logoPreview}
+                onProfileChange={set("companyProfile")}
+                onLogoChange={(file) => {
+                  if (!file) return;
+                  if (
+                    !["image/png", "image/jpeg", "image/webp"].includes(
+                      file.type,
+                    )
+                  ) {
+                    setError("Choose a PNG, JPG or WebP logo.");
+                    return;
+                  }
+                  if (file.size > 2 * 1024 * 1024) {
+                    setError("Choose a logo smaller than 2 MB.");
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const dataUrl = String(reader.result || "");
+                    setForm((current) => ({
+                      ...current,
+                      logoName: file.name,
+                      logoDataUrl: dataUrl,
+                    }));
+                    setLogoPreview(dataUrl);
+                    setError("");
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+            )}
+            {step === 4 && (
+              <Section
+                title="Choose your plan"
+                sub="Start with a 30-day free trial. No credit card required."
+              >
+                <div className="mt-2 grid gap-4 md:grid-cols-3">
+                  {PLANS.map((p) => (
+                    <ActionButton
+                      key={p}
+                      type="button"
+                      onClick={() => set("plan")(p)}
+                      aria-pressed={form.plan === p}
+                      className={`register-plan ${form.plan === p ? "is-selected" : ""}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[13px] font-semibold text-navy">
+                          {p}
+                        </div>
+                        {form.plan === p && (
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue text-white">
+                            <Check className="h-3.5 w-3.5" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 text-[24px] font-bold text-navy">
+                        {PLAN_DETAILS[p].price}
+                        <span className="text-[12px] font-normal text-muted-foreground">
+                          {p === "Enterprise" ? "" : "/mo"}
+                        </span>
+                      </div>
+                      <p className="mt-2 min-h-10 text-[12.5px] text-muted-foreground">
+                        {PLAN_DETAILS[p].blurb}
+                      </p>
+                      <div className="mt-4 space-y-2">
+                        {PLAN_DETAILS[p].features.map((feature) => (
+                          <div
+                            key={feature}
+                            className="flex items-center gap-2 text-[12.5px] text-navy"
+                          >
+                            <Check className="h-3.5 w-3.5 text-blue" />
+                            {feature}
+                          </div>
+                        ))}
+                      </div>
+                    </ActionButton>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {error && (
+              <div
+                role="alert"
+                className="mt-6 rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2 text-[13px] text-destructive"
+              >
+                {error}
+              </div>
+            )}
+
+            <div className="register-actions">
+              <ActionButton
+                onClick={back}
+                disabled={step === 0 || submitting}
+                className="rounded-md px-4 py-2 text-[13px] font-medium text-muted-foreground disabled:opacity-30 hover:text-navy"
+              >
+                Back
+              </ActionButton>
+              <ActionButton
+                onClick={next}
+                disabled={submitting}
+                className="register-continue"
+              >
+                {submitting ? "Submitting..." : continueLabel}
+                <ArrowRight className="h-4 w-4" />
+              </ActionButton>
+            </div>
+          </div>
+          <p className="register-review-note">
+            Your application will be reviewed before your practice is activated.
+          </p>
         </div>
-      </div>
+      </main>
+      <footer className="register-footer">
+        <span>© {new Date().getFullYear()} PulseMD</span>
+        <span>Practice intelligence, delivered.</span>
+      </footer>
     </div>
   );
 }
@@ -540,7 +639,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <div>
+    <div className="register-section">
       <h2 className="text-[20px] font-semibold text-navy">{title}</h2>
       <p className="mt-1 text-[13.5px] text-muted-foreground">{sub}</p>
       <div className="mt-6">{children}</div>
@@ -594,6 +693,7 @@ function SelectInput({
     <label className="block">
       <span className="text-[12.5px] font-medium text-navy">{label}</span>
       <select
+        aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1.5 block w-full rounded-md border border-border bg-white px-3 py-2.5 text-[13.5px] outline-none focus:border-blue"
@@ -628,7 +728,9 @@ function AddressInput({
 }) {
   return (
     <label className="relative block md:col-span-2">
-      <span className="text-[12.5px] font-medium text-navy">Physical address</span>
+      <span className="text-[12.5px] font-medium text-navy">
+        Physical address
+      </span>
       <div className="relative mt-1.5">
         <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <input
@@ -651,7 +753,9 @@ function AddressInput({
               className="flex w-full items-center justify-between gap-4 rounded px-3 py-2 text-left text-[13px] hover:bg-blue-tint"
             >
               <span className="font-medium text-navy">{suggestion.suburb}</span>
-              <span className="text-muted-foreground">{suggestion.province}</span>
+              <span className="text-muted-foreground">
+                {suggestion.province}
+              </span>
             </ActionButton>
           ))}
         </div>
@@ -677,11 +781,13 @@ function HoursStep({
         enabled: index < 5,
         start: index < 5 ? start : day.start,
         end: index < 5 ? end : day.end,
-      }))
+      })),
     );
   };
   const updateDay = (key: WorkingHour["key"], patch: Partial<WorkingHour>) => {
-    onChange(hours.map((day) => (day.key === key ? { ...day, ...patch } : day)));
+    onChange(
+      hours.map((day) => (day.key === key ? { ...day, ...patch } : day)),
+    );
   };
 
   return (
@@ -708,7 +814,11 @@ function HoursStep({
         </ActionButton>
         <ActionButton
           type="button"
-          onClick={() => onChange(hours.map((day, index) => ({ ...day, enabled: index < 5 })))}
+          onClick={() =>
+            onChange(
+              hours.map((day, index) => ({ ...day, enabled: index < 5 })),
+            )
+          }
           className="rounded-md border border-border bg-white px-3 py-2 text-[13px] font-medium text-navy hover:bg-blue-tint"
         >
           Close weekends
@@ -719,14 +829,18 @@ function HoursStep({
           <div
             key={day.key}
             className={`grid gap-3 rounded-md border px-4 py-3 md:grid-cols-[minmax(150px,1fr)_140px_24px_140px] md:items-center ${
-              day.enabled ? "border-border bg-white" : "border-border bg-muted/50"
+              day.enabled
+                ? "border-border bg-white"
+                : "border-border bg-muted/50"
             }`}
           >
             <label className="flex items-center gap-2 text-[13px] font-medium text-navy">
               <input
                 type="checkbox"
                 checked={day.enabled}
-                onChange={(e) => updateDay(day.key, { enabled: e.target.checked })}
+                onChange={(e) =>
+                  updateDay(day.key, { enabled: e.target.checked })
+                }
                 className="rounded"
               />
               <span className="hidden sm:inline">{day.label}</span>
@@ -734,14 +848,18 @@ function HoursStep({
             </label>
             <input
               type="time"
+              aria-label={`${day.label} opening time`}
               value={day.start}
               disabled={!day.enabled}
               onChange={(e) => updateDay(day.key, { start: e.target.value })}
               className="w-full rounded-md border border-border bg-white px-2 py-1.5 text-[13px] disabled:bg-muted"
             />
-            <span className="hidden text-center text-muted-foreground md:block">to</span>
+            <span className="hidden text-center text-muted-foreground md:block">
+              to
+            </span>
             <input
               type="time"
+              aria-label={`${day.label} closing time`}
               value={day.end}
               disabled={!day.enabled}
               onChange={(e) => updateDay(day.key, { end: e.target.value })}
@@ -772,7 +890,7 @@ function BrandingStep({
       title="Branding"
       sub="Add the practice profile and logo patients will recognise."
     >
-      <div className="grid gap-5 md:grid-cols-[220px,1fr]">
+      <div className="register-branding-grid">
         <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-white p-5 text-center hover:border-blue hover:bg-blue-tint">
           {logoPreview ? (
             <img
@@ -789,7 +907,7 @@ function BrandingStep({
             {logoName || "Upload logo"}
           </span>
           <span className="mt-1 text-[12px] text-muted-foreground">
-            PNG or JPG, up to 2 MB
+            PNG, JPG or WebP, up to 2 MB
           </span>
           <input
             type="file"
@@ -800,7 +918,9 @@ function BrandingStep({
         </label>
 
         <label className="block">
-          <span className="text-[12.5px] font-medium text-navy">Company profile</span>
+          <span className="text-[12.5px] font-medium text-navy">
+            Company profile
+          </span>
           <textarea
             value={companyProfile}
             onChange={(event) => onProfileChange(event.target.value)}
@@ -817,7 +937,11 @@ function BrandingStep({
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-border bg-blue-tint">
             {logoPreview ? (
-              <img src={logoPreview} alt="" className="h-10 w-10 object-contain" />
+              <img
+                src={logoPreview}
+                alt=""
+                className="h-10 w-10 object-contain"
+              />
             ) : (
               <Building2 className="h-5 w-5 text-blue" />
             )}
@@ -834,11 +958,17 @@ function BrandingStep({
 
 function inferProvince(value: string): SAProvince | null {
   const lower = value.toLowerCase();
-  const direct = SA_PROVINCES.find((province) => lower.includes(province.toLowerCase()));
+  const direct = SA_PROVINCES.find((province) =>
+    lower.includes(province.toLowerCase()),
+  );
   if (direct) return direct;
 
   for (const province of SA_PROVINCES) {
-    if (SA_SUBURBS[province].some((suburb) => lower.includes(suburb.toLowerCase()))) {
+    if (
+      SA_SUBURBS[province].some((suburb) =>
+        lower.includes(suburb.toLowerCase()),
+      )
+    ) {
       return province;
     }
   }
@@ -853,7 +983,9 @@ function toAddressSuggestion(feature: PhotonFeature): AddressSuggestion[] {
   }
 
   const province = inferProvince(
-    [properties.state, properties.county, properties.city].filter(Boolean).join(", ")
+    [properties.state, properties.county, properties.city]
+      .filter(Boolean)
+      .join(", "),
   );
   if (!province) return [];
 

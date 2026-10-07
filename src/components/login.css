@@ -300,3 +300,13 @@
     font-size: 33px;
   }
 }
+
+.login-logo .text-blue {
+  color: #a6750b;
+}
+.login-logo svg path {
+  stroke: #d69d21;
+}
+.login-logo svg circle {
+  fill: #ffcc53;
+}

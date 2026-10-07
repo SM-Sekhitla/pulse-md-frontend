@@ -154,7 +154,15 @@ function SickNoteDetail() {
 
           <div className="mt-8 flex items-end justify-between border-t border-border pt-6">
             <div>
-              <div className="h-12 border-b border-navy"></div>
+              <div className="flex h-20 w-56 items-end border-b border-navy">
+                {note.signatureDataUrl && (
+                  <img
+                    src={note.signatureDataUrl}
+                    alt="GP signature"
+                    className="h-full w-full object-contain object-left-bottom"
+                  />
+                )}
+              </div>
               <div className="mt-1 text-[13px] font-semibold text-navy">
                 {note.gpName}
               </div>

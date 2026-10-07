@@ -1,0 +1,425 @@
+.register-page {
+  --register-navy: #051b2e;
+  --register-yellow: #ffcc53;
+  min-height: 100dvh;
+  background: #fafbf9;
+  color: var(--register-navy);
+  font-size: 14px;
+}
+.register-page * {
+  box-sizing: border-box;
+}
+.register-header,
+.register-layout,
+.register-footer {
+  width: min(1240px, calc(100% - 96px));
+  margin-inline: auto;
+}
+.register-header {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e1e6e8;
+  gap: 20px;
+}
+.register-logo .text-blue {
+  color: #a6750b;
+}
+.register-logo svg path {
+  stroke: #d69d21;
+}
+.register-home {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 13px;
+  color: #596873;
+}
+.register-home:hover {
+  color: #051b2e;
+}
+.register-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.65fr);
+  gap: clamp(35px, 5vw, 78px);
+  padding-block: 56px 64px;
+  align-items: start;
+}
+.register-aside {
+  padding-top: 7px;
+}
+.register-eyebrow {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 1.8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.register-eyebrow > span {
+  width: 8px;
+  height: 8px;
+  background: #c38d15;
+  border-radius: 50%;
+}
+.register-aside h1 {
+  font-size: clamp(34px, 3.6vw, 49px);
+  line-height: 1.14;
+  letter-spacing: -2px;
+  font-weight: 550;
+  margin: 24px 0 18px;
+}
+.register-aside h1 em {
+  font-style: normal;
+  background: linear-gradient(transparent 72%, #ffcc5380 72%);
+}
+.register-intro {
+  color: #65727a;
+  line-height: 1.85;
+  max-width: 340px;
+  font-size: 13px;
+}
+.register-steps {
+  padding: 0;
+  list-style: none;
+  margin: 30px 0;
+}
+.register-steps li {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  position: relative;
+  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  margin-block: 5px;
+  color: #75818b;
+}
+.register-steps li.is-current {
+  background: #fff;
+  border-color: #e2e7e5;
+  color: #051b2e;
+  box-shadow: 0 4px 15px #051b2e04;
+}
+.register-step-icon {
+  width: 37px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e1e6e8;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.is-current .register-step-icon {
+  background: #ffcc53;
+  border-color: #ffcc53;
+  color: #051b2e;
+}
+.is-complete .register-step-icon {
+  background: #051b2e;
+  border-color: #051b2e;
+  color: white;
+}
+.register-steps strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.register-steps small {
+  display: block;
+  font-size: 11px;
+  margin-top: 3px;
+  color: #77838c;
+}
+.register-step-number {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.register-aside-note {
+  border-top: 1px solid #e1e6e8;
+  padding-top: 24px;
+  display: flex;
+  gap: 12px;
+}
+.register-aside-note svg {
+  flex-shrink: 0;
+  color: #9a7419;
+}
+.register-aside-note strong {
+  font-size: 12px;
+  display: block;
+  font-weight: 550;
+}
+.register-aside-note p > span {
+  display: block;
+  color: #77838c;
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 6px;
+}
+.register-workspace {
+  min-width: 0;
+}
+.register-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  letter-spacing: 1.1px;
+  color: #68747a;
+  margin: 6px 0 14px;
+}
+.register-progress {
+  height: 3px;
+  background: #e7ebe6;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.register-progress > span {
+  display: block;
+  height: 100%;
+  background: #d49e26;
+  transition: width 0.2s;
+}
+.register-card {
+  background: white;
+  border: 1px solid #e1e6e8;
+  border-radius: 14px;
+  padding: clamp(24px, 3vw, 40px);
+  box-shadow: 0 16px 45px #051b2e04;
+}
+.register-step-caption {
+  display: inline-flex;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  background: #fff7df;
+  color: #7a5912;
+  padding: 7px 11px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+.register-section h2 {
+  font-size: clamp(24px, 2.4vw, 31px);
+  font-weight: 550;
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+.register-section h2 + p {
+  color: #6a7780;
+  line-height: 1.8;
+  margin-top: 10px;
+}
+.register-page input:not([type="checkbox"]):not([type="file"]),
+.register-page select,
+.register-page textarea {
+  min-height: 46px;
+  border-color: #dce3e6;
+  border-radius: 7px;
+  font-size: 14px;
+  color: #051b2e;
+}
+.register-page input,
+.register-page select,
+.register-page textarea {
+  accent-color: #051b2e;
+}
+.register-page input:focus-visible,
+.register-page select:focus-visible,
+.register-page textarea:focus-visible {
+  outline: 2px solid #a87a1b;
+  outline-offset: 2px;
+}
+.register-page button:focus-visible,
+.register-page a:focus-visible,
+.register-page label:has(input[type="file"]:focus-visible) {
+  outline: 3px solid #a87a1b;
+  outline-offset: 4px;
+}
+.register-page button {
+  cursor: pointer;
+}
+.register-page button:disabled {
+  cursor: not-allowed;
+}
+.register-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e1e6e8;
+}
+.register-continue {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffcc53;
+  color: #051b2e;
+  padding: 14px 22px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 46px;
+}
+.register-continue:hover {
+  background: #f4be3e;
+}
+.register-continue:disabled {
+  opacity: 0.6;
+}
+.register-review-note {
+  text-align: center;
+  font-size: 11px;
+  color: #78858b;
+  margin-top: 18px;
+  line-height: 1.7;
+}
+.register-plan {
+  border: 1px solid #e1e6e8;
+  border-radius: 9px;
+  padding: 18px;
+  text-align: left;
+  background: white;
+  min-width: 0;
+}
+.register-plan.is-selected {
+  border-color: #bd891c;
+  background: #fff9ea;
+  box-shadow: 0 0 0 1px #bd891c;
+}
+.register-plan:hover {
+  border-color: #bd891c;
+}
+.register-page .text-blue {
+  color: #916a16;
+}
+.register-page .bg-blue {
+  background-color: #051b2e;
+}
+.register-page .bg-blue-tint {
+  background-color: #fff7df;
+}
+.register-branding-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.register-branding-grid label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.register-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #e1e6e8;
+  padding-block: 22px;
+  font-size: 11px;
+  color: #7e8a90;
+}
+@media (max-width: 1050px) {
+  .register-header,
+  .register-layout,
+  .register-footer {
+    width: calc(100% - 48px);
+  }
+  .register-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 30px;
+  }
+  .register-card .md\:grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+  .register-card .md\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+  .register-card .md\:col-span-2 {
+    grid-column: auto;
+  }
+  .register-card input[type="time"] {
+    min-width: 0;
+  }
+  .register-card div:has(> label + input[type="time"]) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .register-card div:has(> label + input[type="time"]) > label {
+    grid-column: 1 / -1;
+  }
+  .register-card div:has(> label + input[type="time"]) > span {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .register-layout {
+    grid-template-columns: 1fr;
+    padding-block: 30px;
+    gap: 24px;
+  }
+  .register-header {
+    height: 80px;
+  }
+  .register-aside h1 {
+    font-size: 35px;
+    margin-block: 16px;
+  }
+  .register-aside h1 br {
+    display: none;
+  }
+  .register-intro {
+    max-width: none;
+  }
+  .register-aside-note {
+    display: none;
+  }
+  .register-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 22px 0 0;
+    gap: 5px;
+  }
+  .register-steps li {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 5px;
+    flex: 1;
+  }
+  .register-steps small,
+  .register-step-number {
+    display: none;
+  }
+  .register-steps strong {
+    font-size: 10px;
+  }
+  .register-progress-heading {
+    margin-top: 0;
+  }
+  .register-branding-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 400px) {
+  .register-header,
+  .register-layout,
+  .register-footer {
+    width: calc(100% - 32px);
+  }
+  .register-card {
+    padding: 22px 18px;
+  }
+  .register-home {
+    font-size: 11px;
+    gap: 4px;
+  }
+  .register-continue {
+    padding-inline: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .register-progress > span {
+    transition: none;
+  }
+}

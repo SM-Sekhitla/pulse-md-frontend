@@ -1,3 +1,5 @@
+import { SignatureTemplate } from "@/components/signature-template";
+import { useAuth } from "@/context/AuthContext";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
@@ -5,7 +7,10 @@ import { AppShell } from "@/components/app-shell";
 import { Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMedicalAidSchemes, updateMedicalAidScheme } from "@/lib/medical-aid-api";
+import {
+  getMedicalAidSchemes,
+  updateMedicalAidScheme,
+} from "@/lib/medical-aid-api";
 import type { MedicalAidScheme } from "@/lib/medical-aid";
 import { useCurrentTenant } from "@/hooks/use-current-tenant";
 
@@ -13,6 +18,7 @@ export const Route = createFileRoute("/settings")({ component: Settings });
 
 const TABS = [
   "Practice profile",
+  "Signature",
   "Working hours",
   "Appointment types",
   "Notifications",
@@ -25,6 +31,7 @@ const TABS = [
 ] as const;
 
 function Settings() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const tenant = useCurrentTenant();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Practice profile");
@@ -32,7 +39,9 @@ function Settings() {
     queryKey: ["medical-aid-schemes"],
     queryFn: getMedicalAidSchemes,
   });
-  const [editingScheme, setEditingScheme] = useState<MedicalAidScheme | null>(null);
+  const [editingScheme, setEditingScheme] = useState<MedicalAidScheme | null>(
+    null,
+  );
 
   const refreshSchemes = () => {
     queryClient.invalidateQueries({ queryKey: ["medical-aid-schemes"] });
@@ -42,15 +51,17 @@ function Settings() {
     <AppShell title="Settings">
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <nav className="pulse-card p-2">
-          {TABS.map((t) => (
-            <ActionButton
-              key={t}
-              onClick={() => setTab(t)}
-              className={`block w-full rounded-md px-3 py-2 text-left text-[13px] transition-colors ${tab === t ? "bg-blue-tint text-blue font-medium" : "text-navy hover:bg-surface"}`}
-            >
-              {t}
-            </ActionButton>
-          ))}
+          {TABS.filter((t) => t !== "Signature" || user?.role === "owner").map(
+            (t) => (
+              <ActionButton
+                key={t}
+                onClick={() => setTab(t)}
+                className={`block w-full rounded-md px-3 py-2 text-left text-[13px] transition-colors ${tab === t ? "bg-blue-tint text-blue font-medium" : "text-navy hover:bg-surface"}`}
+              >
+                {t}
+              </ActionButton>
+            ),
+          )}
         </nav>
         <div className="pulse-card p-6">
           <h2 className="text-[18px] font-semibold text-navy">{tab}</h2>
@@ -58,15 +69,24 @@ function Settings() {
             Configure your practice settings for {tab.toLowerCase()}.
           </p>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {tab === "Signature" && user?.role === "owner" && (
+              <SignatureTemplate />
+            )}
             {tab === "Practice profile" && (
               <>
                 <Field
                   label="Practice name"
                   defaultValue={tenant?.name ?? ""}
                 />
-                <Field label="HPCSA practice number" defaultValue={tenant?.hpcsa ?? ""} />
+                <Field
+                  label="HPCSA practice number"
+                  defaultValue={tenant?.hpcsa ?? ""}
+                />
                 <Field label="VAT number" defaultValue={tenant?.vat ?? ""} />
-                <Field label="Phone" defaultValue={tenant?.owner?.phone ?? ""} />
+                <Field
+                  label="Phone"
+                  defaultValue={tenant?.owner?.phone ?? ""}
+                />
                 <Field
                   label="Email"
                   defaultValue={tenant?.owner?.email ?? ""}
@@ -84,7 +104,9 @@ function Settings() {
                 schemes={schemes}
                 onToggle={async (scheme) => {
                   const next = !scheme.acceptedByPractice;
-                  await updateMedicalAidScheme(scheme.id, { acceptedByPractice: next });
+                  await updateMedicalAidScheme(scheme.id, {
+                    acceptedByPractice: next,
+                  });
                   refreshSchemes();
                   toast.success(
                     next
@@ -95,17 +117,21 @@ function Settings() {
                 onManagePlans={setEditingScheme}
               />
             )}
-            {tab !== "Practice profile" && tab !== "Medical aid schemes" && (
-              <div className="md:col-span-2 text-[13px] text-muted-foreground">
-                Settings for {tab} will appear here.
-              </div>
-            )}
+            {tab !== "Signature" &&
+              tab !== "Practice profile" &&
+              tab !== "Medical aid schemes" && (
+                <div className="md:col-span-2 text-[13px] text-muted-foreground">
+                  Settings for {tab} will appear here.
+                </div>
+              )}
           </div>
-          {tab !== "Medical aid schemes" && <div className="mt-6 flex justify-end">
-            <ActionButton className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
-              Save changes
-            </ActionButton>
-          </div>}
+          {tab !== "Signature" && tab !== "Medical aid schemes" && (
+            <div className="mt-6 flex justify-end">
+              <ActionButton className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
+                Save changes
+              </ActionButton>
+            </div>
+          )}
         </div>
       </div>
       {editingScheme && (
@@ -151,14 +177,20 @@ function MedicalAidSchemesPanel({
   }, [query, schemes, status, type]);
 
   const accepted = schemes.filter((scheme) => scheme.acceptedByPractice).length;
-  const openAccepted = schemes.filter((scheme) => scheme.acceptedByPractice && scheme.type === "open").length;
+  const openAccepted = schemes.filter(
+    (scheme) => scheme.acceptedByPractice && scheme.type === "open",
+  ).length;
 
   return (
     <div className="md:col-span-2">
       <div>
-        <h3 className="text-[18px] font-semibold text-navy">Medical aid schemes</h3>
+        <h3 className="text-[18px] font-semibold text-navy">
+          Medical aid schemes
+        </h3>
         <p className="mt-1 max-w-2xl text-[13px] text-muted-foreground">
-          Configure which medical aid schemes your practice accepts. These appear on patient registration, the public booking portal, and all invoices.
+          Configure which medical aid schemes your practice accepts. These
+          appear on patient registration, the public booking portal, and all
+          invoices.
         </p>
       </div>
 
@@ -178,12 +210,20 @@ function MedicalAidSchemesPanel({
             className="h-9 w-full rounded-md border border-border bg-white pl-9 pr-3 text-[13px] outline-none focus:border-blue"
           />
         </div>
-        <select value={type} onChange={(event) => setType(event.target.value)} className="h-9 rounded-md border border-border bg-white px-3 text-[13px]">
+        <select
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+          className="h-9 rounded-md border border-border bg-white px-3 text-[13px]"
+        >
           <option value="all">All types</option>
           <option value="open">Open</option>
           <option value="restricted">Restricted</option>
         </select>
-        <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 rounded-md border border-border bg-white px-3 text-[13px]">
+        <select
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+          className="h-9 rounded-md border border-border bg-white px-3 text-[13px]"
+        >
           <option value="all">All</option>
           <option value="accepted">Accepted</option>
           <option value="not_accepted">Not accepted</option>
@@ -194,8 +234,19 @@ function MedicalAidSchemesPanel({
         <table className="min-w-full text-[13px]">
           <thead className="bg-surface text-left">
             <tr>
-              {["", "Scheme name", "Type", "Administrator", "Plans configured"].map((heading) => (
-                <th key={heading} className="px-4 py-2.5 label-caps font-semibold">{heading}</th>
+              {[
+                "",
+                "Scheme name",
+                "Type",
+                "Administrator",
+                "Plans configured",
+              ].map((heading) => (
+                <th
+                  key={heading}
+                  className="px-4 py-2.5 label-caps font-semibold"
+                >
+                  {heading}
+                </th>
               ))}
             </tr>
           </thead>
@@ -209,19 +260,33 @@ function MedicalAidSchemesPanel({
                     className={`relative h-5 w-9 rounded-full transition-colors ${scheme.acceptedByPractice ? "bg-blue" : "bg-muted"}`}
                     aria-label={`${scheme.acceptedByPractice ? "Disable" : "Enable"} ${scheme.name}`}
                   >
-                    <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${scheme.acceptedByPractice ? "left-4" : "left-0.5"}`} />
+                    <span
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${scheme.acceptedByPractice ? "left-4" : "left-0.5"}`}
+                    />
                   </ActionButton>
                 </td>
-                <td className="px-4 py-3 text-[14px] font-medium text-navy">{scheme.name}</td>
+                <td className="px-4 py-3 text-[14px] font-medium text-navy">
+                  {scheme.name}
+                </td>
                 <td className="px-4 py-3">
-                  <span className={`pulse-badge ${scheme.type === "open" ? "bg-teal/20 text-[#04756F]" : "bg-muted text-muted-foreground"}`}>
+                  <span
+                    className={`pulse-badge ${scheme.type === "open" ? "bg-teal/20 text-[#04756F]" : "bg-muted text-muted-foreground"}`}
+                  >
                     {scheme.type === "open" ? "Open" : "Restricted"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[12px] text-muted-foreground">{scheme.administrator}</td>
+                <td className="px-4 py-3 text-[12px] text-muted-foreground">
+                  {scheme.administrator}
+                </td>
                 <td className="px-4 py-3">
-                  <span className="text-muted-foreground">{scheme.plans.length} plans</span>
-                  <ActionButton type="button" onClick={() => onManagePlans(scheme)} className="ml-2 text-[12.5px] font-medium text-blue hover:underline">
+                  <span className="text-muted-foreground">
+                    {scheme.plans.length} plans
+                  </span>
+                  <ActionButton
+                    type="button"
+                    onClick={() => onManagePlans(scheme)}
+                    className="ml-2 text-[12.5px] font-medium text-blue hover:underline"
+                  >
                     Manage plans
                   </ActionButton>
                 </td>
@@ -243,7 +308,15 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onClose: () => void; onSaved: () => void }) {
+function PlanModal({
+  scheme,
+  onClose,
+  onSaved,
+}: {
+  scheme: MedicalAidScheme;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const [plans, setPlans] = useState(scheme.plans);
   const [planName, setPlanName] = useState("");
   const [saved, setSaved] = useState(true);
@@ -265,24 +338,47 @@ function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onC
       <div className="w-full max-w-2xl rounded-xl border border-border bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-[18px] font-semibold text-navy">{scheme.name} - plan options</h3>
+            <h3 className="text-[18px] font-semibold text-navy">
+              {scheme.name} - plan options
+            </h3>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Add the plans your patients most commonly hold. These appear as suggestions when registering patients.
+              Add the plans your patients most commonly hold. These appear as
+              suggestions when registering patients.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[12px] font-medium text-success">{saved ? "Saved" : "Saving..."}</span>
-            <ActionButton type="button" onClick={onClose} className="rounded-md border border-border p-1.5 text-navy hover:bg-surface" aria-label="Close">
+            <span className="text-[12px] font-medium text-success">
+              {saved ? "Saved" : "Saving..."}
+            </span>
+            <ActionButton
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-border p-1.5 text-navy hover:bg-surface"
+              aria-label="Close"
+            >
               <X className="h-4 w-4" />
             </ActionButton>
           </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          {plans.length === 0 && <span className="text-[13px] text-muted-foreground">No plans configured yet.</span>}
+          {plans.length === 0 && (
+            <span className="text-[13px] text-muted-foreground">
+              No plans configured yet.
+            </span>
+          )}
           {plans.map((plan) => (
-            <span key={plan} className="inline-flex items-center gap-1 rounded-full border border-blue/20 bg-blue-tint px-3 py-1 text-[12.5px] font-medium text-blue">
+            <span
+              key={plan}
+              className="inline-flex items-center gap-1 rounded-full border border-blue/20 bg-blue-tint px-3 py-1 text-[12.5px] font-medium text-blue"
+            >
               {plan}
-              <ActionButton type="button" onClick={() => updatePlans(plans.filter((item) => item !== plan))} aria-label={`Remove ${plan}`}>
+              <ActionButton
+                type="button"
+                onClick={() =>
+                  updatePlans(plans.filter((item) => item !== plan))
+                }
+                aria-label={`Remove ${plan}`}
+              >
                 <X className="h-3 w-3" />
               </ActionButton>
             </span>
@@ -309,7 +405,11 @@ function PlanModal({ scheme, onClose, onSaved }: { scheme: MedicalAidScheme; onC
           </ActionButton>
         </div>
         <div className="mt-6 flex justify-end">
-          <ActionButton type="button" onClick={() => save()} className="rounded-md bg-navy px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
+          <ActionButton
+            type="button"
+            onClick={() => save()}
+            className="rounded-md bg-navy px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
+          >
             Save plans
           </ActionButton>
         </div>

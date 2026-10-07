@@ -65,7 +65,7 @@ export function LoginScreen({ practiceSlug }: { practiceSlug?: string }) {
   return (
     <div className="login-page">
       <header className="login-header">
-        <Link to="/" aria-label="PulseMD home">
+        <Link to="/" aria-label="PulseMD home" className="login-logo">
           <PulseLogo />
         </Link>
         <Link to="/" className="login-back">
