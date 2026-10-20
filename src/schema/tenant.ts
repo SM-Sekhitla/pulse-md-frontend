@@ -94,6 +94,7 @@ export const tenantSchema = z
     province: nullableString,
 
     hpcsa: nullableString,
+    bhf: nullableString,
     vat: nullableString,
     companyProfile: nullableString,
     logoName: nullableString,
@@ -142,6 +143,7 @@ export const tenantCreateSchema = z.object({
   province: nullableString,
 
   hpcsa: nullableString,
+  bhf: nullableString,
   vat: nullableString,
   companyProfile: nullableString,
   logoName: nullableString,
@@ -174,6 +176,7 @@ export const tenantUpdateSchema = z.object({
   province: nullableString,
 
   hpcsa: nullableString,
+  bhf: nullableString,
   vat: nullableString,
   companyProfile: nullableString,
   logoName: nullableString,
@@ -219,6 +222,7 @@ export const tenantOutSchema = z.preprocess(
       province: nullableString,
 
       hpcsa: nullableString,
+      bhf: nullableString,
       vat: nullableString,
       companyProfile: nullableString,
       logoName: nullableString,

@@ -1,6 +1,7 @@
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { PulseLogo } from "@/components/brand";
 import type { Plan } from "@/types/tenant";
 import {
@@ -12,13 +13,12 @@ import {
   Building2,
   Check,
   Clock,
-  MapPin,
   Upload,
 } from "lucide-react";
 import API, { getApiErrorMessage } from "@/utils/api";
 import "./register.css";
 import { toast } from "sonner";
-import { SA_PROVINCES, SA_SUBURBS, type SAProvince } from "@/lib/sa-suburbs";
+import { SA_PROVINCES } from "@/lib/sa-suburbs";
 
 export const Route = createFileRoute("/register")({ component: RegisterPage });
 
@@ -73,43 +73,6 @@ type WorkingHour = {
   end: string;
 };
 
-type AddressSuggestion = {
-  id: string;
-  province: SAProvince;
-  suburb: string;
-  address: string;
-};
-
-type PhotonProperties = {
-  osm_type?: string;
-  osm_id?: number | string;
-  name?: string;
-  housenumber?: string;
-  street?: string;
-  postcode?: string;
-  suburb?: string;
-  district?: string;
-  city?: string;
-  county?: string;
-  state?: string;
-  country?: string;
-  countrycode?: string;
-};
-
-type PhotonFeature = {
-  properties?: PhotonProperties;
-};
-
-type PhotonResponse = {
-  features?: PhotonFeature[];
-};
-
-const ADDRESS_SEARCH_ENDPOINT =
-  import.meta.env.VITE_ADDRESS_SEARCH_URL ?? "https://photon.komoot.io/api/";
-const STRUCTURED_ADDRESS_SEARCH_ENDPOINT =
-  import.meta.env.VITE_ADDRESS_STRUCTURED_SEARCH_URL ??
-  ADDRESS_SEARCH_ENDPOINT.replace(/\/api\/?$/, "/structured");
-
 const INITIAL_HOURS: WorkingHour[] = DAYS.map((day, index) => ({
   ...day,
   enabled: index < 5,
@@ -126,6 +89,7 @@ function RegisterPage() {
     address: "",
     province: "",
     hpcsa: "",
+    bhf: "",
     vat: "",
     title: "Dr",
     firstName: "",
@@ -139,103 +103,9 @@ function RegisterPage() {
   });
   const [hours, setHours] = useState<WorkingHour[]>(INITIAL_HOURS);
   const [logoPreview, setLogoPreview] = useState("");
-  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [remoteAddressSuggestions, setRemoteAddressSuggestions] = useState<
-    AddressSuggestion[]
-  >([]);
   const set = (k: keyof typeof form) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const query = form.address.trim();
-    if (query.length < 3) {
-      setRemoteAddressSuggestions([]);
-      return;
-    }
-
-    let cancelled = false;
-    const handle = window.setTimeout(async () => {
-      try {
-        const parsedAddress = parseAddressQuery(query);
-        const params = new URLSearchParams({
-          dedupe: "0",
-          limit: "8",
-          lang: "en",
-          countrycode: "ZA",
-          q: form.province ? `${query}, ${form.province}` : query,
-        });
-        params.append("layer", "house");
-        params.append("layer", "street");
-        params.append("layer", "locality");
-
-        const searches = [fetchAddressResults(ADDRESS_SEARCH_ENDPOINT, params)];
-        if (parsedAddress) {
-          const structuredParams = new URLSearchParams({
-            countrycode: "ZA",
-            housenumber: parsedAddress.houseNumber,
-            lang: "en",
-            limit: "8",
-            street: parsedAddress.street,
-          });
-          if (form.province) structuredParams.set("state", form.province);
-          searches.unshift(
-            fetchAddressResults(
-              STRUCTURED_ADDRESS_SEARCH_ENDPOINT,
-              structuredParams,
-            ),
-          );
-        }
-
-        const results = await Promise.all(searches);
-        if (!cancelled) {
-          setRemoteAddressSuggestions(
-            results.flatMap((result) =>
-              (result.features ?? []).flatMap((feature) =>
-                toAddressSuggestion(feature),
-              ),
-            ),
-          );
-        }
-      } catch {
-        if (!cancelled) setRemoteAddressSuggestions([]);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(handle);
-    };
-  }, [form.address, form.province]);
-
-  const addressSuggestions = useMemo(() => {
-    const query = form.address.trim().toLowerCase();
-    const provinces = form.province
-      ? ([form.province] as SAProvince[])
-      : SA_PROVINCES;
-    const localSuggestions = provinces
-      .flatMap((province) =>
-        SA_SUBURBS[province].map((suburb) => ({
-          id: `local-${province}-${suburb}`,
-          province,
-          suburb,
-          address: `${suburb}, ${province}, South Africa`,
-        })),
-      )
-      .filter((item) => {
-        if (!query) return true;
-        return item.address.toLowerCase().includes(query);
-      });
-    const seen = new Set<string>();
-    return [...remoteAddressSuggestions, ...localSuggestions]
-      .filter((item) => {
-        const key = item.address.toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .slice(0, 8);
-  }, [form.address, form.province, remoteAddressSuggestions]);
 
   const validateStep = () => {
     if (step === 0) {
@@ -285,6 +155,7 @@ function RegisterPage() {
             address: form.address.trim(),
             practiceName: form.practiceName.trim(),
             hpcsa: form.hpcsa.trim(),
+            bhf: form.bhf.trim() || null,
             vat: form.vat.trim() || null,
             email: form.email.trim().toLowerCase(),
             phone: form.phone.trim(),
@@ -423,34 +294,23 @@ function RegisterPage() {
                     value={form.hpcsa}
                     onChange={set("hpcsa")}
                   />
-                  <AddressInput
+                  <Input
+                    label="BHF number (optional)"
+                    maxLength={30}
+                    value={form.bhf}
+                    onChange={set("bhf")}
+                  />
+                  <AddressAutocomplete
                     value={form.address}
-                    suggestions={addressSuggestions}
-                    showSuggestions={showAddressSuggestions}
-                    onFocus={() => setShowAddressSuggestions(true)}
-                    onBlur={() =>
-                      window.setTimeout(
-                        () => setShowAddressSuggestions(false),
-                        120,
-                      )
+                    province={form.province}
+                    onChange={set("address")}
+                    onSelect={(address, province) =>
+                      setForm((current) => ({
+                        ...current,
+                        address,
+                        province: province || current.province,
+                      }))
                     }
-                    onChange={(value) => {
-                      const inferredProvince = inferProvince(value);
-                      setForm((current) => ({
-                        ...current,
-                        address: value,
-                        province: inferredProvince ?? current.province,
-                      }));
-                      setShowAddressSuggestions(true);
-                    }}
-                    onSelect={(suggestion) => {
-                      setForm((current) => ({
-                        ...current,
-                        address: suggestion.address,
-                        province: suggestion.province,
-                      }));
-                      setShowAddressSuggestions(false);
-                    }}
                   />
                   <SelectInput
                     label="Province"
@@ -655,17 +515,20 @@ function Input({
   onChange,
   placeholder,
   type = "text",
+  maxLength,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
       <span className="text-[12.5px] font-medium text-navy">{label}</span>
       <input
+        maxLength={maxLength}
         type={type}
         value={value}
         placeholder={placeholder}
@@ -705,61 +568,6 @@ function SelectInput({
           </option>
         ))}
       </select>
-    </label>
-  );
-}
-
-function AddressInput({
-  value,
-  suggestions,
-  showSuggestions,
-  onChange,
-  onSelect,
-  onFocus,
-  onBlur,
-}: {
-  value: string;
-  suggestions: AddressSuggestion[];
-  showSuggestions: boolean;
-  onChange: (value: string) => void;
-  onSelect: (suggestion: AddressSuggestion) => void;
-  onFocus: () => void;
-  onBlur: () => void;
-}) {
-  return (
-    <label className="relative block md:col-span-2">
-      <span className="text-[12.5px] font-medium text-navy">
-        Physical address
-      </span>
-      <div className="relative mt-1.5">
-        <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <input
-          value={value}
-          placeholder="Start typing suburb, city, or full street address"
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          className="block w-full rounded-md border border-border bg-white px-9 py-2.5 text-[13.5px] outline-none focus:border-blue"
-        />
-      </div>
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-md border border-border bg-white p-1 shadow-lg">
-          {suggestions.map((suggestion) => (
-            <ActionButton
-              key={suggestion.id}
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => onSelect(suggestion)}
-              className="flex w-full items-center justify-between gap-4 rounded px-3 py-2 text-left text-[13px] hover:bg-blue-tint"
-            >
-              <span className="font-medium text-navy">{suggestion.suburb}</span>
-              <span className="text-muted-foreground">
-                {suggestion.province}
-              </span>
-            </ActionButton>
-          ))}
-        </div>
-      )}
     </label>
   );
 }
@@ -954,102 +762,4 @@ function BrandingStep({
       </div>
     </Section>
   );
-}
-
-function inferProvince(value: string): SAProvince | null {
-  const lower = value.toLowerCase();
-  const direct = SA_PROVINCES.find((province) =>
-    lower.includes(province.toLowerCase()),
-  );
-  if (direct) return direct;
-
-  for (const province of SA_PROVINCES) {
-    if (
-      SA_SUBURBS[province].some((suburb) =>
-        lower.includes(suburb.toLowerCase()),
-      )
-    ) {
-      return province;
-    }
-  }
-  return null;
-}
-
-function toAddressSuggestion(feature: PhotonFeature): AddressSuggestion[] {
-  const properties = feature.properties;
-  if (!properties) return [];
-  if (properties.countrycode && properties.countrycode.toLowerCase() !== "za") {
-    return [];
-  }
-
-  const province = inferProvince(
-    [properties.state, properties.county, properties.city]
-      .filter(Boolean)
-      .join(", "),
-  );
-  if (!province) return [];
-
-  const street = [properties.housenumber, properties.street]
-    .filter(Boolean)
-    .join(" ");
-  const suburb =
-    street ||
-    properties.name ||
-    properties.suburb ||
-    properties.district ||
-    properties.city;
-  if (!suburb) return [];
-
-  const address = [
-    street || properties.name,
-    properties.suburb || properties.district,
-    properties.city,
-    properties.postcode,
-    properties.state,
-    "South Africa",
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  return [
-    {
-      id: `remote-${properties.osm_type ?? "place"}-${properties.osm_id ?? address}`,
-      province,
-      suburb,
-      address,
-    },
-  ];
-}
-
-async function fetchAddressResults(endpoint: string, params: URLSearchParams) {
-  const response = await fetch(buildAddressSearchUrl(endpoint, params), {
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) throw new Error("Address lookup failed");
-  return (await response.json()) as PhotonResponse;
-}
-
-function buildAddressSearchUrl(endpoint: string, params: URLSearchParams) {
-  const separator = endpoint.includes("?") ? "&" : "?";
-  return `${endpoint}${separator}${params.toString()}`;
-}
-
-function parseAddressQuery(query: string) {
-  const leadingNumber = query.match(/^(\d+[a-zA-Z]?)\s+(.+)$/);
-  if (leadingNumber) {
-    return {
-      houseNumber: leadingNumber[1],
-      street: leadingNumber[2].trim(),
-    };
-  }
-
-  const trailingNumber = query.match(/^(.+?)\s+(\d+[a-zA-Z]?)$/);
-  if (trailingNumber) {
-    return {
-      houseNumber: trailingNumber[2],
-      street: trailingNumber[1].trim(),
-    };
-  }
-
-  return null;
 }
