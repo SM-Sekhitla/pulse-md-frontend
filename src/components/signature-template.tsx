@@ -1,3 +1,4 @@
+import { useSignaturePin } from "@/components/signature-pin";
 import { useRef, useState, type PointerEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PenLine, RotateCcw, Trash2 } from "lucide-react";
@@ -14,12 +15,17 @@ import { toast } from "sonner";
 type Point = { x: number; y: number };
 export function SignatureTemplate() {
   const cache = useQueryClient();
+  const signing = useSignaturePin();
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [currentPin, setCurrentPin] = useState("");
   const query = useQuery({
     queryKey: ["signature-template"],
     queryFn: async () =>
       (
         await API.get<{
           signatureDataUrl: string | null;
+          pinConfigured: boolean;
           updatedAt: string | null;
         }>("/signature-template")
       ).data,
@@ -65,8 +71,16 @@ export function SignatureTemplate() {
     )
       return;
     setOpen(next);
+    if (!next) {
+      setPin("");
+      setConfirmPin("");
+      setCurrentPin("");
+    }
   }
   function begin() {
+    setPin("");
+    setConfirmPin("");
+    setCurrentPin("");
     paths.current = [];
     setStrokes([]);
     changed.current = false;
@@ -76,21 +90,36 @@ export function SignatureTemplate() {
   }
   async function save() {
     if (active.current !== null) return;
-    if (!canvas.current || !paths.current.some((p) => p.length > 4)) {
+    if (
+      !canvas.current ||
+      (!paths.current.some((p) => p.length > 4) &&
+        !query.data?.signatureDataUrl)
+    ) {
       setError("Draw your signature before saving.");
+      return;
+    }
+    if (!/^\d{6}$/.test(pin) || pin !== confirmPin) {
+      setError("Enter a six-digit PIN and matching confirmation.");
       return;
     }
     setBusy(true);
     setError("");
     try {
       await API.put("/signature-template", {
-        signatureDataUrl: canvas.current.toDataURL("image/png"),
+        signatureDataUrl: paths.current.length
+          ? canvas.current.toDataURL("image/png")
+          : query.data?.signatureDataUrl,
+        pin,
+        currentPin: currentPin || undefined,
       });
       await cache.invalidateQueries({ queryKey: ["signature-template"] });
       changed.current = false;
       setOpen(false);
+      setPin("");
+      setConfirmPin("");
+      setCurrentPin("");
       toast.success(
-        "Signature template saved. New documents will use this signature.",
+        "Signature and PIN saved. Enter your PIN each time you sign a document.",
       );
     } catch (e) {
       setError(getApiErrorMessage(e));
@@ -107,9 +136,11 @@ export function SignatureTemplate() {
       return;
     setBusy(true);
     try {
-      await API.delete("/signature-template");
-      await cache.invalidateQueries({ queryKey: ["signature-template"] });
-      toast.success("Signature template removed.");
+      await signing.authorize(async (signaturePin) => {
+        await API.delete("/signature-template", { data: { signaturePin } });
+        await cache.invalidateQueries({ queryKey: ["signature-template"] });
+        toast.success("Signature template removed.");
+      });
     } finally {
       setBusy(false);
     }
@@ -117,9 +148,10 @@ export function SignatureTemplate() {
   return (
     <section className="md:col-span-2 max-w-3xl">
       <p className="text-sm text-muted-foreground mb-5">
-        Create your reusable handwritten signature. It will appear above your
-        name on new prescriptions and sick notes you issue. Updating it does not
-        change previously issued documents.
+        Create your reusable handwritten signature and a six-digit PIN. After
+        PIN confirmation it will appear above your name on new prescriptions and
+        sick notes you issue. Updating it does not change previously issued
+        documents.
       </p>
       {query.isPending ? (
         <p role="status">Loading your signature…</p>
@@ -130,6 +162,15 @@ export function SignatureTemplate() {
         </div>
       ) : (
         <>
+          {query.data?.signatureDataUrl && !query.data.pinConfigured && (
+            <p
+              role="status"
+              className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-navy"
+            >
+              Add a PIN before using this signature on new documents. Open your
+              template below; you can keep your existing signature.
+            </p>
+          )}
           <ActionButton
             disabled={busy}
             className="w-full rounded-xl border-2 border-dashed border-border bg-surface p-6 text-center hover:border-navy focus-visible:outline-2 focus-visible:outline-navy"
@@ -157,7 +198,7 @@ export function SignatureTemplate() {
             )}
             <div className="mx-auto mt-3 max-w-sm border-t border-navy pt-3 text-xs text-muted-foreground">
               {query.data?.signatureDataUrl
-                ? "Click to draw a replacement signature"
+                ? "Click to edit your signature or set/change its PIN"
                 : "Sign with a mouse, trackpad or touch screen"}
             </div>
           </ActionButton>
@@ -189,6 +230,56 @@ export function SignatureTemplate() {
             saved signature will be used on new prescriptions and sick notes you
             issue.
           </DialogDescription>
+          {query.data?.signatureDataUrl && (
+            <p className="text-sm text-muted-foreground">
+              Leave the pad blank to keep your saved signature and only set or
+              change its PIN.
+            </p>
+          )}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {query.data?.pinConfigured && (
+              <label className="text-sm">
+                Current PIN
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={6}
+                  value={currentPin}
+                  onChange={(e) =>
+                    setCurrentPin(e.target.value.replace(/\D/g, ""))
+                  }
+                  className="mt-1 block w-full rounded-md border p-2"
+                />
+              </label>
+            )}
+            <label className="text-sm">
+              New signature PIN
+              <input
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                maxLength={6}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                className="mt-1 block w-full rounded-md border p-2"
+              />
+            </label>
+            <label className="text-sm">
+              Confirm PIN
+              <input
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                maxLength={6}
+                value={confirmPin}
+                onChange={(e) =>
+                  setConfirmPin(e.target.value.replace(/\D/g, ""))
+                }
+                className="mt-1 block w-full rounded-md border p-2"
+              />
+            </label>
+          </div>
           <div className="relative overflow-hidden rounded-xl border bg-white">
             <canvas
               ref={canvas}
@@ -286,7 +377,9 @@ export function SignatureTemplate() {
                 Cancel
               </ActionButton>
               <ActionButton
-                disabled={busy || !strokes.length}
+                disabled={
+                  busy || (!strokes.length && !query.data?.signatureDataUrl)
+                }
                 className="rounded-md bg-[#ffcc53] px-5 py-2 text-sm font-semibold text-navy"
                 onClick={save}
               >
@@ -296,6 +389,7 @@ export function SignatureTemplate() {
           </div>
         </DialogContent>
       </Dialog>
+      {signing.dialog}
     </section>
   );
 }

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, MapPin } from "lucide-react";
 import { SA_PROVINCES } from "@/lib/sa-suburbs";
+import { preserveStreetNumber } from "@/lib/address-number";
 
 type Suggestion = {
   id: string;
   address: string;
   province: string;
   title: string;
+  numberRetained: boolean;
 };
 const key = import.meta.env.VITE_GEOAPIFY_API_KEY?.trim();
 const photon =
@@ -88,8 +90,11 @@ export function AddressAutocomplete({
               .filter((p: any) => p.country_code === "za" && p.street)
               .map((p: any) => ({
                 id: p.place_id || p.formatted,
-                address: p.formatted,
-                title: p.address_line1 || p.street,
+                ...preserveStreetNumber(text, {
+                  address: p.formatted,
+                  title: p.address_line1 || p.street,
+                  houseNumber: p.housenumber,
+                }),
                 province: provinceName(p.state || ""),
               }))
           : (data.features || [])
@@ -117,8 +122,11 @@ export function AddressAutocomplete({
                   .join(", ");
                 return {
                   id: `${p.osm_type}-${p.osm_id}`,
-                  address,
-                  title: street,
+                  ...preserveStreetNumber(text, {
+                    address,
+                    title: street,
+                    houseNumber: p.housenumber,
+                  }),
                   province: provinceName(p.state || ""),
                 };
               });
@@ -260,6 +268,11 @@ export function AddressAutocomplete({
                   <span className="block mt-1 text-xs text-muted-foreground">
                     {item.address}
                   </span>
+                  {item.numberRetained && (
+                    <span className="block mt-1 text-xs text-muted-foreground">
+                      Street number from your input — please confirm it is correct.
+                    </span>
+                  )}
                 </li>
               ))}
           </ul>

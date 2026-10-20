@@ -1,3 +1,4 @@
+import { useSignaturePin } from "@/components/signature-pin";
 import { SearchableSelect } from "@/components/searchable-select";
 import { ICD10_CODES } from "@/lib/medical-aid";
 import { ActionButton, ActionForm } from "@/components/action-feedback";
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/sick-notes/new")({
 
 function NewSickNote() {
   const navigate = useNavigate();
+  const signing = useSignaturePin();
   const { user: me } = useAuth();
   const { appointment, user, patient, sicknote } = useData();
   const tenant = useCurrentTenant();
@@ -103,20 +105,23 @@ function NewSickNote() {
       setError("Practice context is still loading. Please try again.");
       return;
     }
-    const note = await sicknote.createSickNote({
-      tenantId: tenant.id,
-      patientId: selectedPatient.id,
-      patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
-      appointmentId: appointmentId || undefined,
-      gpName,
-      hpcsa,
-      fromDate,
-      toDate,
-      reason: reason.trim(),
-      icd10: icd10.trim() || undefined,
-      recommendation: recommendation.trim() || undefined,
+    await signing.authorize(async (signaturePin) => {
+      const note = await sicknote.createSickNote({
+        signaturePin,
+        tenantId: tenant.id,
+        patientId: selectedPatient.id,
+        patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+        appointmentId: appointmentId || undefined,
+        gpName,
+        hpcsa,
+        fromDate,
+        toDate,
+        reason: reason.trim(),
+        icd10: icd10.trim() || undefined,
+        recommendation: recommendation.trim() || undefined,
+      });
+      navigate({ to: "/sick-notes/$id", params: { id: note.id } });
     });
-    navigate({ to: "/sick-notes/$id", params: { id: note.id } });
   };
 
   return (
@@ -274,6 +279,7 @@ function NewSickNote() {
           </div>
         </div>
       </ActionForm>
+      {signing.dialog}
     </AppShell>
   );
 }

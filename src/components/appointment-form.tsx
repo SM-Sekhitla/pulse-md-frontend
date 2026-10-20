@@ -4,10 +4,12 @@ import { format } from "date-fns";
 import { Calendar, Clock, Stethoscope, User as UserIcon, MapPin, FileText } from "lucide-react";
 import type { Appointment, AppointmentType } from "@/types/appointment";
 import { useData } from "@/context/AppDataProvider";
+import { matchesPatient } from "@/lib/patient-search";
 import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   defaultDate?: Date;
+  defaultPatientId?: string;
   onCreated?: (a: Appointment) => void;
   onCancel?: () => void;
 }
@@ -16,7 +18,7 @@ const TYPES: AppointmentType[] = ["Consultation", "Follow-up", "Procedure", "Tel
 const ROOMS = ["Room 1", "Room 2", "Room 3", "Telehealth"];
 const DURATIONS = [10, 15, 20, 30, 45, 60];
 
-export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
+export function AppointmentForm({ defaultDate, defaultPatientId, onCreated, onCancel }: Props) {
   const { appointment, patient, user: users } = useData();
   const { user } = useAuth();
   const patients = useMemo(() => patient.patients.slice().sort((a, b) => a.lastName.localeCompare(b.lastName)), [patient.patients]);
@@ -24,7 +26,7 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
   const gpName = gp ? `${gp.title} ${gp.firstName[0]}. ${gp.lastName}` : "Dr.";
 
   const initial = defaultDate || new Date();
-  const [patientId, setPatientId] = useState<string>(patients[0]?.id || "");
+  const [patientId, setPatientId] = useState<string>(defaultPatientId || patients[0]?.id || "");
   const [type, setType] = useState<AppointmentType>("Consultation");
   const [date, setDate] = useState<string>(format(initial, "yyyy-MM-dd"));
   const [time, setTime] = useState<string>(format(initial, "HH:mm"));
@@ -35,9 +37,13 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
   const [search, setSearch] = useState("");
 
   const filtered = patients.filter(p =>
-    `${p.firstName} ${p.lastName}`.toLowerCase().includes(search.toLowerCase())
+    matchesPatient(search, p)
   ).slice(0, 50);
   const selectedPatient = patients.find(p => p.id === patientId);
+  // Keep a patient chosen from the diary selected even beyond the first 50 matches.
+  const patientOptions = selectedPatient && !filtered.some(p => p.id === selectedPatient.id)
+    ? [selectedPatient, ...filtered]
+    : filtered;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +72,8 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
     <ActionForm onSubmit={submit} className="space-y-5">
       <Section icon={<UserIcon className="h-4 w-4" />} title="Patient">
         <input
-          placeholder="Search patients by name…"
+          aria-label="Search booking patients"
+          placeholder="Search by surname or phone number…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
@@ -77,7 +84,7 @@ export function AppointmentForm({ defaultDate, onCreated, onCancel }: Props) {
           className="mt-2 block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
         >
           <option value="">— Select a patient —</option>
-          {filtered.map(p => (
+          {patientOptions.map(p => (
             <option key={p.id} value={p.id}>
               {p.lastName}, {p.firstName} · {p.medicalAid}
             </option>

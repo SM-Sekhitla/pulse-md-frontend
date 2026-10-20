@@ -1,3 +1,4 @@
+import { useSignaturePin } from "@/components/signature-pin";
 import { SearchableSelect } from "@/components/searchable-select";
 import { ICD10_CODES } from "@/lib/medical-aid";
 import { ActionButton, ActionForm } from "@/components/action-feedback";
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/prescriptions/new")({
 
 function NewPrescription() {
   const navigate = useNavigate();
+  const signing = useSignaturePin();
   const { user: me } = useAuth();
   const {
     appointment,
@@ -129,19 +131,22 @@ function NewPrescription() {
       setError("Add at least one medication.");
       return;
     }
-    const rx = await prescription.createPrescription({
-      patientId: selectedPatient.id,
-      patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
-      appointmentId: appointmentId || undefined,
-      gpName,
-      hpcsa,
-      reason: diagnosis.trim() || "Medication prescribed",
-      diagnosis: diagnosis.trim() || undefined,
-      icd10: icd10.trim() || undefined,
-      validDays,
-      items: cleanItems,
+    await signing.authorize(async (signaturePin) => {
+      const rx = await prescription.createPrescription({
+        signaturePin,
+        patientId: selectedPatient.id,
+        patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+        appointmentId: appointmentId || undefined,
+        gpName,
+        hpcsa,
+        reason: diagnosis.trim() || "Medication prescribed",
+        diagnosis: diagnosis.trim() || undefined,
+        icd10: icd10.trim() || undefined,
+        validDays,
+        items: cleanItems,
+      });
+      navigate({ to: "/prescriptions/$id", params: { id: rx.id } });
     });
-    navigate({ to: "/prescriptions/$id", params: { id: rx.id } });
   };
 
   return (
@@ -359,6 +364,7 @@ function NewPrescription() {
           </div>
         </div>
       </ActionForm>
+      {signing.dialog}
     </AppShell>
   );
 }

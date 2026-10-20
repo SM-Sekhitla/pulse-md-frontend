@@ -31,6 +31,8 @@ export type PrescriptionCreate = Partial<
   >
 > & {
   items: Prescription["items"];
+  signaturePin?: string;
+  reason?: string;
 };
 
 export type PrescriptionUpdate = Partial<

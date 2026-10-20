@@ -61,6 +61,7 @@ export const sickNoteSchema = z
 // -------------------------------------------------
 export const sickNoteCreateSchema = z
   .object({
+    signaturePin: z.string().optional(),
     tenantId: optionalString,
 
     patientId: z.string(),
