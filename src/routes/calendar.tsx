@@ -1,3 +1,9 @@
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ActionButton } from "@/components/action-feedback";
 import { StartConsultation } from "@/components/start-consultation";
 import { createFileRoute, Link } from "@/lib/router-compat";
@@ -521,16 +527,19 @@ function CalendarPage() {
         ))}
       </div>
 
-      <Dialog
+      <Sheet
         open={!!selected}
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Appointment details</DialogTitle>
-          </DialogHeader>
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto sm:max-w-lg"
+        >
+          <SheetHeader>
+            <SheetTitle>Appointment details</SheetTitle>
+          </SheetHeader>
           {selected && (
             <div className="px-6 py-5 space-y-5">
               <div>
@@ -604,8 +613,8 @@ function CalendarPage() {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </AppShell>
   );
 }

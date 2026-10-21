@@ -20,7 +20,19 @@ export const Route = createFileRoute("/sick-notes/new")({
   component: NewSickNote,
 });
 
-function NewSickNote() {
+export function NewSickNote({
+  patientId: fixedPatientId,
+  appointmentId: fixedAppointmentId,
+  embedded = false,
+  onCreated,
+  onCancel,
+}: {
+  patientId?: string;
+  appointmentId?: string;
+  embedded?: boolean;
+  onCreated?: (document: { id: string }) => void;
+  onCancel?: () => void;
+} = {}) {
   const navigate = useNavigate();
   const signing = useSignaturePin();
   const { user: me } = useAuth();
@@ -47,8 +59,8 @@ function NewSickNote() {
 
   const today = format(new Date(), "yyyy-MM-dd");
   const [search, setSearch] = useState("");
-  const [patientId, setPatientId] = useState("");
-  const [appointmentId, setAppointmentId] = useState("");
+  const [patientId, setPatientId] = useState(fixedPatientId || "");
+  const [appointmentId, setAppointmentId] = useState(fixedAppointmentId || "");
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [reason, setReason] = useState("");
@@ -62,7 +74,7 @@ function NewSickNote() {
         .toLowerCase()
         .includes(search.toLowerCase()),
     )
-    .slice(0, 50);
+    .filter((p, index) => index < 50 || p.id === patientId);
   const selectedPatient = patients.find((p) => p.id === patientId);
   const apptOptions = selectedPatient
     ? appointment.appointments.filter(
@@ -120,12 +132,13 @@ function NewSickNote() {
         icd10: icd10.trim() || undefined,
         recommendation: recommendation.trim() || undefined,
       });
-      navigate({ to: "/sick-notes/$id", params: { id: note.id } });
+      if (onCreated) onCreated(note);
+      else navigate({ to: "/sick-notes/$id", params: { id: note.id } });
     });
   };
 
-  return (
-    <AppShell title="New sick note">
+  const body = (
+    <>
       <ActionForm onSubmit={submit} className="mx-auto max-w-[820px] space-y-5">
         <div className="pulse-card p-6">
           <h2 className="text-[16px] font-semibold text-navy">
@@ -139,12 +152,14 @@ function NewSickNote() {
           <div className="mt-5 space-y-5">
             <Section icon={<UserIcon className="h-4 w-4" />} title="Patient">
               <input
+                disabled={!!fixedPatientId}
                 placeholder="Search patients by name…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
               />
               <select
+                disabled={!!fixedPatientId}
                 value={patientId}
                 onChange={(e) => {
                   setPatientId(e.target.value);
@@ -176,6 +191,7 @@ function NewSickNote() {
                 title="Link to appointment (optional)"
               >
                 <select
+                  disabled={!!fixedAppointmentId}
                   value={appointmentId}
                   onChange={(e) => setAppointmentId(e.target.value)}
                   className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
@@ -264,7 +280,9 @@ function NewSickNote() {
             <div className="flex justify-end gap-2 pt-1">
               <ActionButton
                 type="button"
-                onClick={() => navigate({ to: "/sick-notes" })}
+                onClick={() =>
+                  onCancel ? onCancel() : navigate({ to: "/sick-notes" })
+                }
                 className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface"
               >
                 Cancel
@@ -280,8 +298,9 @@ function NewSickNote() {
         </div>
       </ActionForm>
       {signing.dialog}
-    </AppShell>
+    </>
   );
+  return embedded ? body : <AppShell title="New sick note">{body}</AppShell>;
 }
 
 function Section({

@@ -1,3 +1,8 @@
+import { NewPrescription } from "@/routes/prescriptions.new";
+import { NewSickNote } from "@/routes/sick-notes.new";
+import { useModuleAccess } from "@/hooks/use-module-access";
+import { useData } from "@/context/AppDataProvider";
+import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useParams } from "@/lib/router-compat";
 import { useQueryClient } from "@tanstack/react-query";
@@ -68,6 +73,12 @@ function content(session: Session): Content {
 }
 function Consultation({ id }: { id: string }) {
   const cache = useQueryClient();
+  const { prescription, sicknote } = useData();
+  const canPrescribe = useModuleAccess("prescriptions");
+  const canIssueNote = useModuleAccess("sick_notes");
+  const [documentForm, setDocumentForm] = useState<
+    "prescription" | "sicknote" | null
+  >(null);
   const [data, setData] = useState<Data | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [notes, setNotes] = useState<Content>(empty);
@@ -80,7 +91,7 @@ function Consultation({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const dirty = session && JSON.stringify(notes) !== saved;
   const guarded = useRef(false);
-  guarded.current = Boolean(dirty || recording);
+  guarded.current = Boolean(dirty || recording || documentForm);
   useEffect(() => {
     let live = true;
     API.get<Data>(`/appointments/${id}/consultation`)
@@ -274,7 +285,7 @@ function Consultation({ id }: { id: string }) {
                         </ActionButton>
                         <ActionButton
                           className="gp-button gp-button-yellow"
-                          disabled={locked || recording}
+                          disabled={locked || recording || !!documentForm}
                           onClick={() => setConfirm(true)}
                         >
                           <CheckCircle size={15} /> Complete appointment
@@ -285,6 +296,121 @@ function Consultation({ id }: { id: string }) {
                       <p className="consult-completed">
                         Consultation completed. Saved notes are read-only.
                       </p>
+                    )}
+                    {(canPrescribe || canIssueNote) && (
+                      <section
+                        className="pulse-card my-5 p-5"
+                        aria-label="Patient documents"
+                      >
+                        <h3 className="text-lg font-semibold text-navy">
+                          Prescriptions & sick notes
+                        </h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Issue documents for {data.appointment.patientName}{" "}
+                          without leaving this consultation. Your notes and
+                          timer stay open.
+                        </p>
+                        {!documentForm && (
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            {canPrescribe && (
+                              <ActionButton
+                                disabled={busy}
+                                onClick={() => setDocumentForm("prescription")}
+                                className="gp-button gp-button-yellow"
+                              >
+                                Create prescription
+                              </ActionButton>
+                            )}
+                            {canIssueNote && (
+                              <ActionButton
+                                disabled={busy}
+                                onClick={() => setDocumentForm("sicknote")}
+                                className="gp-button border border-border"
+                              >
+                                Create sick note
+                              </ActionButton>
+                            )}
+                          </div>
+                        )}
+                        {documentForm === "prescription" && (
+                          <div className="mt-4">
+                            <NewPrescription
+                              embedded
+                              patientId={data.appointment.patientId}
+                              appointmentId={id}
+                              onCancel={() => {
+                                if (
+                                  window.confirm(
+                                    "Discard this prescription draft?",
+                                  )
+                                )
+                                  setDocumentForm(null);
+                              }}
+                              onCreated={() => {
+                                setDocumentForm(null);
+                                toast.success(
+                                  "Prescription issued for this patient. Your consultation is still open.",
+                                );
+                              }}
+                            />
+                          </div>
+                        )}
+                        {documentForm === "sicknote" && (
+                          <div className="mt-4">
+                            <NewSickNote
+                              embedded
+                              patientId={data.appointment.patientId}
+                              appointmentId={id}
+                              onCancel={() => {
+                                if (
+                                  window.confirm(
+                                    "Discard this sick note draft?",
+                                  )
+                                )
+                                  setDocumentForm(null);
+                              }}
+                              onCreated={() => {
+                                setDocumentForm(null);
+                                toast.success(
+                                  "Sick note issued for this patient. Your consultation is still open.",
+                                );
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div
+                          className="mt-4 space-y-2"
+                          aria-label="Documents issued in this appointment"
+                        >
+                          {prescription.prescriptions
+                            .filter(
+                              (d) =>
+                                d.appointmentId === id &&
+                                d.patientId === data.appointment.patientId,
+                            )
+                            .map((d) => (
+                              <p key={d.id} className="text-sm text-navy">
+                                Prescription issued ·{" "}
+                                {new Date(d.issuedAt).toLocaleDateString(
+                                  "en-ZA",
+                                )}{" "}
+                                · {d.items.map((i) => i.drug).join(", ")}
+                              </p>
+                            ))}
+                          {sicknote.sickNotes
+                            .filter(
+                              (d) =>
+                                d.appointmentId === id &&
+                                d.patientId === data.appointment.patientId,
+                            )
+                            .map((d) => (
+                              <p key={d.id} className="text-sm text-navy">
+                                Sick note issued · {d.fromDate.slice(0, 10)} to{" "}
+                                {d.toDate.slice(0, 10)}
+                              </p>
+                            ))}
+                        </div>
+                      </section>
                     )}
                     <div className="consult-columns">
                       <section className="consult-notes">

@@ -24,7 +24,19 @@ export const Route = createFileRoute("/prescriptions/new")({
   component: NewPrescription,
 });
 
-function NewPrescription() {
+export function NewPrescription({
+  patientId: fixedPatientId,
+  appointmentId: fixedAppointmentId,
+  embedded = false,
+  onCreated,
+  onCancel,
+}: {
+  patientId?: string;
+  appointmentId?: string;
+  embedded?: boolean;
+  onCreated?: (document: { id: string }) => void;
+  onCancel?: () => void;
+} = {}) {
   const navigate = useNavigate();
   const signing = useSignaturePin();
   const { user: me } = useAuth();
@@ -58,9 +70,14 @@ function NewPrescription() {
 
   const [search, setSearch] = useState("");
   const [patientId, setPatientId] = useState<string>(
-    () => new URLSearchParams(window.location.search).get("patientId") || "",
+    () =>
+      fixedPatientId ||
+      new URLSearchParams(window.location.search).get("patientId") ||
+      "",
   );
-  const [appointmentId, setAppointmentId] = useState<string>("");
+  const [appointmentId, setAppointmentId] = useState<string>(
+    fixedAppointmentId || "",
+  );
   const [diagnosis, setDiagnosis] = useState("");
   const [icd10, setIcd10] = useState("");
   const [validDays, setValidDays] = useState(30);
@@ -145,12 +162,13 @@ function NewPrescription() {
         validDays,
         items: cleanItems,
       });
-      navigate({ to: "/prescriptions/$id", params: { id: rx.id } });
+      if (onCreated) onCreated(rx);
+      else navigate({ to: "/prescriptions/$id", params: { id: rx.id } });
     });
   };
 
-  return (
-    <AppShell title="New prescription">
+  const body = (
+    <>
       <ActionForm onSubmit={submit} className="mx-auto max-w-[820px] space-y-5">
         <div className="pulse-card p-6">
           <h2 className="text-[16px] font-semibold text-navy">
@@ -164,12 +182,14 @@ function NewPrescription() {
           <div className="mt-5 space-y-5">
             <Section icon={<UserIcon className="h-4 w-4" />} title="Patient">
               <input
+                disabled={!!fixedPatientId}
                 placeholder="Search patients by name…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
               />
               <select
+                disabled={!!fixedPatientId}
                 value={patientId}
                 onChange={(e) => {
                   setPatientId(e.target.value);
@@ -206,6 +226,7 @@ function NewPrescription() {
                 title="Link to appointment (optional)"
               >
                 <select
+                  disabled={!!fixedAppointmentId}
                   value={appointmentId}
                   onChange={(e) => setAppointmentId(e.target.value)}
                   className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
@@ -349,7 +370,9 @@ function NewPrescription() {
             <div className="flex justify-end gap-2 pt-1">
               <ActionButton
                 type="button"
-                onClick={() => navigate({ to: "/prescriptions" })}
+                onClick={() =>
+                  onCancel ? onCancel() : navigate({ to: "/prescriptions" })
+                }
                 className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface"
               >
                 Cancel
@@ -365,8 +388,9 @@ function NewPrescription() {
         </div>
       </ActionForm>
       {signing.dialog}
-    </AppShell>
+    </>
   );
+  return embedded ? body : <AppShell title="New prescription">{body}</AppShell>;
 }
 
 function Section({
