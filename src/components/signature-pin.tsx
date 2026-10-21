@@ -1,3 +1,5 @@
+import { documentValidationMessage } from "@/lib/document-validation";
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -11,7 +13,7 @@ import {
 import API, { getApiErrorMessage } from "@/utils/api";
 
 // Keep the PIN only in this short-lived dialog; never persist it or cache it.
-export function useSignaturePin() {
+export function useSignaturePin(onFormError?: (message: string) => void) {
   const { user } = useAuth();
   const [action, setAction] = useState<((pin: string) => Promise<void>) | null>(
     null,
@@ -79,7 +81,27 @@ export function useSignaturePin() {
               await action(pin);
               setAction(null);
             } catch (e) {
-              setError(getApiErrorMessage(e));
+              const detail = isAxiosError(e)
+                ? e.response?.data?.detail
+                : undefined;
+              const pinError =
+                Array.isArray(detail) &&
+                detail.some(
+                  (issue) =>
+                    Array.isArray(issue?.loc) &&
+                    issue.loc.includes("signaturePin"),
+                );
+              if (
+                isAxiosError(e) &&
+                e.response?.status === 422 &&
+                !pinError &&
+                onFormError
+              ) {
+                setAction(null);
+                onFormError(documentValidationMessage(detail));
+              } else {
+                setError(getApiErrorMessage(e));
+              }
             } finally {
               setPin("");
               setBusy(false);

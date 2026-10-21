@@ -4,7 +4,12 @@ import { useModuleAccess } from "@/hooks/use-module-access";
 import { useData } from "@/context/AppDataProvider";
 import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, Link, useParams } from "@/lib/router-compat";
+import {
+  createFileRoute,
+  Link,
+  useParams,
+  useNavigate,
+} from "@/lib/router-compat";
 import { useQueryClient } from "@tanstack/react-query";
 import { Clock, Save, CheckCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -72,6 +77,7 @@ function content(session: Session): Content {
   ) as Content;
 }
 function Consultation({ id }: { id: string }) {
+  const navigate = useNavigate();
   const cache = useQueryClient();
   const { prescription, sicknote } = useData();
   const canPrescribe = useModuleAccess("prescriptions");
@@ -168,7 +174,7 @@ function Consultation({ id }: { id: string }) {
     }
   };
   const save = async (complete = false) => {
-    if (!session) return;
+    if (!session || !data) return;
     setBusy(true);
     setError("");
     try {
@@ -181,8 +187,15 @@ function Consultation({ id }: { id: string }) {
         : await API.put<Session>(`/appointments/${id}/consultation`, payload);
       accept(response.data);
       setConfirm(false);
-      if (complete)
+      if (complete) {
         await cache.invalidateQueries({ queryKey: ["appointments"] });
+        guarded.current = false;
+        toast.success("Consultation completed. Notes saved successfully.");
+        navigate({
+          to: "/patients/$id",
+          params: { id: data.appointment.patientId },
+        });
+      }
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -292,11 +305,6 @@ function Consultation({ id }: { id: string }) {
                         </ActionButton>
                       </div>
                     </div>
-                    {session.endedAt && (
-                      <p className="consult-completed">
-                        Consultation completed. Saved notes are read-only.
-                      </p>
-                    )}
                     {(canPrescribe || canIssueNote) && (
                       <section
                         className="pulse-card my-5 p-5"

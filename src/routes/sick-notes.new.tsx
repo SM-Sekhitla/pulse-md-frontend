@@ -34,7 +34,6 @@ export function NewSickNote({
   onCancel?: () => void;
 } = {}) {
   const navigate = useNavigate();
-  const signing = useSignaturePin();
   const { user: me } = useAuth();
   const { appointment, user, patient, sicknote } = useData();
   const tenant = useCurrentTenant();
@@ -67,6 +66,7 @@ export function NewSickNote({
   const [icd10, setIcd10] = useState("");
   const [recommendation, setRecommendation] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const signing = useSignaturePin(setError);
 
   const filtered = patients
     .filter((p) =>
@@ -272,7 +272,10 @@ export function NewSickNote({
             </div>
 
             {error && (
-              <div className="rounded-md bg-[#FEE2E2] px-3 py-2 text-[12.5px] text-[#991B1B]">
+              <div
+                role="alert"
+                className="rounded-md bg-[#FEE2E2] px-3 py-2 text-[12.5px] text-[#991B1B]"
+              >
                 {error}
               </div>
             )}

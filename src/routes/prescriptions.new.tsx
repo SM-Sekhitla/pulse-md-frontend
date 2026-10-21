@@ -1,3 +1,4 @@
+import { medicationValidationError } from "@/lib/document-validation";
 import { useSignaturePin } from "@/components/signature-pin";
 import { SearchableSelect } from "@/components/searchable-select";
 import { ICD10_CODES } from "@/lib/medical-aid";
@@ -38,7 +39,6 @@ export function NewPrescription({
   onCancel?: () => void;
 } = {}) {
   const navigate = useNavigate();
-  const signing = useSignaturePin();
   const { user: me } = useAuth();
   const {
     appointment,
@@ -85,6 +85,7 @@ export function NewPrescription({
     { drug: "", dose: "", frequency: "", duration: "", notes: "" },
   ]);
   const [error, setError] = useState<string | null>(null);
+  const signing = useSignaturePin(setError);
 
   const filtered = patients
     .filter((p) =>
@@ -133,6 +134,11 @@ export function NewPrescription({
     }
     if (!selectedPatient) {
       setError("Please select a patient.");
+      return;
+    }
+    const medicationError = medicationValidationError(items);
+    if (medicationError) {
+      setError(medicationError);
       return;
     }
     const cleanItems = items
@@ -311,6 +317,7 @@ export function NewPrescription({
                         }))}
                       />
                       <input
+                        aria-label={`Medication ${i + 1} dose`}
                         value={it.dose}
                         onChange={(e) =>
                           updateItem(i, { dose: e.target.value })
@@ -319,6 +326,7 @@ export function NewPrescription({
                         className="col-span-2 rounded-md border border-border bg-white px-2.5 py-1.5 text-[13px] outline-none focus:border-blue"
                       />
                       <input
+                        aria-label={`Medication ${i + 1} frequency`}
                         value={it.frequency}
                         onChange={(e) =>
                           updateItem(i, { frequency: e.target.value })
@@ -327,6 +335,7 @@ export function NewPrescription({
                         className="col-span-2 rounded-md border border-border bg-white px-2.5 py-1.5 text-[13px] outline-none focus:border-blue"
                       />
                       <input
+                        aria-label={`Medication ${i + 1} duration`}
                         value={it.duration}
                         onChange={(e) =>
                           updateItem(i, { duration: e.target.value })
@@ -362,7 +371,10 @@ export function NewPrescription({
             </div>
 
             {error && (
-              <div className="rounded-md bg-[#FEE2E2] px-3 py-2 text-[12.5px] text-[#991B1B]">
+              <div
+                role="alert"
+                className="rounded-md bg-[#FEE2E2] px-3 py-2 text-[12.5px] text-[#991B1B]"
+              >
                 {error}
               </div>
             )}
