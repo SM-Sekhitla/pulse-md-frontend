@@ -34,6 +34,12 @@ export function NewSickNote({
   onCancel?: () => void;
 } = {}) {
   const navigate = useNavigate();
+  const sourcePatientId = new URLSearchParams(window.location.search).get(
+    "patientId",
+  );
+  const cancelDestination = sourcePatientId
+    ? `/patients/${encodeURIComponent(sourcePatientId)}`
+    : "/sick-notes";
   const { user: me } = useAuth();
   const { appointment, user, patient, sicknote } = useData();
   const tenant = useCurrentTenant();
@@ -58,7 +64,11 @@ export function NewSickNote({
 
   const today = format(new Date(), "yyyy-MM-dd");
   const [search, setSearch] = useState("");
-  const [patientId, setPatientId] = useState(fixedPatientId || "");
+  const [patientId, setPatientId] = useState(
+    fixedPatientId ||
+      new URLSearchParams(window.location.search).get("patientId") ||
+      "",
+  );
   const [appointmentId, setAppointmentId] = useState(fixedAppointmentId || "");
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
@@ -284,7 +294,7 @@ export function NewSickNote({
               <ActionButton
                 type="button"
                 onClick={() =>
-                  onCancel ? onCancel() : navigate({ to: "/sick-notes" })
+                  onCancel ? onCancel() : navigate({ to: cancelDestination })
                 }
                 className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface"
               >

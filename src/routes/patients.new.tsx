@@ -71,7 +71,7 @@ function NewPatient() {
     if (!consent) { setError("POPIA consent is required."); return; }
 
     try {
-      await patient.createPatient({
+      const created = await patient.createPatient({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         dob: new Date(`${dob}T00:00:00`).toISOString(),
@@ -94,7 +94,7 @@ function NewPatient() {
         chronic: [],
         active: true
       });
-      navigate({ to: "/patients" });
+      navigate({ to: "/patients/$id", params: { id: created.id } });
     } catch (err) {
       setError(getApiErrorMessage(err));
     }

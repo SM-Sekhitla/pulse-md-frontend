@@ -63,13 +63,31 @@ function PrescriptionDetail() {
 
   return (
     <AppShell title="Prescription">
-      <div className="mb-4 flex items-center justify-between print:hidden">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
           to="/prescriptions"
           className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-navy"
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
+        <div className="flex flex-wrap gap-3">
+          {rx.patientId && (
+            <Link
+              to={`/patients/${rx.patientId}`}
+              className="gp-button border border-border"
+            >
+              Patient profile
+            </Link>
+          )}
+          {rx.appointmentId && (
+            <Link
+              to={`/appointments/${rx.appointmentId}/consultation`}
+              className="gp-button border border-border"
+            >
+              Consultation
+            </Link>
+          )}
+        </div>
         <ActionButton
           onClick={() => window.print()}
           className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90"

@@ -8,6 +8,11 @@ export const Route = createFileRoute("/appointments/new")({
 
 function NewAppointment() {
   const navigate = useNavigate();
+  const patientId =
+    new URLSearchParams(window.location.search).get("patientId") || undefined;
+  const returnTo = patientId
+    ? `/patients/${encodeURIComponent(patientId)}`
+    : "/calendar";
   return (
     <AppShell title="Schedule appointment">
       <div className="mx-auto max-w-[720px]">
@@ -20,8 +25,9 @@ function NewAppointment() {
           </p>
           <div className="mt-6">
             <AppointmentForm
-              onCreated={() => navigate({ to: "/calendar" })}
-              onCancel={() => navigate({ to: "/calendar" })}
+              defaultPatientId={patientId}
+              onCreated={() => navigate({ to: returnTo })}
+              onCancel={() => navigate({ to: returnTo })}
             />
           </div>
         </div>

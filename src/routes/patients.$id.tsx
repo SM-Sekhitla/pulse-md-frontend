@@ -1,3 +1,4 @@
+import { useModuleAccess } from "@/hooks/use-module-access";
 import { PatientDocuments } from "@/components/patient-documents";
 import { StartConsultation } from "@/components/start-consultation";
 import { ActionButton } from "@/components/action-feedback";
@@ -12,7 +13,6 @@ import {
   Calendar,
   FileText,
   Pill,
-  MessageSquare,
   Receipt,
   Plus,
   ArrowLeft,
@@ -32,11 +32,16 @@ const TABS = [
   "Documents",
   "Billing",
   "Prescriptions",
+  "Sick notes",
 ] as const;
 
 function PatientDetail() {
   const { id } = useParams({ from: "/patients/$id" });
-  const { appointment, patient, invoice } = useData();
+  const { appointment, patient, invoice, sicknote } = useData();
+  const canBook = useModuleAccess(["appointments", "calendar"]);
+  const canPrescribe = useModuleAccess("prescriptions");
+  const canIssueNote = useModuleAccess("sick_notes");
+  const canBill = useModuleAccess("billing");
 
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
 
@@ -133,7 +138,30 @@ function PatientDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ActionBtn icon={Calendar}>New appointment</ActionBtn>
+            {canBook && (
+              <ActionBtn
+                icon={Calendar}
+                to={`/appointments/new?patientId=${encodeURIComponent(p.id)}`}
+              >
+                New appointment
+              </ActionBtn>
+            )}
+            {canPrescribe && (
+              <ActionBtn
+                icon={Pill}
+                to={`/prescriptions/new?patientId=${encodeURIComponent(p.id)}`}
+              >
+                Prescribe
+              </ActionBtn>
+            )}
+            {canIssueNote && (
+              <ActionBtn
+                icon={FileText}
+                to={`/sick-notes/new?patientId=${encodeURIComponent(p.id)}`}
+              >
+                Issue sick note
+              </ActionBtn>
+            )}
             <ActionButton
               className="gp-button"
               onClick={() => setTab("Clinical notes")}
@@ -141,22 +169,49 @@ function PatientDetail() {
               <FileText size={16} />
               Clinical notes
             </ActionButton>
-            <ActionBtn icon={MessageSquare}>Message</ActionBtn>
-            <ActionBtn
-              icon={Receipt}
-              primary
-              to={`/billing?new=1&patientId=${p.id}`}
-            >
-              New invoice
-            </ActionBtn>
+            {canBill && (
+              <ActionBtn
+                icon={Receipt}
+                primary
+                to={`/billing?new=1&patientId=${p.id}`}
+              >
+                New invoice
+              </ActionBtn>
+            )}
           </div>
         </div>
       </div>
 
+      {visits.some((v) => v.status === "In progress") && (
+        <section
+          className="pulse-card mt-4 p-5"
+          aria-label="Active consultations"
+        >
+          <h2 className="mb-3 font-semibold">Consultation in progress</h2>
+          {visits
+            .filter((v) => v.status === "In progress")
+            .map((v) => (
+              <div
+                key={v.id}
+                className="flex flex-wrap items-center justify-between gap-3"
+              >
+                <p>
+                  {format(parseISO(v.start), "d MMM yyyy HH:mm")} · {v.reason}
+                </p>
+                <StartConsultation id={v.id} status={v.status} />
+              </div>
+            ))}
+        </section>
+      )}
       {/* Tabs */}
       <div className="mt-6 border-b border-border">
-        <div className="flex gap-1">
-          {TABS.map((t) => (
+        <div className="flex gap-1 overflow-x-auto">
+          {TABS.filter(
+            (t) =>
+              (t !== "Prescriptions" || canPrescribe) &&
+              (t !== "Sick notes" || canIssueNote) &&
+              (t !== "Billing" || canBill),
+          ).map((t) => (
             <ActionButton
               key={t}
               onClick={() => setTab(t)}
@@ -182,6 +237,30 @@ function PatientDetail() {
         {tab === "Documents" && <PatientDocuments patientId={p.id} />}
         {tab === "Billing" && (
           <BillingTab invoices={invoices} patientId={p.id} />
+        )}
+        {tab === "Sick notes" && (
+          <section className="pulse-card p-5">
+            <h2 className="mb-4 font-semibold">Sick notes</h2>
+            {sicknote.sickNotes.filter((n) => n.patientId === p.id).length ===
+              0 && (
+              <p className="text-sm text-muted-foreground">
+                No sick notes issued for this patient yet.
+              </p>
+            )}
+            {sicknote.sickNotes
+              .filter((n) => n.patientId === p.id)
+              .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt))
+              .map((n) => (
+                <Link
+                  key={n.id}
+                  to={`/sick-notes/${n.id}`}
+                  className="block border-b border-border py-3 text-sm text-navy hover:underline"
+                >
+                  {format(parseISO(n.fromDate), "d MMM yyyy")} –{" "}
+                  {format(parseISO(n.toDate), "d MMM yyyy")} · View sick note
+                </Link>
+              ))}
+          </section>
         )}
         {tab === "Prescriptions" && <Prescriptions patientId={p.id} />}
       </div>
@@ -403,14 +482,7 @@ function VisitHistory({ visits }: { visits: any[] }) {
               <div className="mt-0.5 text-navy">{v.reason}</div>
             </div>
             <div>
-              <span className="label-caps">Diagnosis</span>
-              <div className="mt-0.5 text-navy font-mono">
-                J06.9 — Acute URTI
-              </div>
-            </div>
-            <div>
-              <span className="label-caps">Vitals</span>
-              <div className="mt-0.5 text-navy">BP 124/82 · HR 72</div>
+              <StartConsultation id={v.id} status={v.status} />
             </div>
           </div>
         </div>

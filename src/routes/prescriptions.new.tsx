@@ -39,6 +39,12 @@ export function NewPrescription({
   onCancel?: () => void;
 } = {}) {
   const navigate = useNavigate();
+  const sourcePatientId = new URLSearchParams(window.location.search).get(
+    "patientId",
+  );
+  const cancelDestination = sourcePatientId
+    ? `/patients/${encodeURIComponent(sourcePatientId)}`
+    : "/prescriptions";
   const { user: me } = useAuth();
   const {
     appointment,
@@ -383,7 +389,7 @@ export function NewPrescription({
               <ActionButton
                 type="button"
                 onClick={() =>
-                  onCancel ? onCancel() : navigate({ to: "/prescriptions" })
+                  onCancel ? onCancel() : navigate({ to: cancelDestination })
                 }
                 className="rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-navy hover:bg-surface"
               >

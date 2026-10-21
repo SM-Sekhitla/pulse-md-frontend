@@ -1,3 +1,4 @@
+import { matchesPatient } from "@/lib/patient-search";
 import { getLoginRoute } from "@/lib/auth-routing";
 import { ActionButton } from "@/components/action-feedback";
 import { type ReactNode, useEffect, useState } from "react";
@@ -76,7 +77,7 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
-  const { tenant: tenantData, patient } = useData();
+  const { tenant: tenantData, patient, appointment } = useData();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -116,6 +117,17 @@ export function AppShell({
     return () => media.removeEventListener("change", onResize);
   }, []);
 
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
+
   if (
     loading ||
     !user ||
@@ -137,12 +149,20 @@ export function AppShell({
         .filter(
           (item) =>
             (!item.tenantId || item.tenantId === user.tenantId) &&
-            `${item.firstName} ${item.lastName} ${item.idNumber} ${item.phone}`
-              .toLowerCase()
-              .includes(query.trim().toLowerCase()),
+            (matchesPatient(query, item) ||
+              item.idNumber.includes(query.trim())),
         )
         .slice(0, 8)
     : [];
+  const shortcuts = nav
+    .flatMap((group) => group.items)
+    .filter(
+      (item) =>
+        !query.trim() ||
+        `${item.label} ${item.to} ${item.to === "/calendar" ? "diary schedule" : ""}`
+          .toLowerCase()
+          .includes(query.trim().toLowerCase()),
+    );
   const closeNavigation = () => setMobileOpen(false);
   const handleLogout = async () => {
     await logout();
@@ -285,16 +305,17 @@ export function AppShell({
                   <ActionButton
                     type="button"
                     className="gp-search-trigger"
-                    aria-label="Find a patient"
+                    aria-label="Find patient or feature"
                   >
                     <Search size={16} aria-hidden="true" />
-                    <span>Find a patient</span>
+                    <span>Search · Ctrl K</span>
                   </ActionButton>
                 </DialogTrigger>
                 <DialogContent className="gp-search-dialog">
-                  <DialogTitle>Find a patient</DialogTitle>
+                  <DialogTitle>Find a patient or feature</DialogTitle>
                   <DialogDescription>
-                    Search your practice records by name, ID number or phone.
+                    Search patients by name, ID or phone, or jump straight to a
+                    feature.
                   </DialogDescription>
                   <label className="gp-search-field">
                     <Search size={18} aria-hidden="true" />
@@ -302,10 +323,55 @@ export function AppShell({
                     <input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Start with a name, ID or phone…"
+                      autoFocus
+                      placeholder="Patient name, phone, diary, prescriptions…"
                     />
                   </label>
-                  <div className="gp-search-results" aria-live="polite">
+                  <div
+                    className="gp-search-results max-h-[60vh] overflow-y-auto"
+                    aria-live="polite"
+                  >
+                    {shortcuts.length > 0 && (
+                      <div
+                        className="mb-3 flex flex-wrap gap-2"
+                        aria-label="Feature shortcuts"
+                      >
+                        {shortcuts.map((item) => (
+                          <Link
+                            key={item.to}
+                            to={item.to}
+                            className="rounded-md border border-border px-3 py-2 text-sm"
+                            onClick={() => {
+                              setSearchOpen(false);
+                              setQuery("");
+                            }}
+                          >
+                            <item.icon size={16} />
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    {!query.trim() &&
+                      appointment.appointments
+                        .filter(
+                          (a) =>
+                            a.status === "In progress" &&
+                            (!a.tenantId || a.tenantId === user.tenantId),
+                        )
+                        .map((a) => (
+                          <Link
+                            key={a.id}
+                            to={`/appointments/${a.id}/consultation`}
+                            onClick={() => setSearchOpen(false)}
+                          >
+                            <span>
+                              <strong>Resume consultation</strong>
+                              <small>{a.patientName}</small>
+                            </span>
+                            <ArrowUpRight size={17} />
+                          </Link>
+                        ))}
                     {patient.isPatientLoading ? (
                       <p>Loading patient records…</p>
                     ) : matches.length ? (
@@ -355,7 +421,11 @@ export function AppShell({
             )}
             {enabled.has("appointments") && (
               <Link
-                to="/appointments/new"
+                to={
+                  /^\/patients\/[^/]+$/.test(path) && !path.endsWith("/new")
+                    ? `/appointments/new?patientId=${encodeURIComponent(path.split("/")[2])}`
+                    : "/appointments/new"
+                }
                 className="gp-button gp-button-yellow gp-topbar-appointment"
                 aria-label="New appointment"
               >
