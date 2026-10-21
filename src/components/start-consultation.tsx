@@ -14,7 +14,10 @@ export function StartConsultation({
   const { user } = useAuth();
   const navigate = useNavigate();
   const cache = useQueryClient();
-  if (user?.role !== "owner" || ["Cancelled", "No-show"].includes(status))
+  if (
+    !["owner", "doctor"].includes(user?.role || "") ||
+    ["Cancelled", "No-show"].includes(status)
+  )
     return null;
   return (
     <ActionButton

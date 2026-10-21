@@ -70,6 +70,7 @@ function CalendarPage() {
   const [search, setSearch] = useState("");
   const [doctor, setDoctor] = useState("");
   const [status, setStatus] = useState("");
+  const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [booking, setBooking] = useState(false);
   const [bookingPatient, setBookingPatient] = useState<string>();
   const patientsById = useMemo(
@@ -511,6 +512,27 @@ function CalendarPage() {
           />
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={!!rescheduling}
+        onOpenChange={(open) => {
+          if (!open) setRescheduling(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-xl">
+          <DialogTitle>Reschedule appointment</DialogTitle>
+          {rescheduling && (
+            <AppointmentForm
+              existing={rescheduling}
+              onCancel={() => setRescheduling(null)}
+              onCreated={(a) => {
+                setRescheduling(null);
+                setAnchor(parseISO(a.start));
+                setSelected(a);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-4">
         {Object.entries(TYPE_COLOR).map(([t, c]) => (
@@ -587,6 +609,19 @@ function CalendarPage() {
               </div>
               <div className="border-t border-border pt-4">
                 <div className="label-caps">Workflow</div>
+                {["Booked", "Confirmed", "Checked-in"].includes(
+                  selected.status,
+                ) && (
+                  <ActionButton
+                    className="gp-button border mt-3"
+                    onClick={() => {
+                      setRescheduling(selected);
+                      setSelected(null);
+                    }}
+                  >
+                    Reschedule
+                  </ActionButton>
+                )}
                 <div className="mt-3">
                   <StartConsultation
                     id={selected.id}

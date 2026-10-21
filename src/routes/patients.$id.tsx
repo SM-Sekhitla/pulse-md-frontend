@@ -1,3 +1,5 @@
+import { useAuth } from "@/context/AuthContext";
+import { PatientEditor } from "@/components/patient-editor";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { PatientDocuments } from "@/components/patient-documents";
 import { StartConsultation } from "@/components/start-consultation";
@@ -36,6 +38,8 @@ const TABS = [
 ] as const;
 
 function PatientDetail() {
+  const { user: account } = useAuth();
+  const clinical = ["owner", "doctor"].includes(account?.role || "");
   const { id } = useParams({ from: "/patients/$id" });
   const { appointment, patient, invoice, sicknote } = useData();
   const canBook = useModuleAccess(["appointments", "calendar"]);
@@ -45,6 +49,7 @@ function PatientDetail() {
 
   const [tab, setTab] = useState<(typeof TABS)[number]>("Overview");
 
+  const [editing, setEditing] = useState(false);
   const [p, setP] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -138,6 +143,12 @@ function PatientDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <ActionButton
+              className="gp-button border border-border"
+              onClick={() => setEditing(true)}
+            >
+              Edit patient
+            </ActionButton>
             {canBook && (
               <ActionBtn
                 icon={Calendar}
@@ -162,13 +173,15 @@ function PatientDetail() {
                 Issue sick note
               </ActionBtn>
             )}
-            <ActionButton
-              className="gp-button"
-              onClick={() => setTab("Clinical notes")}
-            >
-              <FileText size={16} />
-              Clinical notes
-            </ActionButton>
+            {clinical && (
+              <ActionButton
+                className="gp-button"
+                onClick={() => setTab("Clinical notes")}
+              >
+                <FileText size={16} />
+                Clinical notes
+              </ActionButton>
+            )}
             {canBill && (
               <ActionBtn
                 icon={Receipt}
@@ -203,11 +216,22 @@ function PatientDetail() {
             ))}
         </section>
       )}
+      {editing && (
+        <PatientEditor
+          patient={p}
+          onClose={() => setEditing(false)}
+          onSaved={(updated) => {
+            setP(updated);
+            setEditing(false);
+          }}
+        />
+      )}
       {/* Tabs */}
       <div className="mt-6 border-b border-border">
         <div className="flex gap-1 overflow-x-auto">
           {TABS.filter(
             (t) =>
+              (t !== "Clinical notes" || clinical) &&
               (t !== "Prescriptions" || canPrescribe) &&
               (t !== "Sick notes" || canIssueNote) &&
               (t !== "Billing" || canBill),
@@ -309,12 +333,19 @@ function Overview({ p }: { p: Patient }) {
         />
         <Row label="Gender" value={p.gender === "F" ? "Female" : "Male"} />
         <Row label="ID number" value={p.idNumber} mono />
-        <Row label="Address" value="Not recorded" />
+        <Row label="Address" value={p.address || "Not recorded"} />
       </Section>
       <Section title="Contact">
         <Row label="Mobile" value={p.phone} mono />
         <Row label="Email" value={p.email} />
-        <Row label="Emergency" value="Spouse · +27 82 555 9201" />
+        <Row
+          label="Emergency"
+          value={
+            [p.emergencyContactName, p.emergencyContactPhone]
+              .filter(Boolean)
+              .join(" · ") || "Not recorded"
+          }
+        />
       </Section>
       <MedicalAidCard p={p} />
       <Section title="Clinical">
@@ -335,23 +366,25 @@ function Overview({ p }: { p: Patient }) {
           </div>
         </div>
         <div className="mt-4">
-          <div className="label-caps">Current medications</div>
-          <div className="mt-2 space-y-1.5 text-[13px] text-navy">
-            {p.chronic.includes("Hypertension") ? (
-              <>
-                <div>• Amlodipine 5mg — once daily</div>
-                <div>• Hydrochlorothiazide 25mg — once daily</div>
-              </>
-            ) : (
-              <span className="text-muted-foreground">None recorded</span>
-            )}
-          </div>
+          <div className="label-caps">Medicines</div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            See the Prescriptions tab for issued medications. Current use must
+            be confirmed with the patient.
+          </p>
         </div>
         <div className="mt-4">
           <div className="label-caps">Vaccinations</div>
-          <div className="mt-2 text-[13px] text-navy">
-            Influenza (May 2024) · COVID-19 booster (Sep 2023)
-          </div>
+          <p className="mt-2 text-sm">
+            {p.vaccinations.length
+              ? p.vaccinations.join(" · ")
+              : "None recorded"}
+          </p>
+        </div>
+        <div className="mt-4 text-xs text-muted-foreground">
+          Consent:{" "}
+          {p.consentGiven
+            ? `Recorded${p.consentRecordedAt ? ` on ${format(parseISO(p.consentRecordedAt), "d MMM yyyy")}` : ""}`
+            : "Not recorded"}
         </div>
       </Section>
     </div>
@@ -370,12 +403,15 @@ function MedicalAidCard({ p }: { p: Patient }) {
         <div className="text-[12px] font-semibold text-navy">Medical aid</div>
         <div className="flex items-center gap-2">
           {isMedicalAid && <Badge variant="success">Medical aid</Badge>}
-          <Link
+          <span className="text-xs text-muted-foreground">
+            Update using Edit patient
+          </span>
+          {/*<Link
             to="/patients/new"
             className="text-[12.5px] font-medium text-blue hover:underline"
           >
             {isMedicalAid ? "Edit" : "Add medical aid"}
-          </Link>
+          </Link>*/}
         </div>
       </div>
 

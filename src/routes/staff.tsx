@@ -25,7 +25,8 @@ function Staff() {
   const [openAdd, setOpenAdd] = useState(false);
   const [manageId, setManageId] = useState<string | null>(null);
   const manage = staff.find((s) => s.id === manageId) || null;
-  const refreshStaff = () => queryClient.invalidateQueries({ queryKey: ["staff"] });
+  const refreshStaff = () =>
+    queryClient.invalidateQueries({ queryKey: ["staff"] });
 
   return (
     <AppShell title="Staff & roles">
@@ -33,16 +34,16 @@ function Staff() {
         <div>
           <div className="label-caps">My team</div>
           <h2 className="text-[22px] font-semibold text-navy">
-          {isLoading
-            ? "Loading your team..."
-            : `You have ${staff.length} receptionist${staff.length === 1 ? "" : "s"}.`}
+            {isLoading
+              ? "Loading your team..."
+              : `You have ${staff.length} team member${staff.length === 1 ? "" : "s"}.`}
           </h2>
         </div>
         <ActionButton
           onClick={() => setOpenAdd(true)}
           className="inline-flex items-center gap-1.5 rounded-md bg-blue px-3.5 py-2 text-[13px] font-medium text-white hover:opacity-90"
         >
-          <Plus className="h-4 w-4" /> Add receptionist
+          <Plus className="h-4 w-4" /> Add team member
         </ActionButton>
       </div>
 
@@ -52,7 +53,7 @@ function Staff() {
             <Plus className="h-6 w-6" />
           </div>
           <div className="text-[16px] font-semibold text-navy">
-            No receptionists added yet
+            No team members added yet
           </div>
           <p className="mx-auto mt-2 max-w-[360px] text-[13px] text-muted-foreground">
             Add a receptionist to help manage appointments and patient
@@ -62,7 +63,7 @@ function Staff() {
             onClick={() => setOpenAdd(true)}
             className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
           >
-            <Plus className="h-4 w-4" /> Add receptionist
+            <Plus className="h-4 w-4" /> Add team member
           </ActionButton>
         </div>
       ) : (
@@ -144,10 +145,14 @@ function AddModal({ onClose }: { onClose: () => void }) {
   const [last, setLast] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("receptionist");
+  const [hpcsa, setHpcsa] = useState("");
   const [error, setError] = useState<string | null>(null);
   const invite = useMutation({
     mutationFn: async () => {
       const res = await API.post("/users/staff/invite", {
+        role,
+        hpcsa: role === "doctor" ? hpcsa : undefined,
         firstName: first,
         lastName: last,
         email,
@@ -177,8 +182,22 @@ function AddModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Add receptionist" onClose={onClose}>
+    <Modal title="Add team member" onClose={onClose}>
       <ActionForm onSubmit={submit} className="space-y-4">
+        <label className="block text-sm">
+          Role
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="ml-3 rounded border p-2"
+          >
+            <option value="receptionist">Receptionist</option>
+            <option value="doctor">Doctor</option>
+          </select>
+        </label>
+        {role === "doctor" && (
+          <Input label="HPCSA number" value={hpcsa} onChange={setHpcsa} />
+        )}
         <div className="grid gap-3 md:grid-cols-2">
           <Input label="First name" value={first} onChange={setFirst} />
           <Input label="Last name" value={last} onChange={setLast} />
@@ -224,7 +243,11 @@ function ManageModal({ u, onClose }: { u: User; onClose: () => void }) {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["staff"] });
 
   const save = async () => {
-    await API.patch(`/users/${u.id}`, { firstName: first, lastName: last, phone });
+    await API.patch(`/users/${u.id}`, {
+      firstName: first,
+      lastName: last,
+      phone,
+    });
     refresh();
     setEditing(false);
     onClose();

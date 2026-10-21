@@ -34,6 +34,7 @@ export const appointmentSchema = z
 
     tenantId: z.string().optional(),
 
+    gpId: z.string().nullable().optional(),
     patientId: z.string(),
     patientName: z.string().min(1),
 
@@ -62,6 +63,7 @@ export const appointmentCreateSchema = z
   .object({
     tenantId: z.string().optional(),
 
+    gpId: z.string().nullable().optional(),
     patientId: z.string(),
     patientName: z.string().min(1),
 
@@ -90,6 +92,7 @@ export const appointmentUpdateSchema = z
   .object({
     tenantId: z.string().optional(),
 
+    gpId: z.string().nullable().optional(),
     patientId: z.string().optional(),
     patientName: z.string().min(1).optional(),
 
@@ -107,13 +110,11 @@ export const appointmentUpdateSchema = z
   })
   .refine(
     (data) =>
-      !data.start ||
-      !data.end ||
-      new Date(data.end) > new Date(data.start),
+      !data.start || !data.end || new Date(data.end) > new Date(data.start),
     {
       message: "End time must be after start time",
       path: ["end"],
-    }
+    },
   );
 
 //

@@ -1,3 +1,5 @@
+import { PracticeSettings } from "@/components/practice-settings";
+import { Link } from "@/lib/router-compat";
 import { SignatureTemplate } from "@/components/signature-template";
 import { useAuth } from "@/context/AuthContext";
 import { ActionButton } from "@/components/action-feedback";
@@ -20,14 +22,10 @@ const TABS = [
   "Practice profile",
   "Signature",
   "Working hours",
-  "Appointment types",
-  "Notifications",
   "Medical aid schemes",
-  "Billing defaults",
   "Integrations",
-  "Subscription",
   "Security",
-  "Data & compliance",
+  "Data & support",
 ] as const;
 
 function Settings() {
@@ -51,17 +49,19 @@ function Settings() {
     <AppShell title="Settings">
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <nav className="pulse-card p-2">
-          {TABS.filter((t) => t !== "Signature" || user?.role === "owner").map(
-            (t) => (
-              <ActionButton
-                key={t}
-                onClick={() => setTab(t)}
-                className={`block w-full rounded-md px-3 py-2 text-left text-[13px] transition-colors ${tab === t ? "bg-blue-tint text-blue font-medium" : "text-navy hover:bg-surface"}`}
-              >
-                {t}
-              </ActionButton>
-            ),
-          )}
+          {TABS.filter(
+            (t) =>
+              t !== "Signature" ||
+              ["owner", "doctor"].includes(user?.role || ""),
+          ).map((t) => (
+            <ActionButton
+              key={t}
+              onClick={() => setTab(t)}
+              className={`block w-full rounded-md px-3 py-2 text-left text-[13px] transition-colors ${tab === t ? "bg-blue-tint text-blue font-medium" : "text-navy hover:bg-surface"}`}
+            >
+              {t}
+            </ActionButton>
+          ))}
         </nav>
         <div className="pulse-card p-6">
           <h2 className="text-[18px] font-semibold text-navy">{tab}</h2>
@@ -69,35 +69,65 @@ function Settings() {
             Configure your practice settings for {tab.toLowerCase()}.
           </p>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {tab === "Signature" && user?.role === "owner" && (
-              <SignatureTemplate />
+            {tab === "Signature" &&
+              ["owner", "doctor"].includes(user?.role || "") && (
+                <SignatureTemplate />
+              )}
+            {(tab === "Practice profile" || tab === "Working hours") &&
+              tenant &&
+              (user?.role === "owner" ? (
+                <PracticeSettings
+                  key={`${tenant.id}:${tab}`}
+                  tenant={tenant}
+                  hoursOnly={tab === "Working hours"}
+                />
+              ) : (
+                <p>Only the practice owner can change these settings.</p>
+              ))}
+            {tab === "Integrations" && (
+              <div className="md:col-span-2 space-y-3 text-sm">
+                <p>
+                  <strong>Claims:</strong> draft preparation and local
+                  validation are available. Live submission and benefit checks
+                  require a contracted switch integration.
+                </p>
+                <p>
+                  <strong>Voice:</strong> audio recording is available on
+                  supported browsers with microphone permission. Live dictation
+                  uses the browser speech service and is not guaranteed on every
+                  browser.
+                </p>
+                <p>
+                  <strong>Reminders:</strong> automated patient reminders are
+                  not enabled in this release.
+                </p>
+              </div>
             )}
-            {tab === "Practice profile" && (
-              <>
-                <Field
-                  label="Practice name"
-                  defaultValue={tenant?.name ?? ""}
-                />
-                <Field
-                  label="HPCSA practice number"
-                  defaultValue={tenant?.hpcsa ?? ""}
-                />
-                <Field label="VAT number" defaultValue={tenant?.vat ?? ""} />
-                <Field
-                  label="Phone"
-                  defaultValue={tenant?.owner?.phone ?? ""}
-                />
-                <Field
-                  label="Email"
-                  defaultValue={tenant?.owner?.email ?? ""}
-                />
-                <Field label="Website" defaultValue="" />
-                <Field
-                  full
-                  label="Physical address"
-                  defaultValue={tenant?.address ?? ""}
-                />
-              </>
+            {tab === "Security" && (
+              <div className="md:col-span-2 space-y-3">
+                <Link to="/change-password" className="gp-button border">
+                  Change password
+                </Link>
+                <p className="text-sm">
+                  Manage your signature PIN in the Signature tab. Sign out on
+                  shared computers when finished.
+                </p>
+              </div>
+            )}
+            {tab === "Data & support" && (
+              <div className="md:col-span-2 space-y-3 text-sm">
+                <p>
+                  Patient information can be corrected using Edit patient.
+                  Clinical documents and uploaded files are available from each
+                  patient profile.
+                </p>
+                <p>
+                  For account recovery or a practice export, contact your
+                  platform administrator. Include the request ID when reporting
+                  a failed operation; do not include patient records in an
+                  ordinary support message.
+                </p>
+              </div>
             )}
             {tab === "Medical aid schemes" && (
               <MedicalAidSchemesPanel
@@ -117,21 +147,7 @@ function Settings() {
                 onManagePlans={setEditingScheme}
               />
             )}
-            {tab !== "Signature" &&
-              tab !== "Practice profile" &&
-              tab !== "Medical aid schemes" && (
-                <div className="md:col-span-2 text-[13px] text-muted-foreground">
-                  Settings for {tab} will appear here.
-                </div>
-              )}
           </div>
-          {tab !== "Signature" && tab !== "Medical aid schemes" && (
-            <div className="mt-6 flex justify-end">
-              <ActionButton className="rounded-md bg-blue px-4 py-2 text-[13px] font-medium text-white hover:opacity-90">
-                Save changes
-              </ActionButton>
-            </div>
-          )}
         </div>
       </div>
       {editingScheme && (

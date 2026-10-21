@@ -1,9 +1,10 @@
 import { z } from "zod";
 
-export const apiDateTimeSchema = z.string().refine(
-  (value) => !Number.isNaN(Date.parse(value)),
-  { message: "Invalid datetime" }
-);
+export const apiDateTimeSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: "Invalid datetime",
+  });
 
 //
 // -------------------------------------------------
@@ -15,10 +16,11 @@ export const userRoleSchema = z.preprocess(
     "super-admin",
     "manager",
     "owner",
+    "doctor",
     "receptionist",
     "nurse",
     "patient",
-  ])
+  ]),
 );
 
 export const userStatusSchema = z.enum([
@@ -42,7 +44,11 @@ export const userSchema = z.object({
   email: z.string().email(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  title: z.string().nullable().default("").transform((value) => value ?? ""),
+  title: z
+    .string()
+    .nullable()
+    .default("")
+    .transform((value) => value ?? ""),
 
   role: userRoleSchema.default("owner"),
   tenantId: z.string().nullable(),

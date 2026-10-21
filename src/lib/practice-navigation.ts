@@ -175,6 +175,17 @@ const RECEPTIONIST_NAV: NavGroup[] = [
       },
     ],
   },
+  {
+    label: "Billing",
+    items: [
+      {
+        to: "/billing",
+        label: "Billing & invoices",
+        icon: Receipt,
+        module: "billing",
+      },
+    ],
+  },
 ];
 
 export function practiceModules(
@@ -187,7 +198,7 @@ export function practiceModules(
   return new Set(
     role === "receptionist"
       ? modules.filter((module) =>
-          ["patients", "appointments", "calendar"].includes(module),
+          ["patients", "appointments", "calendar", "billing"].includes(module),
         )
       : modules,
   );
@@ -204,8 +215,14 @@ export function practiceNavigation(
       ...group,
       items: group.items.filter(
         (item) =>
+          item.to !== "/equipment" &&
           (!item.module || enabled.has(item.module)) &&
-          (item.to !== "/claims" || role === "owner" || role === "manager"),
+          (role !== "doctor" ||
+            !["/staff", "/reports", "/billing"].includes(item.to)) &&
+          (item.to !== "/claims" ||
+            role === "owner" ||
+            role === "manager" ||
+            role === "doctor"),
       ),
     }))
     .filter((group) => group.items.length);

@@ -50,12 +50,12 @@ const PLAN_DETAILS: Record<
   Starter: {
     price: "R799",
     blurb: "For a solo GP getting the basics live.",
-    features: ["Online bookings", "Patient records", "Billing basics"],
+    features: ["Online bookings", "Patient records", "Daily scheduling"],
   },
   Growth: {
     price: "R1,799",
     blurb: "For practices ready to automate the front desk.",
-    features: ["Everything in Starter", "Reminders", "Reports"],
+    features: ["Everything in Starter", "Billing & inventory", "Reports"],
   },
   Enterprise: {
     price: "Custom",

@@ -1,3 +1,5 @@
+import { downloadCsv } from "@/lib/csv";
+import { matchesPatient } from "@/lib/patient-search";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
@@ -13,7 +15,7 @@ export const Route = createFileRoute("/patients/")({
 });
 
 function PatientsList() {
-  const { appointment, patient, invoice, } = useData();
+  const { appointment, patient, invoice } = useData();
 
   const [q, setQ] = useState("");
   const [scheme, setScheme] = useState("");
@@ -21,16 +23,16 @@ function PatientsList() {
   const filtered = useMemo(() => {
     return patient.patients.filter((p) => {
       const matchQ = q
-        ? `${p.firstName} ${p.lastName} ${p.idNumber} ${p.phone}`
-            .toLowerCase()
-            .includes(q.toLowerCase())
+        ? matchesPatient(q, p) || p.idNumber.includes(q.trim())
         : true;
       const matchS = scheme ? p.medicalAid === scheme : true;
       return matchQ && matchS;
     });
   }, [patient.patients, q, scheme]);
 
-  const schemes = Array.from(new Set(patient.patients.map((p) => p.medicalAid)));
+  const schemes = Array.from(
+    new Set(patient.patients.map((p) => p.medicalAid)),
+  );
 
   return (
     <AppShell title="Patients">
@@ -42,7 +44,35 @@ function PatientsList() {
           </h2>
         </div>
         <div className="flex gap-2">
-          <ActionButton className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-2 text-[13px] font-medium text-navy hover:bg-surface">
+          <ActionButton
+            onClick={() =>
+              downloadCsv("patients.csv", [
+                [
+                  "First name",
+                  "Surname",
+                  "Date of birth",
+                  "ID / passport",
+                  "Phone",
+                  "Email",
+                  "Address",
+                  "Medical aid",
+                  "Active",
+                ],
+                ...filtered.map((p) => [
+                  p.firstName,
+                  p.lastName,
+                  p.dob.slice(0, 10),
+                  p.idNumber,
+                  p.phone,
+                  p.email,
+                  p.address,
+                  p.medicalAid,
+                  p.active,
+                ]),
+              ])
+            }
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-2 text-[13px] font-medium text-navy hover:bg-surface"
+          >
             <Download className="h-4 w-4" /> Export CSV
           </ActionButton>
           <Link
@@ -77,9 +107,6 @@ function PatientsList() {
               </option>
             ))}
           </select>
-          <ActionButton className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-white px-3 text-[13px] text-navy hover:bg-surface">
-            <Filter className="h-4 w-4" /> More filters
-          </ActionButton>
         </div>
 
         <div className="overflow-x-auto">

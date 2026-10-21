@@ -7,13 +7,34 @@ import { apiDateTimeSchema } from "./user";
 // -------------------------------------------------
 export const patientGenderSchema = z.enum(["M", "F"]);
 export const billingTypeSchema = z.enum(["private", "medical_aid"]);
-export const relationshipToMainSchema = z.enum(["self", "spouse", "child", "parent", "other"]);
+export const relationshipToMainSchema = z.enum([
+  "self",
+  "spouse",
+  "child",
+  "parent",
+  "other",
+]);
 
 const optionalString = z.preprocess(
   (value) => (value === null ? undefined : value),
   z.string().optional(),
 );
 
+const recordFields = {
+  title: optionalString.default(""),
+  address: optionalString.default(""),
+  emergencyContactName: optionalString.default(""),
+  emergencyContactPhone: optionalString.default(""),
+  vaccinations: z.array(z.string()).default([]),
+  consentGiven: z.boolean().default(false),
+  consentRecordedAt: apiDateTimeSchema.nullable().optional(),
+  consentRecordedBy: optionalString,
+  consentVersion: optionalString,
+};
+const patientEmail = z.preprocess(
+  (value) => (value == null ? "" : value),
+  z.union([z.string().email(), z.literal("")]),
+);
 const medicalAidFields = {
   billingType: billingTypeSchema.default("private"),
   medicalAidSchemeId: optionalString,
@@ -43,13 +64,14 @@ export const patientSchema = z.object({
 
   gender: patientGenderSchema,
 
-  idNumber: z.string().min(1),
+  idNumber: z.string().default(""),
 
   phone: z.string().min(1),
-  email: z.string().email(),
+  email: patientEmail,
 
   medicalAid: optionalString.default("Private"),
   ...medicalAidFields,
+  ...recordFields,
 
   allergies: z.array(z.string()).default([]),
   chronic: z.array(z.string()).default([]),
@@ -73,13 +95,14 @@ export const patientCreateSchema = z.object({
 
   gender: patientGenderSchema,
 
-  idNumber: z.string().min(1),
+  idNumber: z.string().default(""),
 
   phone: z.string().min(1),
-  email: z.string().email(),
+  email: patientEmail,
 
   medicalAid: optionalString.default("Private"),
   ...medicalAidFields,
+  ...recordFields,
 
   allergies: z.array(z.string()).default([]),
   chronic: z.array(z.string()).default([]),
@@ -92,6 +115,11 @@ export const patientCreateSchema = z.object({
 // Update Patient
 // -------------------------------------------------
 export const patientUpdateSchema = z.object({
+  address: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  vaccinations: z.array(z.string()).optional(),
+  consentGiven: z.boolean().optional(),
   tenantId: optionalString,
 
   firstName: z.string().min(1).optional(),
@@ -101,10 +129,10 @@ export const patientUpdateSchema = z.object({
 
   gender: patientGenderSchema.optional(),
 
-  idNumber: z.string().min(1).optional(),
+  idNumber: z.string().optional(),
 
   phone: z.string().min(1).optional(),
-  email: z.string().email().optional(),
+  email: patientEmail.optional(),
 
   medicalAid: optionalString,
   billingType: billingTypeSchema.optional(),
@@ -125,7 +153,6 @@ export const patientUpdateSchema = z.object({
 
   active: z.boolean().optional(),
 });
-
 
 export const patientStatusUpdateSchema = z.object({
   active: z.boolean(),

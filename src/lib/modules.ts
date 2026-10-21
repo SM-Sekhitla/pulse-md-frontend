@@ -28,13 +28,25 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
 
 export const PLAN_MODULES: Record<Plan, ModuleKey[]> = {
   Starter: ["patients", "appointments", "reports", "calendar"],
-  Growth: ["patients", "appointments", "billing", "inventory", "reports", "staff"],
+  Growth: [
+    "patients",
+    "appointments",
+    "calendar",
+    "billing",
+    "inventory",
+    "reports",
+    "staff",
+  ],
   Enterprise: [...MODULE_KEYS],
 };
 
-export function tenantEnabledModules(tenant: TenantOut | null | undefined): ModuleKey[] {
+export function tenantEnabledModules(
+  tenant: TenantOut | null | undefined,
+): ModuleKey[] {
   if (!tenant) return [...MODULE_KEYS];
   const planModules = PLAN_MODULES[tenant.plan];
   if (!tenant.enabledModules) return planModules;
-  return planModules.filter((module) => tenant.enabledModules?.includes(module));
+  return planModules.filter((module) =>
+    tenant.enabledModules?.includes(module),
+  );
 }

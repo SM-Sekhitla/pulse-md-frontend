@@ -1,13 +1,7 @@
-import React, {
-  createContext,
-  useContext,
-  type ReactNode,
-} from "react";
+import { useAuth } from "@/context/AuthContext";
+import React, { createContext, useContext, type ReactNode } from "react";
 
-import {
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import API from "@/utils/api";
 
@@ -35,28 +29,18 @@ import type {
 export const tenantKeys = {
   all: ["tenants"] as const,
 
-  lists: () =>
-    [...tenantKeys.all, "list"] as const,
+  lists: () => [...tenantKeys.all, "list"] as const,
 
-  detail: (id: string) =>
-    [...tenantKeys.all, "detail", id] as const,
+  detail: (id: string) => [...tenantKeys.all, "detail", id] as const,
 };
 
-export const fetchTenants = async (): Promise<
-  TenantOut[]
-> => {
+export const fetchTenants = async (): Promise<TenantOut[]> => {
   const res = await API.get("/tenants");
 
-  const result =
-    tenantOutSchema
-      .array()
-      .safeParse(res.data);
+  const result = tenantOutSchema.array().safeParse(res.data);
 
   if (!result.success) {
-    console.error(
-      "TENANT ZOD ERROR:",
-      result.error
-    );
+    console.error("TENANT ZOD ERROR:", result.error);
 
     if (!Array.isArray(res.data)) {
       return [];
@@ -85,59 +69,35 @@ interface TenantContextType {
   tenants: TenantOut[];
   isLoading: boolean;
 
-  getTenant: (
-    id: string
-  ) => Promise<TenantOut | null>;
+  getTenant: (id: string) => Promise<TenantOut | null>;
 
-  getTenantBySlug: (
-    slug: string
-  ) => Promise<TenantOut | null>;
+  getTenantBySlug: (slug: string) => Promise<TenantOut | null>;
 
-  createTenant: (
-    data: TenantCreate
-  ) => Promise<Tenant>;
+  createTenant: (data: TenantCreate) => Promise<Tenant>;
 
-  updateTenant: (
-    id: string,
-    data: TenantUpdate
-  ) => Promise<Tenant | null>;
+  updateTenant: (id: string, data: TenantUpdate) => Promise<Tenant | null>;
 
   updateTenantStatus: (
     id: string,
-    status: TenantStatus
+    status: TenantStatus,
   ) => Promise<Tenant | null>;
 
-  updateTenantPlan: (
-    id: string,
-    plan: Plan
-  ) => Promise<Tenant | null>;
+  updateTenantPlan: (id: string, plan: Plan) => Promise<Tenant | null>;
 
-  approveTenant: (
-    id: string
-  ) => Promise<Tenant | null>;
+  approveTenant: (id: string) => Promise<Tenant | null>;
 
-  rejectTenant: (
-    id: string,
-    reason: string
-  ) => Promise<Tenant | null>;
+  rejectTenant: (id: string, reason: string) => Promise<Tenant | null>;
 
-  suspendTenant: (
-    id: string,
-    reason: string
-  ) => Promise<Tenant | null>;
+  suspendTenant: (id: string, reason: string) => Promise<Tenant | null>;
 
-  deleteTenant: (
-    id: string
-  ) => Promise<Tenant | null>;
+  deleteTenant: (id: string) => Promise<Tenant | null>;
 }
 
 //
 // -------------------------------------------------
 // Context
 // -------------------------------------------------
-const TenantContext = createContext<
-  TenantContextType | undefined
->(undefined);
+const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
 //
 // -------------------------------------------------
@@ -147,9 +107,7 @@ export const useTenants = () => {
   const ctx = useContext(TenantContext);
 
   if (!ctx) {
-    throw new Error(
-      "useTenants must be used within TenantProvider"
-    );
+    throw new Error("useTenants must be used within TenantProvider");
   }
 
   return ctx;
@@ -159,39 +117,28 @@ export const useTenants = () => {
 // -------------------------------------------------
 // Provider
 // -------------------------------------------------
-export function TenantProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function TenantProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { user, loading: authLoading } = useAuth();
 
   //
   // ---------------- GET ALL ----------------
   //
-  const {
-    data: tenants = [],
-    isLoading,
-  } = useQuery({
+  const { data: tenants = [], isLoading } = useQuery({
     queryKey: tenantKeys.lists(),
 
     queryFn: fetchTenants,
+    enabled: !authLoading && !!user,
   });
 
   //
   // ---------------- GET ONE ----------------
   //
-  const getTenant = async (
-    id: string
-  ): Promise<TenantOut | null> => {
+  const getTenant = async (id: string): Promise<TenantOut | null> => {
     try {
-      const res = await API.get(
-        `/tenants/${id}`
-      );
+      const res = await API.get(`/tenants/${id}`);
 
-      return tenantOutSchema.parse(
-        res.data
-      );
+      return tenantOutSchema.parse(res.data);
     } catch {
       return null;
     }
@@ -200,27 +147,15 @@ export function TenantProvider({
   //
   // ---------------- CREATE ----------------
   //
-  const createTenant = async (
-    data: TenantCreate
-  ): Promise<Tenant> => {
-    const parsedInput =
-      tenantCreateSchema.parse(
-        data
-      );
+  const createTenant = async (data: TenantCreate): Promise<Tenant> => {
+    const parsedInput = tenantCreateSchema.parse(data);
 
-    const res = await API.post(
-      "/tenants",
-      parsedInput
-    );
+    const res = await API.post("/tenants", parsedInput);
 
-    const parsed =
-      tenantSchema.parse(
-        res.data
-      );
+    const parsed = tenantSchema.parse(res.data);
 
     queryClient.invalidateQueries({
-      queryKey:
-        tenantKeys.lists(),
+      queryKey: tenantKeys.lists(),
     });
 
     return parsed;
@@ -229,92 +164,66 @@ export function TenantProvider({
   //
   // ---------------- UPDATE STATUS ----------------
   //
-  const updateTenantStatus =
-    async (
-      id: string,
-      status: TenantStatus
-    ): Promise<Tenant | null> => {
-      try {
-        const res = await API.patch(
-          `/tenants/${id}/status`,
-          { status }
-        );
+  const updateTenantStatus = async (
+    id: string,
+    status: TenantStatus,
+  ): Promise<Tenant | null> => {
+    try {
+      const res = await API.patch(`/tenants/${id}/status`, { status });
 
-        const parsed =
-          tenantSchema.parse(
-            res.data
-          );
+      const parsed = tenantSchema.parse(res.data);
 
-        queryClient.invalidateQueries({
-          queryKey:
-            tenantKeys.lists(),
-        });
+      queryClient.invalidateQueries({
+        queryKey: tenantKeys.lists(),
+      });
 
-        queryClient.invalidateQueries({
-          queryKey:
-            tenantKeys.detail(id),
-        });
+      queryClient.invalidateQueries({
+        queryKey: tenantKeys.detail(id),
+      });
 
-        return parsed;
-      } catch {
-        return null;
-      }
-    };
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
 
   //
   // ---------------- UPDATE PLAN ----------------
   //
-  const updateTenantPlan =
-    async (
-      id: string,
-      plan: Plan
-    ): Promise<Tenant | null> => {
-      try {
-        const res = await API.patch(
-          `/tenants/${id}/plan`,
-          { plan }
-        );
+  const updateTenantPlan = async (
+    id: string,
+    plan: Plan,
+  ): Promise<Tenant | null> => {
+    try {
+      const res = await API.patch(`/tenants/${id}/plan`, { plan });
 
-        const parsed =
-          tenantSchema.parse(
-            res.data
-          );
+      const parsed = tenantSchema.parse(res.data);
 
-        queryClient.invalidateQueries({
-          queryKey:
-            tenantKeys.lists(),
-        });
+      queryClient.invalidateQueries({
+        queryKey: tenantKeys.lists(),
+      });
 
-        queryClient.invalidateQueries({
-          queryKey:
-            tenantKeys.detail(id),
-        });
+      queryClient.invalidateQueries({
+        queryKey: tenantKeys.detail(id),
+      });
 
-        return parsed;
-      } catch {
-        return null;
-      }
-    };
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
 
   //
   // ---------------- DELETE ----------------
   //
-  const deleteTenant = async (
-    id: string
-  ): Promise<Tenant | null> => {
+  const deleteTenant = async (id: string): Promise<Tenant | null> => {
     try {
-      const res = await API.delete(
-        `/tenants/${id}`
-      );
+      const res = await API.delete(`/tenants/${id}`);
 
-      const parsed =
-        tenantSchema.parse(
-          res.data
-        );
+      const parsed = tenantSchema.parse(res.data);
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.lists(),
+        queryKey: tenantKeys.lists(),
       });
 
       return parsed;
@@ -323,49 +232,33 @@ export function TenantProvider({
     }
   };
 
-  const getTenantBySlug = async (
-    slug: string
-  ): Promise<TenantOut | null> => {
+  const getTenantBySlug = async (slug: string): Promise<TenantOut | null> => {
     try {
-      const res = await API.get(
-        `/tenants/slug/${slug}`
-      );
+      const res = await API.get(`/tenants/slug/${slug}`);
 
-      return tenantOutSchema.parse(
-        res.data
-      );
+      return tenantOutSchema.parse(res.data);
     } catch {
       return null;
     }
   };
-
 
   const updateTenant = async (
     id: string,
-    data: TenantUpdate
+    data: TenantUpdate,
   ): Promise<Tenant | null> => {
     try {
-      const parsedInput =
-        tenantUpdateSchema.parse(data);
+      const parsedInput = tenantUpdateSchema.parse(data);
 
-      const res = await API.patch(
-        `/tenants/${id}`,
-        parsedInput
-      );
+      const res = await API.patch(`/tenants/${id}`, parsedInput);
 
-      const parsed =
-        tenantSchema.parse(
-          res.data
-        );
+      const parsed = tenantSchema.parse(res.data);
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.lists(),
+        queryKey: tenantKeys.lists(),
       });
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.detail(id),
+        queryKey: tenantKeys.detail(id),
       });
 
       return parsed;
@@ -374,28 +267,18 @@ export function TenantProvider({
     }
   };
 
-
-  const approveTenant = async (
-    id: string
-  ): Promise<Tenant | null> => {
+  const approveTenant = async (id: string): Promise<Tenant | null> => {
     try {
-      const res = await API.patch(
-        `/tenants/${id}/approve`
-      );
+      const res = await API.patch(`/tenants/${id}/approve`);
 
-      const parsed =
-        tenantSchema.parse(
-          res.data
-        );
+      const parsed = tenantSchema.parse(res.data);
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.lists(),
+        queryKey: tenantKeys.lists(),
       });
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.detail(id),
+        queryKey: tenantKeys.detail(id),
       });
 
       return parsed;
@@ -403,31 +286,22 @@ export function TenantProvider({
       return null;
     }
   };
-
 
   const rejectTenant = async (
     id: string,
-    reason: string
+    reason: string,
   ): Promise<Tenant | null> => {
     try {
-      const res = await API.patch(
-        `/tenants/${id}/reject`,
-        { reason }
-      );
+      const res = await API.patch(`/tenants/${id}/reject`, { reason });
 
-      const parsed =
-        tenantSchema.parse(
-          res.data
-        );
+      const parsed = tenantSchema.parse(res.data);
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.lists(),
+        queryKey: tenantKeys.lists(),
       });
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.detail(id),
+        queryKey: tenantKeys.detail(id),
       });
 
       return parsed;
@@ -438,27 +312,19 @@ export function TenantProvider({
 
   const suspendTenant = async (
     id: string,
-    reason: string
+    reason: string,
   ): Promise<Tenant | null> => {
     try {
-      const res = await API.patch(
-        `/tenants/${id}/suspend`,
-        { reason }
-      );
+      const res = await API.patch(`/tenants/${id}/suspend`, { reason });
 
-      const parsed =
-        tenantSchema.parse(
-          res.data
-        );
+      const parsed = tenantSchema.parse(res.data);
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.lists(),
+        queryKey: tenantKeys.lists(),
       });
 
       queryClient.invalidateQueries({
-        queryKey:
-          tenantKeys.detail(id),
+        queryKey: tenantKeys.detail(id),
       });
 
       return parsed;
@@ -466,9 +332,6 @@ export function TenantProvider({
       return null;
     }
   };
-
-
-
 
   return (
     <TenantContext.Provider

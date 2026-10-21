@@ -67,12 +67,13 @@ export function NewPrescription({
   const owner = allUsers.find(
     (u) => u.role === "owner" && u.tenantId === tenant?.id,
   );
-  const gpName = owner
-    ? `${owner.title} ${owner.firstName} ${owner.lastName}`
+  const clinician = me?.role === "doctor" ? me : owner;
+  const gpName = clinician
+    ? `${clinician.title} ${clinician.firstName} ${clinician.lastName}`
     : me
       ? `${me.title} ${me.firstName} ${me.lastName}`
       : "Dr. M. Naidoo";
-  const hpcsa = owner?.hpcsa || tenant?.hpcsa || "";
+  const hpcsa = clinician?.hpcsa || tenant?.hpcsa || "";
 
   const [search, setSearch] = useState("");
   const [patientId, setPatientId] = useState<string>(

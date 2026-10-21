@@ -92,7 +92,7 @@ const features = [
   {
     icon: Package,
     title: "Inventory in focus",
-    body: "Track stock, monitor expiry dates and manage the equipment your team relies on.",
+    body: "Track medication stock, monitor expiry dates and record inventory movements.",
     detail:
       "Review stock levels and inventory movements to help your team plan ahead.",
   },
@@ -110,7 +110,7 @@ const plans = [
     name: "Starter",
     price: "799",
     description: "A simpler start for your solo practice.",
-    features: ["Online bookings", "Patient records", "Billing basics"],
+    features: ["Online bookings", "Patient records", "Daily scheduling"],
   },
   {
     name: "Growth",
@@ -118,7 +118,7 @@ const plans = [
     description: "More support for a growing practice.",
     features: [
       "Everything in Starter",
-      "Appointment reminders",
+      "Billing & inventory",
       "Practice reports",
     ],
   },

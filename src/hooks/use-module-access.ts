@@ -18,7 +18,13 @@ export function useModuleAccess(modules?: ModuleKey | ModuleKey[]): boolean {
     const tenant = tenants.find((item) => item.id === user.tenantId);
     if (!tenant) return false;
 
-    const allowed = tenantEnabledModules(tenant);
+    const allowed = tenantEnabledModules(tenant).filter((module) =>
+      user.role === "receptionist"
+        ? ["patients", "appointments", "calendar", "billing"].includes(module)
+        : user.role === "doctor"
+          ? !["staff", "equipment", "reports", "billing"].includes(module)
+          : true,
+    );
     const requested = Array.isArray(modules) ? modules : [modules];
     return requested.some((module) => allowed.includes(module));
   }, [isLoading, loading, modules, tenants, user]);

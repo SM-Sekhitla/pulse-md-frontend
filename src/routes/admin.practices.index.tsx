@@ -146,7 +146,7 @@ function AllPractices() {
                     </Badge>
                   </Td>
                   <Td className="text-muted-foreground">
-                    {format(parseISO(t.createdAt), "d MMM yyyy")}
+                    {t.createdAt ? format(parseISO(t.createdAt), "d MMM yyyy") : "Not recorded"}
                   </Td>
                   <Td className="text-muted-foreground">
                     {t.approvedAt

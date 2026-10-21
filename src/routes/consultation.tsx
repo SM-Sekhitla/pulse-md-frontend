@@ -39,6 +39,7 @@ type Content = {
   transcript: string;
 };
 type Session = Content & {
+  addenda?: Array<{ id: string; text: string; at: string; actorEmail: string }>;
   revision: number;
   startedAt: string;
   endedAt: string | null;
@@ -92,12 +93,19 @@ function Consultation({ id }: { id: string }) {
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  const [autosaving, setAutosaving] = useState(false);
+  const [autosavePaused, setAutosavePaused] = useState(false);
+  const [addendum, setAddendum] = useState("");
+  const latestNotes = useRef(notes);
+  latestNotes.current = notes;
   const [recording, setRecording] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
   const dirty = session && JSON.stringify(notes) !== saved;
   const guarded = useRef(false);
-  guarded.current = Boolean(dirty || recording || documentForm);
+  guarded.current = Boolean(
+    dirty || recording || documentForm || addendum.trim(),
+  );
   useEffect(() => {
     let live = true;
     API.get<Data>(`/appointments/${id}/consultation`)
@@ -173,9 +181,10 @@ function Consultation({ id }: { id: string }) {
       setBusy(false);
     }
   };
-  const save = async (complete = false) => {
+  const save = async (complete = false, automatic = false) => {
     if (!session || !data) return;
     setBusy(true);
+    setAutosaving(automatic);
     setError("");
     try {
       const payload = { ...notes, revision: session.revision };
@@ -185,7 +194,9 @@ function Consultation({ id }: { id: string }) {
             payload,
           )
         : await API.put<Session>(`/appointments/${id}/consultation`, payload);
-      accept(response.data);
+      setSession(response.data);
+      setSaved(JSON.stringify(content(response.data)));
+      setAutosavePaused(false);
       setConfirm(false);
       if (complete) {
         await cache.invalidateQueries({ queryKey: ["appointments"] });
@@ -198,10 +209,27 @@ function Consultation({ id }: { id: string }) {
       }
     } catch (e) {
       setError(getApiErrorMessage(e));
+      if (automatic) setAutosavePaused(true);
     } finally {
       setBusy(false);
+      setAutosaving(false);
     }
   };
+  useEffect(() => {
+    if (
+      !dirty ||
+      busy ||
+      recording ||
+      !session ||
+      session.endedAt ||
+      autosavePaused
+    )
+      return;
+    const timer = setTimeout(() => {
+      void save(false, true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [notes, saved, busy, recording, session, autosavePaused]);
   const elapsed = session
     ? Math.max(
         0,
@@ -217,7 +245,7 @@ function Consultation({ id }: { id: string }) {
     .padStart(2, "0")}:${Math.floor((elapsed / 60) % 60)
     .toString()
     .padStart(2, "0")}:${(elapsed % 60).toString().padStart(2, "0")}`;
-  const locked = busy || Boolean(session?.endedAt);
+  const locked = (busy && !autosaving) || Boolean(session?.endedAt);
   return (
     <AppShell title="Clinical consultation">
       <div className="consult-page">
@@ -418,6 +446,50 @@ function Consultation({ id }: { id: string }) {
                               </p>
                             ))}
                         </div>
+                      </section>
+                    )}
+                    {session.endedAt && (
+                      <section className="pulse-card my-4 p-5">
+                        <h3 className="font-semibold">Consultation addenda</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Original notes stay read-only. Corrections are dated
+                          and attributed to the author.
+                        </p>
+                        {session.addenda?.map((a) => (
+                          <div key={a.id} className="mt-3 border-t pt-3">
+                            <p className="whitespace-pre-wrap text-sm">
+                              {a.text}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(a.at).toLocaleString("en-ZA")} ·{" "}
+                              {a.actorEmail}
+                            </p>
+                          </div>
+                        ))}
+                        <label className="mt-4 block text-sm">
+                          New addendum
+                          <textarea
+                            rows={3}
+                            value={addendum}
+                            onChange={(e) => setAddendum(e.target.value)}
+                            className="mt-1 block w-full rounded border p-2"
+                          />
+                        </label>
+                        <ActionButton
+                          disabled={!addendum.trim()}
+                          className="gp-button gp-button-yellow mt-3"
+                          onClick={async () => {
+                            const response = await API.post<Session>(
+                              `/appointments/${id}/consultation/addenda`,
+                              { text: addendum },
+                            );
+                            setSession(response.data);
+                            setAddendum("");
+                            toast.success("Addendum recorded.");
+                          }}
+                        >
+                          Record addendum
+                        </ActionButton>
                       </section>
                     )}
                     <div className="consult-columns">

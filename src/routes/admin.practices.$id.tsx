@@ -135,7 +135,7 @@ function PracticeDetail() {
               <Row label="VAT" value={t.vat || "—"} mono />
               <Row
                 label="Registered"
-                value={format(parseISO(t.createdAt), "d MMM yyyy HH:mm")}
+                value={t.createdAt ? format(parseISO(t.createdAt), "d MMM yyyy HH:mm") : "Not recorded"}
               />
               <Row
                 label="Approved"

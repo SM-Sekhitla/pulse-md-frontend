@@ -944,7 +944,7 @@ function Shell({
   return (
     <div className="min-h-screen bg-surface">
       <section className="relative overflow-hidden bg-navy text-white">
-        <div className="absolute inset-0 bg-[url('/images/booking-hero.jpg')] bg-cover bg-center opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-br from-navy to-blue opacity-30" />
         <div className="absolute inset-0 bg-black/55" />
         <div className="absolute inset-0 bg-gradient-to-br from-black via-navy/95 to-blue/75" />
 

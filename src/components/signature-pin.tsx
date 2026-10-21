@@ -22,7 +22,7 @@ export function useSignaturePin(onFormError?: (message: string) => void) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function authorize(next: (pin?: string) => Promise<void>) {
-    if (user?.role !== "owner") {
+    if (!["owner", "doctor"].includes(user?.role || "")) {
       await next();
       return;
     }

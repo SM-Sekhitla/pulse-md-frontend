@@ -1,5 +1,8 @@
 import API, { getApiErrorMessage } from "@/utils/api";
-import { DEFAULT_MEDICAL_AID_SCHEMES, type MedicalAidScheme } from "@/lib/medical-aid";
+import {
+  DEFAULT_MEDICAL_AID_SCHEMES,
+  type MedicalAidScheme,
+} from "@/lib/medical-aid";
 import { tenantOutSchema } from "@/schema/tenant";
 import { appointmentSchema } from "@/schema/appointment";
 import type { Appointment, AppointmentType } from "@/types/appointment";
@@ -59,21 +62,28 @@ export interface PublicBookingConfirmation {
 }
 
 export async function getPublicBookingTenants(): Promise<PublicGP[]> {
-  const res = await API.get("/tenants");
+  const res = await API.get("/public/booking/practices");
   return tenantOutSchema
     .array()
     .parse(res.data)
-    .filter((tenant) => tenant.status === "active" && tenant.bookingEnabled && tenant.owner)
+    .filter(
+      (tenant) =>
+        tenant.status === "active" && tenant.bookingEnabled && tenant.owner,
+    )
     .map((tenant) => ({
       tenant,
       gp: tenant.owner!,
     }));
 }
 
-export async function getPublicGPBySlug(slug: string): Promise<PublicGP | null> {
+export async function getPublicGPBySlug(
+  slug: string,
+): Promise<PublicGP | null> {
   const practices = await getPublicBookingTenants();
   return (
-    practices.find(({ tenant }) => tenant.slug === slug || tenant.bookingSlug === slug) ?? null
+    practices.find(
+      ({ tenant }) => tenant.slug === slug || tenant.bookingSlug === slug,
+    ) ?? null
   );
 }
 
@@ -81,8 +91,11 @@ export async function getPublicAvailability(
   slug: string,
   days = 14,
 ): Promise<AvailabilityDay[]> {
-  const item = await getPublicGPBySlug(slug);
-  return item ? availabilityFromTenant(item.tenant, days) : [];
+  const response = await API.get(
+    `/public/booking/${encodeURIComponent(slug)}/availability`,
+    { params: { days } },
+  );
+  return response.data;
 }
 
 export async function getPublicMedicalAidSchemes(
@@ -151,7 +164,11 @@ function getPublicBookingErrorMessage(error: unknown): string {
     return "We could not create this booking because the patient details already exist in a different record. Please contact the practice.";
   }
 
-  if (status === 400 && message && !message.toLowerCase().includes("validation error")) {
+  if (
+    status === 400 &&
+    message &&
+    !message.toLowerCase().includes("validation error")
+  ) {
     return message;
   }
 
@@ -160,14 +177,22 @@ function getPublicBookingErrorMessage(error: unknown): string {
   }
 
   const fallback = getApiErrorMessage(error);
-  if (fallback.toLowerCase().includes("validation error") || fallback.includes("(Request ")) {
+  if (
+    fallback.toLowerCase().includes("validation error") ||
+    fallback.includes("(Request ")
+  ) {
     return "We could not create the booking right now. Please try again, or contact the practice.";
   }
 
-  return fallback || "We could not create the booking right now. Please try again.";
+  return (
+    fallback || "We could not create the booking right now. Please try again."
+  );
 }
 
-export function availabilityFromTenant(tenant: TenantOut, days: number): AvailabilityDay[] {
+export function availabilityFromTenant(
+  tenant: TenantOut,
+  days: number,
+): AvailabilityDay[] {
   const today = new Date();
   const now = new Date();
   const dayKeys = [
@@ -188,10 +213,13 @@ export function availabilityFromTenant(tenant: TenantOut, days: number): Availab
     const key = dayKeys[date.getDay()];
     const shortKey = key.slice(0, 3);
     const configured = tenant.workingHours?.find(
-      (item) => item.key.toLowerCase() === key || item.key.toLowerCase() === shortKey,
+      (item) =>
+        item.key.toLowerCase() === key || item.key.toLowerCase() === shortKey,
     );
     const weekday = date.getDay() > 0 && date.getDay() < 6;
-    const enabled = configured ? configured.enabled : weekday;
+    const enabled =
+      (configured ? configured.enabled : weekday) &&
+      !tenant.bookingBlockedDates?.includes(localDateKey(date));
     const start = configured?.start ?? "08:00";
     const end = configured?.end ?? "16:00";
     const slots: string[] = [];
@@ -200,13 +228,13 @@ export function availabilityFromTenant(tenant: TenantOut, days: number): Availab
       let cursor = toMinutes(start);
       const closing = toMinutes(end);
 
-      while (cursor + 30 <= closing) {
+      while (cursor + (tenant.bookingSlotMinutes || 30) <= closing) {
         const slot = fromMinutes(cursor);
         const slotDate = new Date(date);
         slotDate.setHours(Math.floor(cursor / 60), cursor % 60, 0, 0);
 
         if (slotDate > now) slots.push(slot);
-        cursor += 30;
+        cursor += tenant.bookingSlotMinutes || 30;
       }
     }
 

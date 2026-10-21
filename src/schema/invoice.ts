@@ -22,10 +22,7 @@ const optionalDateOnlyString = z.preprocess((value) => {
 // -------------------------------------------------
 // Enums
 // -------------------------------------------------
-export const invoiceTypeSchema = z.enum([
-  "Medical aid",
-  "Private",
-]);
+export const invoiceTypeSchema = z.enum(["Medical aid", "Private"]);
 
 export const invoiceStatusSchema = z.enum([
   "Draft",
@@ -59,6 +56,31 @@ const tariffCodeSchema = z.object({
   amount: z.number().min(0),
 });
 
+const paymentFields = {
+  voidReason: optionalString,
+  voidedAt: optionalString,
+  voidedBy: optionalString,
+  payments: z
+    .array(
+      z.object({
+        id: z.string(),
+        amountCents: z.number().int(),
+        payer: z.string(),
+        kind: z.string(),
+        method: z.string(),
+        receivedDate: z.string(),
+        reference: z.string(),
+        reason: z.string().default(""),
+        recordedBy: z.string(),
+        recordedAt: z.string(),
+      }),
+    )
+    .default([]),
+  patientPaidAmount: z.number().default(0),
+  totalPaidAmount: z.number().nullable().optional(),
+  balanceAmount: z.number().nullable().optional(),
+  paymentRevision: z.number().default(0),
+};
 const medicalAidInvoiceFields = {
   billingType: billingTypeSchema.default("private"),
   medicalAidSchemeId: optionalString,
@@ -100,6 +122,7 @@ export const invoiceSchema = z
     type: invoiceTypeSchema,
     status: invoiceStatusSchema.default("Draft"),
     ...medicalAidInvoiceFields,
+    ...paymentFields,
   })
   .refine((data) => new Date(data.dueDate) >= new Date(data.date), {
     message: "Due date must be on or after invoice date",
@@ -177,23 +200,17 @@ export const invoiceUpdateSchema = z
     {
       message: "Due date must be on or after invoice date",
       path: ["dueDate"],
-    }
+    },
   );
-
 
 export const invoiceStatusUpdateSchema = z
   .object({
-    
     status: invoiceStatusSchema.optional(),
   })
-  .refine(
-    (data) =>
-      !!data.status, 
-    {
-      message: "Select a new status",
-      path: ["status"],
-    }
-  );
+  .refine((data) => !!data.status, {
+    message: "Select a new status",
+    path: ["status"],
+  });
 
 //
 // -------------------------------------------------

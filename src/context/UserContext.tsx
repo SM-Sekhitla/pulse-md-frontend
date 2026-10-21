@@ -78,7 +78,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const queryClient = useQueryClient();
   const { user, loading } = useAuth();
-  const canFetchUsers = useModuleAccess("staff");
+  const canFetchUsers = useModuleAccess(["staff", "appointments", "calendar", "prescriptions", "sick_notes"]);
   const canFetchStats = !loading && isSuperAdminRole(user?.role);
 
   // 🔹 FETCH ALL USERS
@@ -86,7 +86,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     queryKey: userKeys.all,
     enabled: canFetchUsers,
     queryFn: async () => {
-      const res = await API.get("/users");
+      const res = await API.get(isSuperAdminRole(user?.role) ? "/users" : "/users/clinicians");
       const result = userSchema.array().safeParse(res.data);
 
       if (result.success) {

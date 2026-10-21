@@ -1,3 +1,5 @@
+import API from "@/utils/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
@@ -63,6 +65,7 @@ const DEFAULT_AVAILABILITY: BookingAvailability = {
 function AvailabilityPage() {
   const { tenant: tenantData } = useData();
   const tenant = useCurrentTenant();
+  const cache = useQueryClient();
 
   const [month, setMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -71,7 +74,13 @@ function AvailabilityPage() {
 
   useEffect(() => {
     if (!tenant) return;
-    setAv(availabilityFromTenant(tenant));
+    setAv({
+      ...availabilityFromTenant(tenant),
+      slotMinutes: tenant.bookingSlotMinutes || 30,
+      breakStart: tenant.bookingBreakStart || undefined,
+      breakEnd: tenant.bookingBreakEnd || undefined,
+    });
+    setHolidays(tenant.bookingBlockedDates || []);
   }, [tenant]);
 
   const selectedKey = format(selectedDate, "yyyy-MM-dd");
@@ -87,8 +96,8 @@ function AvailabilityPage() {
         (av.breakStart && av.breakEnd
           ? toMin(av.breakEnd) - toMin(av.breakStart)
           : 0)) /
-        av.slotMinutes
-    )
+        av.slotMinutes,
+    ),
   );
 
   const calendarDays = useMemo(() => {
@@ -148,14 +157,26 @@ function AvailabilityPage() {
       return;
     }
 
+    if (
+      !!av.breakStart !== !!av.breakEnd ||
+      (av.breakStart && av.breakEnd && av.breakStart >= av.breakEnd)
+    ) {
+      toast.error("Set valid break start and end times.");
+      return;
+    }
     if (av.slotMinutes < 5 || av.slotMinutes > 120) {
       toast.error("Slot duration must be 5–120 minutes");
       return;
     }
 
-    await tenantData.updateTenant(tenant.id, {
+    await API.patch(`/tenants/${tenant.id}/profile`, {
+      bookingBreakStart: av.breakStart || null,
+      bookingBreakEnd: av.breakEnd || null,
+      bookingSlotMinutes: av.slotMinutes,
+      bookingBlockedDates: holidays,
       workingHours: toWorkingHours(av),
     });
+    await cache.invalidateQueries({ queryKey: ["tenants"] });
     toast.success("Availability saved");
   };
 
@@ -171,7 +192,8 @@ function AvailabilityPage() {
                 Manage appointment availability
               </h1>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                Click a day on the calendar to open, close, or manage booking hours.
+                Click a day on the calendar to open, close, or manage booking
+                hours.
               </p>
             </div>
 
@@ -241,7 +263,9 @@ function AvailabilityPage() {
                     } ${muted ? "opacity-40" : ""}`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[15px] font-semibold">{format(day, "d")}</span>
+                      <span className="text-[15px] font-semibold">
+                        {format(day, "d")}
+                      </span>
 
                       {blocked ? (
                         <Lock className="h-3.5 w-3.5" />
@@ -261,7 +285,11 @@ function AvailabilityPage() {
                               : "bg-slate-100 text-muted-foreground"
                       }`}
                     >
-                      {blocked ? "Blocked" : working ? `${slotsPerDay} slots` : "Closed"}
+                      {blocked
+                        ? "Blocked"
+                        : working
+                          ? `${slotsPerDay} slots`
+                          : "Closed"}
                     </div>
                   </ActionButton>
                 );
@@ -283,7 +311,7 @@ function AvailabilityPage() {
                 {format(selectedDate, "d MMMM yyyy")}
               </div>
 
-             <ActionButton
+              <ActionButton
                 type="button"
                 onClick={toggleSelectedDayAvailability}
                 className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-semibold text-white transition ${
@@ -309,7 +337,9 @@ function AvailabilityPage() {
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-blue" />
-                <h2 className="text-[15px] font-semibold text-navy">Booking hours</h2>
+                <h2 className="text-[15px] font-semibold text-navy">
+                  Booking hours
+                </h2>
               </div>
 
               <div className="mt-4 grid gap-4">
@@ -331,7 +361,10 @@ function AvailabilityPage() {
                   <select
                     value={av.slotMinutes}
                     onChange={(e) =>
-                      setAv((s) => ({ ...s, slotMinutes: Number(e.target.value) }))
+                      setAv((s) => ({
+                        ...s,
+                        slotMinutes: Number(e.target.value),
+                      }))
                     }
                     className={inputClass}
                   >
@@ -365,12 +398,12 @@ function AvailabilityPage() {
               </div>
 
               <div className="mt-4 rounded-xl bg-navy/5 px-4 py-3 text-[13px] text-navy">
-                <span className="font-semibold">≈ {slotsPerDay} slots</span> per open day.
+                <span className="font-semibold">≈ {slotsPerDay} slots</span> per
+                open day.
               </div>
             </div>
 
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-
               <div className="mt-4 grid gap-2">
                 <ActionButton
                   type="button"
@@ -407,7 +440,13 @@ function AvailabilityPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -450,7 +489,8 @@ function availabilityFromTenant(tenant: TenantOut): BookingAvailability {
     tenant.workingHours
       ?.filter((item) => item.enabled)
       .map((item) => DAYS.find((day) => day.key === item.key)?.v)
-      .filter((value): value is number => value !== undefined) ?? DEFAULT_AVAILABILITY.workDays;
+      .filter((value): value is number => value !== undefined) ??
+    DEFAULT_AVAILABILITY.workDays;
 
   return {
     ...DEFAULT_AVAILABILITY,
