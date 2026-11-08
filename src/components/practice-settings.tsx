@@ -43,7 +43,7 @@ export function PracticeSettings({
   );
   return (
     <ActionForm
-      className="md:col-span-2 space-y-4"
+      className="portal-panel-enter md:col-span-2 space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
         if (hours.some((h) => h.enabled && h.start >= h.end))

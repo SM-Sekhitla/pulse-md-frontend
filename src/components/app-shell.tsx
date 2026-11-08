@@ -1,3 +1,5 @@
+import { usePortalMotion } from "@/hooks/use-portal-motion";
+import "./portal-motion.css";
 import { matchesPatient } from "@/lib/patient-search";
 import { getLoginRoute } from "@/lib/auth-routing";
 import { ActionButton } from "@/components/action-feedback";
@@ -86,6 +88,7 @@ export function AppShell({
     /\/$/,
     "",
   );
+  const motionRef = usePortalMotion(path);
   const tenant =
     tenantData.tenants.find((item) => item.id === user?.tenantId) ?? null;
 
@@ -441,8 +444,8 @@ export function AppShell({
             </span>
           </div>
         </header>
-        <main id="gp-main" className="gp-main" tabIndex={-1}>
-          <div className="gp-page-heading">
+        <main ref={motionRef} id="gp-main" className="gp-main" tabIndex={-1}>
+          <div key={path} className="gp-page-heading">
             <div>
               <p className="gp-eyebrow">
                 <span /> YOUR PRACTICE, CONNECTED

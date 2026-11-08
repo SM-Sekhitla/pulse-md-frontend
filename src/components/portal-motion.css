@@ -1,0 +1,182 @@
+/* Shared motion for the practice and administration workspaces. */
+:is(.gp-portal, .admin-portal) {
+  --portal-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+:is(.gp-portal, .admin-portal) :is(.gp-sidebar, .admin-sidebar) {
+  transition: width 260ms var(--portal-ease);
+}
+:is(.gp-portal, .admin-portal) :is(.gp-workspace, .admin-workspace) {
+  transition: margin-left 260ms var(--portal-ease);
+}
+:is(.gp-page-heading, .admin-page-heading),
+:is(.gp-main, .admin-main) .portal-panel-enter {
+  animation: portal-heading-in 300ms var(--portal-ease);
+}
+:is(.gp-kpi-grid, .admin-kpi-grid) > * {
+  animation: portal-card-in 360ms var(--portal-ease) backwards;
+}
+:is(.gp-kpi-grid, .admin-kpi-grid) > :nth-child(2) {
+  animation-delay: 45ms;
+}
+:is(.gp-kpi-grid, .admin-kpi-grid) > :nth-child(3) {
+  animation-delay: 90ms;
+}
+:is(.gp-kpi-grid, .admin-kpi-grid) > :nth-child(n + 4) {
+  animation-delay: 135ms;
+}
+
+:is(.gp-portal, .admin-portal) :is(.gp-kpi, .admin-kpi) {
+  transition:
+    box-shadow 200ms var(--portal-ease),
+    border-color 200ms,
+    translate 200ms var(--portal-ease);
+}
+:is(.gp-portal, .admin-portal)
+  :is(.gp-button, .admin-button, .gp-search-trigger, .admin-review-link) {
+  transition:
+    background-color 160ms,
+    color 160ms,
+    border-color 160ms,
+    box-shadow 180ms var(--portal-ease),
+    translate 160ms var(--portal-ease);
+}
+:is(.gp-nav-link, .admin-nav-link) {
+  position: relative;
+  transition:
+    background-color 180ms,
+    color 180ms,
+    box-shadow 180ms;
+}
+:is(.gp-nav-link, .admin-nav-link) > svg {
+  transition: translate 180ms var(--portal-ease);
+}
+:is(.gp-nav-link, .admin-nav-link).is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: currentColor;
+  translate: 0 -50%;
+  animation: portal-marker-in 180ms ease-out;
+}
+:is(.gp-main, .admin-main) :is(input, select, textarea) {
+  transition:
+    border-color 160ms,
+    box-shadow 160ms,
+    background-color 160ms;
+}
+:is(.gp-main, .admin-main) :is(input, select, textarea):focus-visible {
+  box-shadow: 0 0 0 3px rgb(255 204 83 / 14%);
+}
+:is(.gp-main, .admin-main) :is(button, a)[aria-pressed],
+:is(.gp-main, .admin-main) [role="tab"] {
+  transition:
+    color 160ms,
+    background-color 160ms,
+    border-color 160ms,
+    box-shadow 160ms;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.gp-portal, .admin-portal) :is(.gp-kpi, .admin-kpi):hover {
+    translate: 0 -3px;
+    border-color: #c8d4d9;
+    box-shadow: 0 8px 22px rgb(5 27 46 / 7%);
+  }
+  :is(.gp-nav-link, .admin-nav-link):hover > svg {
+    translate: 2px 0;
+  }
+  :is(.gp-portal, .admin-portal)
+    :is(.gp-button, .admin-button):not(:disabled):not(
+      [aria-busy="true"]
+    ):hover {
+    translate: 0 -1px;
+    box-shadow: 0 3px 10px rgb(5 27 46 / 8%);
+  }
+}
+:is(.gp-portal, .admin-portal)
+  :is(.gp-button, .admin-button):not(:disabled):not([aria-busy="true"]):active {
+  translate: 0 1px;
+  box-shadow: none;
+}
+
+/* Radix layers are rendered under body, outside their portal shell. */
+body:has(.gp-portal, .admin-portal) [data-portal-layer="overlay"] {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+body:has(.gp-portal, .admin-portal) [data-portal-layer="dialog"] {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+body:has(.gp-portal, .admin-portal) [data-portal-layer="sheet"] {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+body:has(.gp-portal, .admin-portal) [data-portal-layer][data-state="closed"] {
+  animation-duration: 150ms;
+}
+
+@keyframes portal-heading-in {
+  from {
+    opacity: 0.5;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes portal-card-in {
+  from {
+    opacity: 0.5;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes portal-marker-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce), print {
+  :is(
+    .gp-portal,
+    .admin-portal,
+    .gp-mobile-drawer,
+    .admin-mobile-drawer,
+    .gp-search-dialog
+  ),
+  :is(
+      .gp-portal,
+      .admin-portal,
+      .gp-mobile-drawer,
+      .admin-mobile-drawer,
+      .gp-search-dialog
+    )
+    *,
+  :is(.gp-nav-link, .admin-nav-link)::before,
+  body:has(.gp-portal, .admin-portal) [data-portal-layer],
+  body:has(.gp-portal, .admin-portal) [data-portal-layer] * {
+    animation: none !important;
+    transition: none !important;
+    translate: none !important;
+  }
+}
+
+@media print {
+  :is(.gp-main, .admin-main) {
+    opacity: 1 !important;
+  }
+}

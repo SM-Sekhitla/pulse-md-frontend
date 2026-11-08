@@ -1,3 +1,5 @@
+import { usePortalMotion } from "@/hooks/use-portal-motion";
+import "./portal-motion.css";
 import { ActionButton } from "@/components/action-feedback";
 import { type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@/lib/router-compat";
@@ -102,6 +104,8 @@ export function AdminShell({
     /\/$/,
     "",
   );
+
+  const motionRef = usePortalMotion(path);
 
   useEffect(() => {
     if (loading) return;
@@ -291,8 +295,8 @@ export function AdminShell({
             </span>
           </div>
         </header>
-        <main id="admin-main" className="admin-main" tabIndex={-1}>
-          <div className="admin-page-heading">
+        <main ref={motionRef} id="admin-main" className="admin-main" tabIndex={-1}>
+          <div key={path} className="admin-page-heading">
             <div>
               <p className="admin-eyebrow">
                 <span /> PULSEMD ADMINISTRATION
