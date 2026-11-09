@@ -44,7 +44,7 @@ export function MedilinkSettings() {
   if (!allowed)
     return (
       <p className="text-sm">
-        The practice owner can configure the Medilink connections.
+        The practice owner can configure the Medilink connection.
       </p>
     );
   if (query.isPending || providers.isPending || schemes.isPending)
