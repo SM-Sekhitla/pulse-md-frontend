@@ -1,10 +1,12 @@
 import { PracticeSettings } from "@/components/practice-settings";
+import { MedilinkSettings } from "@/components/medilink-settings";
 import { Link } from "@/lib/router-compat";
 import { SignatureTemplate } from "@/components/signature-template";
 import { useAuth } from "@/context/AuthContext";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AppShell } from "@/components/app-shell";
 import { Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +34,12 @@ function Settings() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const tenant = useCurrentTenant();
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Practice profile");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<(typeof TABS)[number]>(
+    searchParams.get("tab") === "integrations"
+      ? "Integrations"
+      : "Practice profile",
+  );
   const { data: schemes = [] } = useQuery({
     queryKey: ["medical-aid-schemes"],
     queryFn: getMedicalAidSchemes,
@@ -86,11 +93,7 @@ function Settings() {
               ))}
             {tab === "Integrations" && (
               <div className="md:col-span-2 space-y-3 text-sm">
-                <p>
-                  <strong>Claims:</strong> draft preparation and local
-                  validation are available. Live submission and benefit checks
-                  require a contracted switch integration.
-                </p>
+                <MedilinkSettings />
                 <p>
                   <strong>Voice:</strong> audio recording is available on
                   supported browsers with microphone permission. Live dictation

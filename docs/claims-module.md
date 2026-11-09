@@ -1,5 +1,7 @@
 # Claims module: preparation and corrections
 
+The planned replacement is the [Medilink integration](medilink-integration-plan.md). This page describes the existing preparation-only implementation; SwitchOn references below are legacy placeholders, not a connected provider.
+
 This delivery adds **Finance → Claims** for practice owners and managers with Billing access. It uses the existing FastAPI/MongoDB backend and React frontend. It does not migrate storage or connect to SwitchOn.
 
 ## Available now
@@ -42,7 +44,7 @@ src/venv/bin/python tests/test_claims.py
 ## Remaining work
 
 - Versioned clinical and tariff catalogues, provider identifiers and scheme-specific validation.
-- SwitchOn adapter using official onboarding/API documentation, credentials, sandbox and confirmed capabilities.
+- Medilink resource integration: the XML contract package and sandbox configuration/authentication are implemented; membership/benefit/submission dispatch and vendor acceptance remain outstanding. See the [integration plan](medilink-integration-plan.md).
 - Durable submission attempts, idempotency, unknown outcomes, status callbacks/polling and retries.
 - Membership checking and appropriately scoped cache.
 - Remittance records, actual payment receipts, allocations, reversals and adjustment ledger.

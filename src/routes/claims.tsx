@@ -123,11 +123,14 @@ function Claims() {
             <div className="claims-connection">
               <CircleAlert size={19} />
               <div>
-                <strong>SwitchOn not configured</strong>
+                <strong>Medilink submission is not enabled yet</strong>
                 <p>
-                  You can prepare and check drafts. Live submission, membership
-                  validation and remittance reconciliation are not available
-                  yet.
+                  Prepare and check drafts here. The practice owner can
+                  configure Medilink and test sandbox authentication in{" "}
+                  <Link to="/settings?tab=integrations" className="underline">
+                    Settings → Integrations
+                  </Link>
+                  .
                 </p>
               </div>
               <span>PREPARATION ONLY</span>
@@ -493,7 +496,7 @@ function Claims() {
                         <strong>{amount(claim.billedCents)}</strong>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Not sent to SwitchOn · Not assessed · No payment
+                        Not sent to Medilink · Not assessed · No payment
                         recorded by this module
                       </p>
                       <h3 className="mt-7 font-semibold">Activity</h3>
