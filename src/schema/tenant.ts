@@ -147,7 +147,9 @@ export const tenantCreateSchema = z.object({
   province: nullableString,
 
   hpcsa: nullableString,
-  bhf: nullableString,
+  bhf: z
+    .string()
+    .regex(/^[0-9]{7}$/, "BHF number must contain exactly 7 digits"),
   vat: nullableString,
   companyProfile: nullableString,
   logoName: nullableString,
@@ -180,7 +182,10 @@ export const tenantUpdateSchema = z.object({
   province: nullableString,
 
   hpcsa: nullableString,
-  bhf: nullableString,
+  bhf: z
+    .string()
+    .regex(/^[0-9]{7}$/, "BHF number must contain exactly 7 digits")
+    .optional(),
   vat: nullableString,
   companyProfile: nullableString,
   logoName: nullableString,

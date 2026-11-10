@@ -1,13 +1,18 @@
-import { ActionButton } from "@/components/action-feedback";
-import { createFileRoute, useNavigate, useParams, Link } from "@/lib/router-compat";
+import { ActionButton, ActionForm } from "@/components/action-feedback";
+import {
+  createFileRoute,
+  useNavigate,
+  useParams,
+  Link,
+} from "@/lib/router-compat";
 import { useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
 import { planPrice, formatZAR } from "@/lib/pricing";
 import type { TenantStatus } from "@/types/tenant";
 import { Switch } from "@/components/ui/switch";
-import {toast} from "sonner";
-import {Copy, Check,KeyRound,NotebookPen, Trash2} from "lucide-react";
+import { toast } from "sonner";
+import { Copy, Check, KeyRound, NotebookPen, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
 import { useAuth } from "@/context/AuthContext";
@@ -30,7 +35,7 @@ function PracticeDetail() {
   const navigate = useNavigate();
   const [, refresh] = useState(0);
   const reload = () => refresh((x) => x + 1);
-  const { tenant, patient, user, } = useData();
+  const { tenant, patient, user } = useData();
   const t = tenant.tenants.find((x) => x.id === id);
   if (!t)
     return (
@@ -53,11 +58,19 @@ function PracticeDetail() {
   ).length;
 
   const approve = async () => {
+    if (!/^[0-9]{7}$/.test(t.bhf || "")) {
+      toast.error("A valid 7-digit BHF number is required before approval.");
+      return;
+    }
     if (
       confirm(`Approve ${t.name} and send access email to ${owner?.email}?`)
     ) {
       //approveTenant(t.id, me);
-      await tenant.approveTenant(t.id)
+      const approved = await tenant.approveTenant(t.id);
+      if (!approved)
+        throw new Error(
+          "Practice approval failed. Review its details and try again.",
+        );
       reload();
     }
   };
@@ -65,7 +78,7 @@ function PracticeDetail() {
     const r = prompt("Reason for rejection:");
     if (r) {
       //rejectTenant(t.id, r, me);
-      await tenant.rejectTenant(t.id, r)
+      await tenant.rejectTenant(t.id, r);
 
       reload();
     }
@@ -74,7 +87,7 @@ function PracticeDetail() {
     const r = prompt("Reason for suspension:");
     if (r) {
       //suspendTenant(t.id, r, me);
-      await tenant.suspendTenant(t.id, r)
+      await tenant.suspendTenant(t.id, r);
 
       reload();
     }
@@ -113,6 +126,23 @@ function PracticeDetail() {
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
+          <ProviderReview
+            key={t.id}
+            bhf={t.bhf || ""}
+            onSave={async (value) => {
+              const updated = await tenant.updateTenant(t.id, { bhf: value });
+              if (!updated) throw new Error("Could not save the BHF number.");
+              toast.success(
+                "BHF number saved. Provider registration still requires manual review.",
+              );
+            }}
+          />
+          <Link
+            to={`/admin/settings?practiceId=${encodeURIComponent(t.id)}`}
+            className="gp-button border"
+          >
+            Manage integration setup
+          </Link>
           <div className="pulse-card p-6">
             <div className="flex items-start justify-between">
               <div>
@@ -131,11 +161,20 @@ function PracticeDetail() {
             <div className="mt-5 grid gap-3 md:grid-cols-2 text-[13px]">
               <Row label="Slug" value={t.slug} mono />
               <Row label="Plan" value={t.plan} />
+              <Row
+                label="BHF"
+                value={t.bhf || "Missing — correction required"}
+                mono
+              />
               <Row label="HPCSA" value={t.hpcsa || "—"} mono />
               <Row label="VAT" value={t.vat || "—"} mono />
               <Row
                 label="Registered"
-                value={t.createdAt ? format(parseISO(t.createdAt), "d MMM yyyy HH:mm") : "Not recorded"}
+                value={
+                  t.createdAt
+                    ? format(parseISO(t.createdAt), "d MMM yyyy HH:mm")
+                    : "Not recorded"
+                }
               />
               <Row
                 label="Approved"
@@ -168,21 +207,23 @@ function PracticeDetail() {
             </div>
           </div>
 
-           <FeaturesCard
-             bookingEnabled={!!t.bookingEnabled}
-             bookingSlug={t.bookingSlug || t.slug}
-             loginSlug={t.slug}
-             onToggle={async (enabled) => {
-               const updated = await tenant.updateTenant(t.id, {
-                 bookingEnabled: enabled,
-                 bookingSlug: t.bookingSlug || t.slug,
-               });
-               if (!updated) return false;
-               toast.success(enabled ? "Public booking enabled" : "Public booking disabled");
-               reload();
-               return true;
-             }}
-           />
+          <FeaturesCard
+            bookingEnabled={!!t.bookingEnabled}
+            bookingSlug={t.bookingSlug || t.slug}
+            loginSlug={t.slug}
+            onToggle={async (enabled) => {
+              const updated = await tenant.updateTenant(t.id, {
+                bookingEnabled: enabled,
+                bookingSlug: t.bookingSlug || t.slug,
+              });
+              if (!updated) return false;
+              toast.success(
+                enabled ? "Public booking enabled" : "Public booking disabled",
+              );
+              reload();
+              return true;
+            }}
+          />
         </div>
 
         <div className="space-y-4">
@@ -290,7 +331,10 @@ function FeaturesCard({
   const [copied, setCopied] = useState(false);
   const [copiedLogin, setCopiedLogin] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://app.pulsemd.co.za";
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://app.pulsemd.co.za";
   const link = `${origin}/book/${bookingSlug}`;
   const loginLink = `${origin}/practice/${loginSlug}/login`;
 
@@ -309,7 +353,9 @@ function FeaturesCard({
       await navigator.clipboard.writeText(value);
       markCopied(true);
       setTimeout(() => markCopied(false), 1800);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   return (
@@ -317,30 +363,52 @@ function FeaturesCard({
       <div className="label-caps mb-3">Features</div>
       <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-white p-4">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 rounded-md bg-blue/10 p-2 text-navy"><NotebookPen className="h-4 w-4" /></div>
+          <div className="mt-0.5 rounded-md bg-blue/10 p-2 text-navy">
+            <NotebookPen className="h-4 w-4" />
+          </div>
           <div>
-            <div className="text-[13.5px] font-semibold text-navy">Public booking page</div>
+            <div className="text-[13.5px] font-semibold text-navy">
+              Public booking page
+            </div>
             <div className="text-[12px] text-muted-foreground mt-0.5 max-w-md">
-              Allows patients to find and book this GP directly from the PulseMD public booking portal.
+              Allows patients to find and book this GP directly from the PulseMD
+              public booking portal.
             </div>
           </div>
         </div>
-        <Switch checked={bookingEnabled} disabled={updating} onCheckedChange={toggle} aria-label="Toggle public booking" />
+        <Switch
+          checked={bookingEnabled}
+          disabled={updating}
+          onCheckedChange={toggle}
+          aria-label="Toggle public booking"
+        />
       </div>
 
       {bookingEnabled && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-surface px-4 py-3">
           <div className="min-w-0">
             <div className="label-caps">Public link</div>
-            <div className="font-mono text-[12.5px] text-navy truncate">{link}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Slug: <span className="font-mono">{bookingSlug}</span></div>
+            <div className="font-mono text-[12.5px] text-navy truncate">
+              {link}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              Slug: <span className="font-mono">{bookingSlug}</span>
+            </div>
           </div>
           <ActionButton
             type="button"
             onClick={() => copy(link, setCopied)}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
           >
-            {copied ? <><Check className="h-3.5 w-3.5 text-success" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5 text-success" /> Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" /> Copy
+              </>
+            )}
           </ActionButton>
         </div>
       )}
@@ -348,17 +416,70 @@ function FeaturesCard({
       <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-white px-4 py-3">
         <div className="min-w-0">
           <div className="label-caps">Practice login</div>
-          <div className="font-mono text-[12.5px] text-navy truncate">{loginLink}</div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">Share with the practice owner and staff.</div>
+          <div className="font-mono text-[12.5px] text-navy truncate">
+            {loginLink}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            Share with the practice owner and staff.
+          </div>
         </div>
         <ActionButton
           type="button"
           onClick={() => copy(loginLink, setCopiedLogin)}
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
         >
-          {copiedLogin ? <><Check className="h-3.5 w-3.5 text-success" /> Copied</> : <><KeyRound className="h-3.5 w-3.5" /> Copy</>}
+          {copiedLogin ? (
+            <>
+              <Check className="h-3.5 w-3.5 text-success" /> Copied
+            </>
+          ) : (
+            <>
+              <KeyRound className="h-3.5 w-3.5" /> Copy
+            </>
+          )}
         </ActionButton>
       </div>
     </div>
+  );
+}
+
+function ProviderReview({
+  bhf,
+  onSave,
+}: {
+  bhf: string;
+  onSave: (value: string) => Promise<void>;
+}) {
+  const [value, setValue] = useState(bhf);
+  return (
+    <ActionForm
+      className="pulse-card p-6 space-y-3"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        await onSave(value);
+      }}
+    >
+      <h2 className="font-semibold">Provider registration review</h2>
+      <p className="text-sm text-muted-foreground">
+        Review BHF and HPCSA registration details before approving the practice.
+        Number format checks do not verify registration or ownership.
+      </p>
+      <label className="block text-sm">
+        Practice BHF number
+        <input
+          required
+          inputMode="numeric"
+          pattern="[0-9]{7}"
+          minLength={7}
+          maxLength={7}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="mt-1 block w-full rounded-md border p-2"
+        />
+      </label>
+      <ActionButton type="submit" className="gp-button border">
+        Save BHF number
+      </ActionButton>
+    </ActionForm>
   );
 }

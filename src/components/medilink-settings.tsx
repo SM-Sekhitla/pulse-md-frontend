@@ -4,8 +4,8 @@ import { AlertCircle, CheckCircle2, Link2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { useAuth } from "@/context/AuthContext";
-import { useCurrentTenant } from "@/hooks/use-current-tenant";
-import { getMedicalAidSchemes } from "@/lib/medical-aid-api";
+import { useData } from "@/context/AppDataProvider";
+import { useSearchParams } from "react-router-dom";
 import type { MedicalAidScheme } from "@/lib/medical-aid";
 import { getApiErrorMessage } from "@/utils/api";
 import {
@@ -18,33 +18,74 @@ import {
 const input =
   "mt-1 block w-full rounded-md border border-border bg-white p-2 text-sm";
 
-export function MedilinkSettings() {
+export function AdminMedilinkSettings() {
   const { user } = useAuth();
-  const tenant = useCurrentTenant();
-  const allowed = user?.role === "owner" && Boolean(tenant?.id);
+  const { tenant } = useData();
+  const [params] = useSearchParams();
+  const [tenantId, setTenantId] = useState(params.get("practiceId") || "");
+  if (user?.role !== "super-admin") return null;
+  return (
+    <section className="pulse-card p-6 space-y-5">
+      <div>
+        <div className="label-caps">Integrations</div>
+        <h2 className="text-lg font-semibold">Medilink administration</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage practice connections and routing. Integration configuration is
+          restricted to super admins.
+        </p>
+      </div>
+      <label className="block text-sm">
+        Practice
+        <select
+          className={input}
+          value={tenantId}
+          onChange={(e) => setTenantId(e.target.value)}
+        >
+          <option value="">Select a practice</option>
+          {tenant.tenants.map((practice) => (
+            <option key={practice.id} value={practice.id}>
+              {practice.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {tenantId && tenant.tenants.some((p) => p.id === tenantId) ? (
+        <MedilinkSettings key={tenantId} tenantId={tenantId} />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Select a practice to manage its connection.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function MedilinkSettings({ tenantId }: { tenantId: string }) {
+  const { user } = useAuth();
+  const allowed = user?.role === "super-admin" && Boolean(tenantId);
   const query = useQuery({
-    queryKey: ["medilink-settings", tenant?.id],
-    queryFn: medilinkService.settings,
+    queryKey: ["admin-medilink-settings", tenantId],
+    queryFn: () => medilinkService.settings(tenantId),
     enabled: allowed,
     retry: false,
     refetchOnWindowFocus: false,
   });
   const providers = useQuery({
-    queryKey: ["medilink-providers", tenant?.id],
-    queryFn: medilinkService.providers,
+    queryKey: ["admin-medilink-providers", tenantId],
+    queryFn: () => medilinkService.providers(tenantId),
     enabled: allowed,
     retry: false,
   });
   const schemes = useQuery({
-    queryKey: ["medilink-schemes", tenant?.id],
-    queryFn: getMedicalAidSchemes,
+    queryKey: ["admin-medilink-schemes", tenantId],
+    queryFn: () => medilinkService.schemes(tenantId),
     enabled: allowed,
     retry: false,
   });
   if (!allowed)
     return (
       <p className="text-sm">
-        The practice owner can configure the Medilink connection.
+        Integration administration requires a super-admin account.
       </p>
     );
   if (query.isPending || providers.isPending || schemes.isPending)
@@ -72,11 +113,11 @@ export function MedilinkSettings() {
   if (!query.data) return null;
   return (
     <SettingsForm
-      key={`${tenant?.id}:${query.data.revision}`}
+      key={`${tenantId}:${query.data.revision}`}
       settings={query.data}
       providers={providers.data || []}
       schemes={schemes.data || []}
-      tenantId={tenant!.id}
+      tenantId={tenantId}
     />
   );
 }
@@ -103,7 +144,7 @@ function SettingsForm({
 }: {
   settings: Settings;
   providers: MedilinkProvider[];
-  schemes: MedicalAidScheme[];
+  schemes: Array<Pick<MedicalAidScheme, "id" | "name" | "plans" | "isActive">>;
   tenantId: string;
 }) {
   const cache = useQueryClient();
@@ -111,8 +152,8 @@ function SettingsForm({
   const dirty = JSON.stringify(form) !== JSON.stringify(configOnly(settings));
   const [testing, setTesting] = useState(false);
   const save = async () => {
-    const result = await medilinkService.save(form);
-    cache.setQueryData(["medilink-settings", tenantId], result);
+    const result = await medilinkService.save(tenantId, form);
+    cache.setQueryData(["admin-medilink-settings", tenantId], result);
     toast.success("Medilink settings saved.");
   };
   return (
@@ -195,7 +236,7 @@ function SettingsForm({
                           ? "[A-Za-z0-9.]{1,4}"
                           : undefined
                     }
-                    required={key === "wireVersion"}
+                    required={key === "wireVersion" || key === "supplierBhf"}
                     onChange={(e) =>
                       setForm({ ...form, [key]: e.target.value })
                     }
@@ -462,11 +503,14 @@ function SettingsForm({
           onClick={async () => {
             setTesting(true);
             try {
-              const result = await medilinkService.test(form.revision);
+              const result = await medilinkService.test(
+                tenantId,
+                form.revision,
+              );
               toast.success(result.message);
             } finally {
               await cache.invalidateQueries({
-                queryKey: ["medilink-settings", tenantId],
+                queryKey: ["admin-medilink-settings", tenantId],
               });
               setTesting(false);
             }

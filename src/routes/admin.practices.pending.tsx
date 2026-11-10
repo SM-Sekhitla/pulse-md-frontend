@@ -1,5 +1,6 @@
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
+import { toast } from "sonner";
 import { useState } from "react";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/admin/practices/pending")({
 
 function Pending() {
   const { tenant } = useData();
-  
+
   const [, refresh] = useState(0);
   const reload = () => refresh((x) => x + 1);
   //const me = .user!;
@@ -20,12 +21,22 @@ function Pending() {
 
   const approve = async (id: string, name: string) => {
     if (
+      !/^[0-9]{7}$/.test(tenant.tenants.find((t) => t.id === id)?.bhf || "")
+    ) {
+      toast.error("A valid 7-digit BHF number is required before approval.");
+      return;
+    }
+    if (
       confirm(
         `Approve ${name}? A temporary password will be generated and emailed to the GP.`,
       )
     ) {
       //approveTenant(id, me);
-      await tenant.approveTenant(id)
+      const approved = await tenant.approveTenant(id);
+      if (!approved)
+        throw new Error(
+          "Practice approval failed. Review its details and try again.",
+        );
 
       reload();
       alert(
@@ -37,7 +48,7 @@ function Pending() {
     const reason = prompt(`Reject ${name}? Provide a reason:`);
     if (reason) {
       //rejectTenant(id, reason, me);
-      await tenant.rejectTenant(id, reason)
+      await tenant.rejectTenant(id, reason);
 
       reload();
     }
@@ -70,6 +81,7 @@ function Pending() {
               <Th>Practice</Th>
               <Th>GP</Th>
               <Th>HPCSA</Th>
+              <Th>BHF</Th>
               <Th>Plan</Th>
               <Th>Registered</Th>
               <Th className="text-right">Action</Th>
@@ -99,11 +111,16 @@ function Pending() {
                     </div>
                   </Td>
                   <Td className="font-mono text-[12px]">{t.hpcsa}</Td>
+                  <Td className="font-mono text-[12px]">
+                    {t.bhf || "Missing — review practice"}
+                  </Td>
                   <Td>
                     <Badge variant="blue">{t.plan}</Badge>
                   </Td>
                   <Td className="text-muted-foreground">
-                    {t.createdAt ? format(parseISO(t.createdAt), "d MMM yyyy") : "Not recorded"}
+                    {t.createdAt
+                      ? format(parseISO(t.createdAt), "d MMM yyyy")
+                      : "Not recorded"}
                   </Td>
                   <Td className="text-right">
                     <ActionButton

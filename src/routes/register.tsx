@@ -110,6 +110,8 @@ function RegisterPage() {
   const validateStep = () => {
     if (step === 0) {
       if (!form.practiceName.trim()) return "Enter the practice name.";
+      if (!/^[0-9]{7}$/.test(form.bhf))
+        return "Enter a BHF number containing exactly 7 digits.";
       if (!form.hpcsa.trim()) return "Enter the HPCSA practice number.";
       if (!form.address.trim()) return "Enter the physical address.";
       if (!form.province) return "Select a province.";
@@ -155,7 +157,7 @@ function RegisterPage() {
             address: form.address.trim(),
             practiceName: form.practiceName.trim(),
             hpcsa: form.hpcsa.trim(),
-            bhf: form.bhf.trim() || null,
+            bhf: form.bhf,
             vat: form.vat.trim() || null,
             email: form.email.trim().toLowerCase(),
             phone: form.phone.trim(),
@@ -295,8 +297,11 @@ function RegisterPage() {
                     onChange={set("hpcsa")}
                   />
                   <Input
-                    label="BHF number (optional)"
-                    maxLength={30}
+                    label="BHF number (required, 7 digits)"
+                    maxLength={7}
+                    required
+                    pattern="[0-9]{7}"
+                    inputMode="numeric"
                     value={form.bhf}
                     onChange={set("bhf")}
                   />
@@ -516,6 +521,9 @@ function Input({
   placeholder,
   type = "text",
   maxLength,
+  required,
+  pattern,
+  inputMode,
 }: {
   label: string;
   value: string;
@@ -523,11 +531,17 @@ function Input({
   placeholder?: string;
   type?: string;
   maxLength?: number;
+  required?: boolean;
+  pattern?: string;
+  inputMode?: "numeric";
 }) {
   return (
     <label className="block">
       <span className="text-[12.5px] font-medium text-navy">{label}</span>
       <input
+        required={required}
+        pattern={pattern}
+        inputMode={inputMode}
         maxLength={maxLength}
         type={type}
         value={value}

@@ -1,3 +1,4 @@
+import { AdminMedilinkSettings } from "@/components/medilink-settings";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useEffect, useState } from "react";
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/admin/settings")({
 
 function AdminSettings() {
   const { platformSetting } = useData();
-  
+
   const [superEmail, setSuperEmail] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
   const [maint, setMaint] = useState(false);
@@ -87,6 +88,9 @@ function AdminSettings() {
           </ActionButton>
           {saved && <span className="text-[13px] text-success">Saved.</span>}
         </div>
+      </div>
+      <div className="mt-6 max-w-6xl">
+        <AdminMedilinkSettings />
       </div>
     </AdminShell>
   );

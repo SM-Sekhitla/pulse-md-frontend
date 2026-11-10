@@ -47,6 +47,7 @@ import { Route as AdminUsers } from "./routes/admin.users";
 import { Route as AdminSubscriptions } from "./routes/admin.subscriptions";
 import { Route as AdminModules } from "./routes/admin.modules";
 import { Route as AdminAudit } from "./routes/admin.audit";
+import { Route as AdminLogs } from "./routes/admin.logs";
 import { Route as AdminOutbox } from "./routes/admin.outbox";
 import { Route as AdminSettings } from "./routes/admin.settings";
 
@@ -160,6 +161,7 @@ export default function App() {
             <Route path="/admin/subscriptions" element={<C {...AdminSubscriptions} />} />
             <Route path="/admin/modules" element={<C {...AdminModules} />} />
             <Route path="/admin/audit" element={<C {...AdminAudit} />} />
+            <Route path="/admin/logs" element={<C {...AdminLogs} />} />
             <Route path="/admin/outbox" element={<C {...AdminOutbox} />} />
             <Route path="/admin/settings" element={<C {...AdminSettings} />} />
             <Route path="/booking/inbox" element={<C {...BookingInbox} />} />

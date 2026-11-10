@@ -46,6 +46,8 @@ export function PracticeSettings({
       className="portal-panel-enter md:col-span-2 space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
+        if (!hoursOnly && !/^[0-9]{7}$/.test(form.bhf))
+          throw new Error("BHF number must contain exactly 7 digits.");
         if (hours.some((h) => h.enabled && h.start >= h.end))
           throw new Error("Closing time must be after opening time.");
         await API.patch(
@@ -102,13 +104,16 @@ export function PracticeSettings({
                   address: "Physical address",
                   province: "Province",
                   hpcsa: "HPCSA practice number",
-                  bhf: "BHF number (optional)",
+                  bhf: "BHF number (required, 7 digits)",
                   vat: "VAT number",
                   companyProfile: "Practice description",
                 }[key]
               }
               <input
-                required={key === "name"}
+                required={key === "name" || key === "bhf"}
+                pattern={key === "bhf" ? "[0-9]{7}" : undefined}
+                inputMode={key === "bhf" ? "numeric" : undefined}
+                maxLength={key === "bhf" ? 7 : undefined}
                 value={form[key]}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, [key]: e.target.value }))

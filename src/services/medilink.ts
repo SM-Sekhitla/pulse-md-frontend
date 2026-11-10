@@ -32,19 +32,27 @@ export type MedilinkSettings = MedilinkConfig & {
 
 export type MedilinkProvider = { id: string; name: string; hpcsa: string };
 
+const base = (tenantId: string) =>
+  `/admin/integrations/medilink/practices/${encodeURIComponent(tenantId)}`;
+
 export const medilinkService = {
-  settings: async () =>
-    (await API.get<MedilinkSettings>("/integrations/medilink/settings")).data,
-  save: async (values: MedilinkConfig) =>
-    (await API.put<MedilinkSettings>("/integrations/medilink/settings", values))
+  settings: async (tenantId: string) =>
+    (await API.get<MedilinkSettings>(`${base(tenantId)}/settings`)).data,
+  save: async (tenantId: string, values: MedilinkConfig) =>
+    (await API.put<MedilinkSettings>(`${base(tenantId)}/settings`, values))
       .data,
-  providers: async () =>
-    (await API.get<MedilinkProvider[]>("/integrations/medilink/providers"))
-      .data,
-  test: async (revision: number) =>
+  providers: async (tenantId: string) =>
+    (await API.get<MedilinkProvider[]>(`${base(tenantId)}/providers`)).data,
+  schemes: async (tenantId: string) =>
+    (
+      await API.get<
+        Array<{ id: string; name: string; isActive: boolean; plans: string[] }>
+      >(`${base(tenantId)}/schemes`)
+    ).data,
+  test: async (tenantId: string, revision: number) =>
     (
       await API.post<{ status: string; message: string }>(
-        "/integrations/medilink/test-connection",
+        `${base(tenantId)}/test-connection`,
         { revision },
       )
     ).data,

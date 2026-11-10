@@ -18,9 +18,11 @@ The setup/authentication implementation is recorded below. The first patient-fac
 
 ### Phase 2 implemented: setup and sandbox authentication
 
-Settings → Integrations now contains an owner-only Medilink panel for supplier BHF/HPCSA, active treating-doctor profiles, consulting-room/home service location and scheme/plan Option-code mappings. Claims links directly to this panel and no longer names the legacy SwitchOn placeholder. Settings and provider selections are tenant-scoped; writes reject stale revisions and cross-practice references. Scheme mappings do not modify the shared medical-aid catalogue.
+Updated 10 November 2026: **Super Admin → Platform settings → Integrations** contains the Medilink panel, with an explicit practice selector. Practice accounts, including doctors and owners, have no integration screen, links, configuration responses or API access. Supplier BHF/HPCSA, active treating-doctor profiles, service location and scheme/plan routing remain scoped to the selected practice. Writes reject stale revisions and cross-practice references. Scheme mappings do not modify the shared medical-aid catalogue.
 
-The backend adds `connection.py` and `settings.py` to the Medilink package, plus owner/Billing-protected `/api/v1/integrations/medilink` routes. Server environment credentials are assigned by exact tenant ID. Token authentication uses HTTPS to the development host only, bounded response size, request timeouts, blocked redirects, memory-only token caching, expiry/rotation isolation and sanitized failure messages. Settings responses never expose credentials or tokens. A saved, explicit authentication test persists only status/time/actor/message; concurrent settings changes invalidate that test result.
+The backend adds `connection.py` and `settings.py` to the Medilink package. Its administration routes now live under `/api/v1/admin/integrations/medilink/practices/{tenant_id}` and require a super admin; the former practice endpoints are removed. Server environment credentials remain assigned by exact tenant ID. Token authentication uses HTTPS to the development host only, bounded response size, request timeouts, blocked redirects, memory-only token caching, expiry/rotation isolation and sanitized failure messages. Settings responses never expose credentials or tokens. A saved authentication test persists only status/time/actor/message; concurrent settings changes invalidate that result.
+
+Practice BHF is required on registration/admin creation and must contain exactly seven ASCII digits, preserving leading zeroes. Profile/admin edits cannot clear or malform it, and approval/activation blocks legacy incomplete BHF records. Reads remain compatible with older records so they can be corrected. The admin practice detail page and pending queue expose the identifiers for manual review; the detail page allows BHF correction. No supplied switch endpoint verifies provider ownership or registry status, so this is format validation and manual approval, not automatic switch verification.
 
 Backend example environment files document `MEDILINK_SANDBOX_CREDENTIALS_JSON`, `MEDILINK_SANDBOX_AUTH_ENABLED`, `MEDILINK_SANDBOX_BASE_URL` and `MEDILINK_SANDBOX_TOKEN_PATH`. The actual environment files have not been changed. Authentication defaults to disabled; no vendor endpoint has been called. See backend `src/app/integrations/medilink/SETUP.md` for deployment instructions and placeholder JSON format.
 
@@ -210,7 +212,7 @@ Durable dispatch must distinguish an attempt never dispatched from one that may 
 
 ### UI and role acceptance
 
-- Settings → Integrations → Medilink shows environment, missing setup fields and truthful connection state, with credentials editable only by authorized administrators.
+- Super Admin → Platform settings → Integrations → Medilink shows the selected practice's environment, missing setup fields and connection state. Credentials remain backend-only; no practice account has integration access.
 - Patient registration and claim review provide Check membership with loading/error feedback and explicit dependant selection.
 - Invoice/claim review provides Check benefits and Submit to Medilink as separate actions, with field-level corrections and button loading/duplicate-click prevention.
 - Claims list offers patient/invoice/reference search and scheme/date/outcome filters. Claim detail shows assessment, financial advice, line messages and immutable history with patient/invoice links.

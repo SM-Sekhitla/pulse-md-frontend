@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  FileText,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -57,6 +58,7 @@ const NAV = [
       { to: "/admin/users", label: "Users", icon: Users },
       { to: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
       { to: "/admin/audit", label: "Audit log", icon: ScrollText },
+      { to: "/admin/logs", label: "System logs", icon: FileText },
       { to: "/admin/outbox", label: "Email outbox", icon: Mail },
     ],
   },
@@ -82,6 +84,8 @@ const DESCRIPTIONS: Record<string, string> = {
     "Keep practice plans and estimated subscription revenue in view.",
   "/admin/audit":
     "Follow important changes and activity across your practice network.",
+  "/admin/logs":
+    "Inspect backend activity across application modules and services.",
   "/admin/outbox":
     "Track outgoing emails and review delivery attempts in one place.",
   "/admin/settings":
@@ -295,7 +299,12 @@ export function AdminShell({
             </span>
           </div>
         </header>
-        <main ref={motionRef} id="admin-main" className="admin-main" tabIndex={-1}>
+        <main
+          ref={motionRef}
+          id="admin-main"
+          className="admin-main"
+          tabIndex={-1}
+        >
           <div key={path} className="admin-page-heading">
             <div>
               <p className="admin-eyebrow">

@@ -1,12 +1,10 @@
 import { PracticeSettings } from "@/components/practice-settings";
-import { MedilinkSettings } from "@/components/medilink-settings";
 import { Link } from "@/lib/router-compat";
 import { SignatureTemplate } from "@/components/signature-template";
 import { useAuth } from "@/context/AuthContext";
 import { ActionButton } from "@/components/action-feedback";
 import { createFileRoute } from "@/lib/router-compat";
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { AppShell } from "@/components/app-shell";
 import { Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -25,7 +23,6 @@ const TABS = [
   "Signature",
   "Working hours",
   "Medical aid schemes",
-  "Integrations",
   "Security",
   "Data & support",
 ] as const;
@@ -34,12 +31,7 @@ function Settings() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const tenant = useCurrentTenant();
-  const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<(typeof TABS)[number]>(
-    searchParams.get("tab") === "integrations"
-      ? "Integrations"
-      : "Practice profile",
-  );
+  const [tab, setTab] = useState<(typeof TABS)[number]>("Practice profile");
   const { data: schemes = [] } = useQuery({
     queryKey: ["medical-aid-schemes"],
     queryFn: getMedicalAidSchemes,
@@ -91,21 +83,6 @@ function Settings() {
               ) : (
                 <p>Only the practice owner can change these settings.</p>
               ))}
-            {tab === "Integrations" && (
-              <div className="md:col-span-2 space-y-3 text-sm">
-                <MedilinkSettings />
-                <p>
-                  <strong>Voice:</strong> audio recording is available on
-                  supported browsers with microphone permission. Live dictation
-                  uses the browser speech service and is not guaranteed on every
-                  browser.
-                </p>
-                <p>
-                  <strong>Reminders:</strong> automated patient reminders are
-                  not enabled in this release.
-                </p>
-              </div>
-            )}
             {tab === "Security" && (
               <div className="md:col-span-2 space-y-3">
                 <Link to="/change-password" className="gp-button border">
