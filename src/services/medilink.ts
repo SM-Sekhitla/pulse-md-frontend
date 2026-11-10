@@ -4,6 +4,7 @@ export type MedilinkConfig = {
   revision: number;
   environment: "sandbox";
   wireVersion: string;
+  membershipLookupEnabled: boolean;
   supplierName: string;
   supplierBhf: string;
   supplierHpcsa: string;
@@ -19,6 +20,7 @@ export type MedilinkConfig = {
 export type MedilinkSettings = MedilinkConfig & {
   credentialsPresent: boolean;
   authenticationEnabled: boolean;
+  membershipChecksEnabled: boolean;
   serverIssue: string | null;
   missingSetup: string[];
   connection: {

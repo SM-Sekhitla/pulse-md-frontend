@@ -1,3 +1,6 @@
+import { MembershipLookup } from "@/components/membership-lookup";
+import { membershipService } from "@/services/membership";
+import { toast } from "sonner";
 import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
@@ -53,6 +56,7 @@ function NewPatient() {
   const [relationshipToMain, setRelationshipToMain] = useState<
     "self" | "spouse" | "child" | "parent" | "other"
   >("self");
+  const [sourceLookupId, setSourceLookupId] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,6 +147,15 @@ function NewPatient() {
         chronic: [],
         active: true,
       });
+      if (sourceLookupId && billingType === "medical_aid") {
+        try {
+          await membershipService.link(sourceLookupId, created.id);
+        } catch {
+          toast.info(
+            "Patient saved. Membership-check history could not be confirmed.",
+          );
+        }
+      }
       navigate({ to: "/patients/$id", params: { id: created.id } });
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -267,128 +280,194 @@ function NewPatient() {
               onClick={() => setBillingType("medical_aid")}
             />
           </div>
-          <div
-            className={`overflow-hidden transition-all duration-200 ${billingType === "medical_aid" ? "mt-4 max-h-[720px] opacity-100" : "max-h-0 opacity-0"}`}
-          >
-            <div className="rounded-xl border border-[#B8CAFF] bg-[#EEF4FF] p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#1D4ED8]">
-                Medical aid details
-              </div>
-              <Grid>
-                <Field label="Scheme*">
-                  <select
-                    value={schemeId}
-                    onChange={(e) => {
-                      setSchemeId(e.target.value);
-                      setPlanName("");
-                    }}
-                    className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
-                  >
-                    {schemes.map((scheme) => (
-                      <option key={scheme.id} value={scheme.id}>
-                        {scheme.name} - {scheme.administrator}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Plan / option*">
-                  {availablePlans.length > 0 ? (
+          {billingType === "medical_aid" && (
+            <div className="mt-4">
+              <div className="rounded-xl border border-[#B8CAFF] bg-[#EEF4FF] p-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#1D4ED8]">
+                  Medical aid details
+                </div>
+                <Grid>
+                  <Field label="Scheme*">
                     <select
-                      value={planName}
-                      onChange={(e) => setPlanName(e.target.value)}
+                      value={schemeId}
+                      onChange={(e) => {
+                        setSchemeId(e.target.value);
+                        setPlanName("");
+                      }}
                       className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
                     >
-                      <option value="">Select plan...</option>
-                      {availablePlans.map((plan) => (
-                        <option key={plan} value={plan}>
-                          {plan}
+                      {schemes.map((scheme) => (
+                        <option key={scheme.id} value={scheme.id}>
+                          {scheme.name} - {scheme.administrator}
                         </option>
                       ))}
-                      <option value="__other">Other (type below)</option>
                     </select>
-                  ) : (
-                    <Inp
-                      value={customPlanName}
-                      onChange={(e) => setCustomPlanName(e.target.value)}
-                      placeholder="Plan name"
-                    />
-                  )}
-                  {planName === "__other" && (
-                    <Inp
-                      value={customPlanName}
-                      onChange={(e) => setCustomPlanName(e.target.value)}
-                      placeholder="Type plan name"
-                      className="mt-2 block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
-                    />
-                  )}
-                </Field>
-                <Field label="Medical aid number*">
-                  <Inp
-                    value={memberNo}
-                    onChange={(e) => setMemberNo(e.target.value)}
-                    placeholder="Member number"
-                  />
-                </Field>
-                <Field label="Main member?">
-                  <label className="flex h-10 items-center gap-2 rounded-md border border-border bg-white px-3 text-[13px] text-navy">
-                    <input
-                      type="checkbox"
-                      checked={isMainMember}
-                      onChange={(e) => {
-                        setIsMainMember(e.target.checked);
-                        setRelationshipToMain(
-                          e.target.checked ? "self" : "spouse",
-                        );
-                      }}
-                      className="h-4 w-4 accent-blue"
-                    />
-                    This patient is the main member
-                  </label>
-                </Field>
-                {!isMainMember && (
-                  <>
-                    <Field label="Main member full name*">
-                      <Inp
-                        value={mainMemberName}
-                        onChange={(e) => setMainMemberName(e.target.value)}
-                      />
-                    </Field>
-                    <Field label="Main member number">
-                      <Inp
-                        value={mainMemberNumber}
-                        onChange={(e) => setMainMemberNumber(e.target.value)}
-                      />
-                    </Field>
-                    <Field label="Dependant code">
-                      <Inp
-                        value={dependantCode}
-                        onChange={(e) =>
-                          setDependantCode(e.target.value.slice(0, 2))
-                        }
-                        placeholder="e.g. 01"
-                      />
-                    </Field>
-                    <Field label="Relationship to main member">
+                  </Field>
+                  <Field label="Plan / option*">
+                    {availablePlans.length > 0 ? (
                       <select
-                        value={relationshipToMain}
-                        onChange={(e) =>
-                          setRelationshipToMain(
-                            e.target.value as typeof relationshipToMain,
-                          )
-                        }
+                        value={planName}
+                        onChange={(e) => setPlanName(e.target.value)}
                         className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
                       >
-                        <option value="spouse">Spouse</option>
-                        <option value="child">Child</option>
-                        <option value="parent">Parent</option>
-                        <option value="other">Other dependant</option>
+                        <option value="">Select plan...</option>
+                        {availablePlans.map((plan) => (
+                          <option key={plan} value={plan}>
+                            {plan}
+                          </option>
+                        ))}
+                        <option value="__other">Other (type below)</option>
                       </select>
-                    </Field>
-                  </>
-                )}
-              </Grid>
+                    ) : (
+                      <Inp
+                        value={customPlanName}
+                        onChange={(e) => setCustomPlanName(e.target.value)}
+                        placeholder="Plan name"
+                      />
+                    )}
+                    {planName === "__other" && (
+                      <Inp
+                        value={customPlanName}
+                        onChange={(e) => setCustomPlanName(e.target.value)}
+                        placeholder="Type plan name"
+                        className="mt-2 block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
+                      />
+                    )}
+                  </Field>
+                  <Field label="Medical aid number*">
+                    <Inp
+                      value={memberNo}
+                      onChange={(e) => setMemberNo(e.target.value)}
+                      placeholder="Member number"
+                    />
+                  </Field>
+                  <Field label="Dependant code">
+                    <Inp
+                      value={dependantCode}
+                      maxLength={3}
+                      onChange={(e) => setDependantCode(e.target.value)}
+                      placeholder="e.g. 00 or 01"
+                    />
+                  </Field>
+                  <Field label="Main member?">
+                    <label className="flex h-10 items-center gap-2 rounded-md border border-border bg-white px-3 text-[13px] text-navy">
+                      <input
+                        type="checkbox"
+                        checked={isMainMember}
+                        onChange={(e) => {
+                          setIsMainMember(e.target.checked);
+                          setRelationshipToMain(
+                            e.target.checked ? "self" : "spouse",
+                          );
+                        }}
+                        className="h-4 w-4 accent-blue"
+                      />
+                      This patient is the main member
+                    </label>
+                  </Field>
+                  {!isMainMember && (
+                    <>
+                      <Field label="Main member full name*">
+                        <Inp
+                          value={mainMemberName}
+                          onChange={(e) => setMainMemberName(e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Main member number">
+                        <Inp
+                          value={mainMemberNumber}
+                          onChange={(e) => setMainMemberNumber(e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Relationship to main member">
+                        <select
+                          value={relationshipToMain}
+                          onChange={(e) =>
+                            setRelationshipToMain(
+                              e.target.value as typeof relationshipToMain,
+                            )
+                          }
+                          className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
+                        >
+                          <option value="spouse">Spouse</option>
+                          <option value="child">Child</option>
+                          <option value="parent">Parent</option>
+                          <option value="other">Other dependant</option>
+                        </select>
+                      </Field>
+                    </>
+                  )}
+                </Grid>
+                <MembershipLookup
+                  schemeId={schemeId}
+                  planName={selectedPlan}
+                  memberNumber={memberNo}
+                  current={{
+                    firstName,
+                    lastName,
+                    dob,
+                    gender,
+                    idNumber,
+                    phone,
+                    address,
+                    medicalAidSchemeName: selectedScheme?.name,
+                    medicalAidPlan: selectedPlan,
+                    medicalAidNumber: memberNo,
+                    dependantCode,
+                    isMainMember,
+                    mainMemberName,
+                    mainMemberNumber,
+                    relationshipToMain,
+                  }}
+                  onApply={(values, lookupId) => {
+                    if (values.firstName !== undefined)
+                      setFirstName(values.firstName);
+                    if (values.lastName !== undefined)
+                      setLastName(values.lastName);
+                    if (values.dob !== undefined) setDob(values.dob);
+                    if (values.gender === "M" || values.gender === "F")
+                      setGender(values.gender);
+                    if (values.idNumber !== undefined)
+                      setIdNumber(values.idNumber);
+                    if (values.phone !== undefined) setPhone(values.phone);
+                    if (values.address !== undefined)
+                      setAddress(values.address);
+                    if (values.medicalAidNumber !== undefined)
+                      setMemberNo(values.medicalAidNumber);
+                    if (values.dependantCode !== undefined)
+                      setDependantCode(values.dependantCode);
+                    if (values.isMainMember !== undefined)
+                      setIsMainMember(values.isMainMember);
+                    if (values.mainMemberName !== undefined)
+                      setMainMemberName(values.mainMemberName);
+                    if (values.mainMemberNumber !== undefined)
+                      setMainMemberNumber(values.mainMemberNumber);
+                    if (
+                      values.relationshipToMain &&
+                      ["self", "spouse", "child", "parent", "other"].includes(
+                        values.relationshipToMain,
+                      )
+                    )
+                      setRelationshipToMain(
+                        values.relationshipToMain as typeof relationshipToMain,
+                      );
+                    if (values.medicalAidPlan !== undefined) {
+                      if (
+                        availablePlans.length === 0 ||
+                        availablePlans.includes(values.medicalAidPlan)
+                      )
+                        setPlanName(values.medicalAidPlan);
+                      else {
+                        setPlanName("__other");
+                        setCustomPlanName(values.medicalAidPlan);
+                      }
+                    }
+                    setSourceLookupId(lookupId);
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </Section>
         <Section title="POPIA consent">
           <label className="flex items-start gap-2 text-[13px] text-navy">

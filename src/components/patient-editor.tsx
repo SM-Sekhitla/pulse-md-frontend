@@ -1,3 +1,4 @@
+import { MembershipLookup } from "@/components/membership-lookup";
 import { useQuery } from "@tanstack/react-query";
 import { getMedicalAidSchemes } from "@/lib/medical-aid-api";
 import { useState } from "react";
@@ -230,6 +231,43 @@ export function PatientEditor({
                 Patient is main member
               </label>
             </div>
+          )}
+          {form.billingType === "medical_aid" && (
+            <MembershipLookup
+              patientId={p.id}
+              schemeId={form.medicalAidSchemeId || ""}
+              planName={form.medicalAidPlan || ""}
+              memberNumber={form.medicalAidNumber || ""}
+              current={{
+                ...form,
+                medicalAidPlan: form.medicalAidPlan || "",
+                mainMemberName: form.mainMemberName || "",
+                mainMemberNumber: form.mainMemberNumber || "",
+                dependantCode: form.dependantCode || "",
+                medicalAidSchemeId: form.medicalAidSchemeId || "",
+                medicalAidSchemeName: form.medicalAidSchemeName || "",
+              }}
+              onApply={(values) => {
+                setDirty(true);
+                setForm((previous) => ({
+                  ...previous,
+                  ...values,
+                  gender:
+                    values.gender === "M" || values.gender === "F"
+                      ? values.gender
+                      : previous.gender,
+                  relationshipToMain:
+                    values.relationshipToMain &&
+                    ["self", "spouse", "child", "parent", "other"].includes(
+                      values.relationshipToMain,
+                    )
+                      ? (values.relationshipToMain as typeof previous.relationshipToMain)
+                      : previous.relationshipToMain,
+                  medicalAid:
+                    values.medicalAidSchemeName || previous.medicalAid,
+                }));
+              }}
+            />
           )}
           {clinical && (
             <div className="grid gap-3">

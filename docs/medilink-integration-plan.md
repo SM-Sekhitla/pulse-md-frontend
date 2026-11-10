@@ -34,7 +34,19 @@ Run setup/auth tests from the backend root:
 PYTHONPATH=src src/venv/bin/python tests/test_medilink_connection.py -v
 ```
 
-Next: connect MQ membership-number lookup using the saved scheme/provider context, add a reviewed dependant picker and record lookup outcomes without changing claim/payment state. Patient and claim field extensions should be completed with that vertical slice, before building benefit/submit request snapshots from actual records.
+The MQ membership vertical slice is implemented below. Benefit/submit request snapshots still need their additional patient, provider and service-line mappings.
+
+### Phase 3 implemented: reviewed membership lookup
+
+Patient registration and editing now offer scheme/member-number lookup, explicit authorization confirmation, a dependant picker and field-by-field reviewed autofill. No patient details change on lookup or selection alone. Apply updates only selected fields in the unsaved form; address/contact suggestions are unchecked initially because they may belong to the main member. Incomplete personal details remain manual, and unknown dates, IDs and genders are not invented. Input changes clear stale lookup results; a pending Apply cannot overwrite subsequent form edits.
+
+Clinical endpoints live under `/api/v1/membership` and require owner/doctor/manager/receptionist access to the caller's own active practice and Patients module. They return clinical results and generic errors, with no credentials, BHF/routing configuration, raw XML, or vendor references. Super admins retain integration administration only.
+
+Membership is disabled by default. A deployment administrator must enable backend `MEDILINK_SANDBOX_MEMBERSHIP_ENABLED`, configure issued credentials/authentication, and a super admin must enable `membershipLookupEnabled` for an explicitly designated sandbox test practice with supplier BHF and scheme routing configured. Use only vendor-issued synthetic memberships in the development environment. No actual switch requests were made while implementing this phase; vendor sandbox acceptance remains pending configured test access.
+
+The backend serializes/validates MQ XML, verifies response client/request/member correlation, limits response bytes and timeouts, and refreshes authentication at most once for documented 401/501 rejection. It does not retry network timeouts or dispatch financial operations. Lookup outcomes and reviewed field names form patient-scoped history; sensitive suggestions are stored separately for 15 minutes with TTL and explicit expiry checks. Registration links reviewed history after a matching patient save. Review and lookup never write patient records or payment/claim state.
+
+Automated tests use synthetic transport/API fixtures; browser checks verify selective autofill, preservation of unchecked contact fields, explicit Apply, stale review handling and changed-membership result clearing. ID-only lookup remains unsupported by the supplied XSD. Next is benefit checking, after vendor contract confirmation and additional charge mapping.
 
 Reference: supplied *Medilink Switch Communication Specification v2.1*, including its May 2026 URL update, and nine supplied NetPractice screenshots. Examples in that document are reference payloads, not issued credentials or complete validation schemas.
 

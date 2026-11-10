@@ -127,6 +127,7 @@ function configOnly(settings: Settings): MedilinkConfig {
     revision: settings.revision,
     environment: settings.environment,
     wireVersion: settings.wireVersion,
+    membershipLookupEnabled: settings.membershipLookupEnabled,
     supplierName: settings.supplierName,
     supplierBhf: settings.supplierBhf,
     supplierHpcsa: settings.supplierHpcsa,
@@ -473,6 +474,33 @@ function SettingsForm({
             >
               <Plus size={16} /> Add routing code
             </ActionButton>
+          </section>
+          <section className="rounded-lg border p-4 text-sm space-y-2">
+            <h3 className="font-semibold">Membership checks</h3>
+            <p className="text-xs text-muted-foreground">
+              {settings.membershipChecksEnabled
+                ? "Ready for sandbox test memberships"
+                : "Disabled or awaiting server setup"}
+            </p>
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={form.membershipLookupEnabled}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    membershipLookupEnabled: e.target.checked,
+                  })
+                }
+              />{" "}
+              Enable membership lookup for this sandbox test practice
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Use only Medilink-issued test memberships in sandbox. Server
+              membership/authentication flags and credentials must also be
+              configured. Clinical staff see reviewed patient suggestions, never
+              connection settings.
+            </p>
           </section>
           <ActionButton type="submit" className="gp-button gp-button-yellow">
             Save Medilink settings
