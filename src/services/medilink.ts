@@ -67,6 +67,8 @@ export const medilinkService = {
         "Sandbox authentication is disabled on the server.",
         "Ask your platform administrator to configure sandbox credentials for this practice.",
         "Medilink authentication is busy. Try again shortly.",
+        "Medilink rejected the authentication request. Check the request format and development account details.",
+        "Medilink rejected the authentication Content-Type. Confirm the required header with Medilink.",
         "Medilink rejected sandbox authentication. Check the server credentials and assigned access.",
         "Medilink sandbox authentication is unavailable. Check the endpoint and try again.",
         "Medilink returned an unexpected authentication response.",
@@ -76,6 +78,31 @@ export const medilinkService = {
         const detail = error.response?.data?.detail;
         if (typeof detail === "string" && messages.includes(detail)) {
           throw new Error(detail);
+        }
+        if (
+          detail?.code === "medilink_authentication_failed" &&
+          messages.includes(detail.message) &&
+          Number.isInteger(detail.upstreamStatus) &&
+          detail.upstreamStatus >= 100 &&
+          detail.upstreamStatus <= 599
+        ) {
+          const knownCodes = [
+            "invalid_request",
+            "invalid_client",
+            "invalid_grant",
+            "unauthorized_client",
+            "unsupported_grant_type",
+            "invalid_scope",
+            "access_denied",
+            "server_error",
+            "temporarily_unavailable",
+          ];
+          const oauth = knownCodes.includes(detail.oauthError)
+            ? `; OAuth ${detail.oauthError}`
+            : "";
+          throw new Error(
+            `${detail.message} (HTTP ${detail.upstreamStatus}${oauth})`,
+          );
         }
       }
       throw error;

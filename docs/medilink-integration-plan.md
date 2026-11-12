@@ -251,3 +251,21 @@ HPCSA are prefilled where available; identifiers are never fabricated. Membershi
 still require an authorised BHF, a confirmed scheme Option mapping, backend membership
 enablement and vendor-issued synthetic test membership. Authentication success alone
 does not confirm membership lookup, benefit checking, claim acceptance or payment.
+
+
+### Authentication compatibility correction — 12 November 2026
+
+The token request now uses the literal Content-Type in Comms Spec v2.1:
+`application/www-form-url-encoded; version=1.0b`. This vendor-documented spelling
+differs from the standard form media type previously sent. Body fields remain
+URL-encoded `grant_type=password`, `username`, and `password`; ClientId belongs
+to operation payloads, not the documented token request. HTTPS and the configured
+`/token` or `/Token` path remain enforced. No automatic header retries or sample
+credential substitutions occur. Whether this resolves the observed development
+rejection requires a deployment and an explicitly triggered connection test.
+
+The super-admin connection test reports the upstream HTTP status and a known
+OAuth error code when returned as JSON. Vendor descriptions, unknown codes and
+raw bodies are discarded. HTTP 400 is identified as a request rejection, HTTP 415
+as a Content-Type rejection, and 401/403/501 as authentication/access rejection.
+These diagnostics distinguish failure classes without claiming a specific root cause.
