@@ -1,4 +1,5 @@
 import API from "@/utils/api";
+import { isAxiosError } from "axios";
 
 export type MedilinkConfig = {
   revision: number;
@@ -51,11 +52,33 @@ export const medilinkService = {
         Array<{ id: string; name: string; isActive: boolean; plans: string[] }>
       >(`${base(tenantId)}/schemes`)
     ).data,
-  test: async (tenantId: string, revision: number) =>
-    (
-      await API.post<{ status: string; message: string }>(
-        `${base(tenantId)}/test-connection`,
-        { revision },
-      )
-    ).data,
+  test: async (tenantId: string, revision: number) => {
+    try {
+      return (
+        await API.post<{ status: string; message: string }>(
+          `${base(tenantId)}/test-connection`,
+          { revision },
+          { timeout: 30000 },
+        )
+      ).data;
+    } catch (error) {
+      // Only display known, sanitised connection failures; never an upstream body.
+      const messages = [
+        "Sandbox authentication is disabled on the server.",
+        "Ask your platform administrator to configure sandbox credentials for this practice.",
+        "Medilink authentication is busy. Try again shortly.",
+        "Medilink rejected sandbox authentication. Check the server credentials and assigned access.",
+        "Medilink sandbox authentication is unavailable. Check the endpoint and try again.",
+        "Medilink returned an unexpected authentication response.",
+        "Could not reach the Medilink sandbox securely. Check connectivity and try again.",
+      ];
+      if (isAxiosError(error)) {
+        const detail = error.response?.data?.detail;
+        if (typeof detail === "string" && messages.includes(detail)) {
+          throw new Error(detail);
+        }
+      }
+      throw error;
+    }
+  },
 };

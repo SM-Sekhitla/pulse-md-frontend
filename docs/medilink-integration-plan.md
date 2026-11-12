@@ -234,3 +234,20 @@ Durable dispatch must distinguish an attempt never dispatched from one that may 
 Phase 1 now implements inventory, compilation, serializers, response normalization, the GP semantic-validation profile and synthetic fixtures/tests. No external endpoint tests or production activation have been performed. Inbound schema mismatches preserve an unresolved outcome rather than causing a blind financial retry. Sandbox acceptance remains a later integration milestone.
 
 The user-facing implementation is still preparation-only in `src/routes/claims.tsx` and `src/services/claims.ts`, with backend routes in `src/app/route/claims.py` in the backend repository. The offline contract package does not yet connect those routes to Medilink or certify switch compatibility.
+
+
+### Simple development connection test
+
+Super admin → Platform settings → Integrations → select a practice → **Test connection**.
+Only backend development credentials and `MEDILINK_SANDBOX_AUTH_ENABLED=true` are needed.
+A new practice can test with settings revision `0`, without entering BHF, scheme routing,
+or treating doctors and without creating billing settings. An existing practice tests its
+saved wire version; unsaved edits do not affect the test. Connection results for a fresh,
+unsaved profile are shown for the current page session only. Saved revisions retain their
+existing connection-result history behaviour and revision-conflict protection.
+
+Membership and claims settings are collapsed by default. Existing practice name, BHF and
+HPCSA are prefilled where available; identifiers are never fabricated. Membership queries
+still require an authorised BHF, a confirmed scheme Option mapping, backend membership
+enablement and vendor-issued synthetic test membership. Authentication success alone
+does not confirm membership lookup, benefit checking, claim acceptance or payment.
