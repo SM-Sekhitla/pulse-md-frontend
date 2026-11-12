@@ -30,31 +30,145 @@ export function AdminMedilinkSettings() {
         <div className="label-caps">Integrations</div>
         <h2 className="text-lg font-semibold">Medilink administration</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose a test practice, then check your development connection.
+          Test the platform’s development token connection. No practice setup is
+          needed.
         </p>
       </div>
-      <label className="block text-sm">
-        Practice
-        <select
-          className={input}
-          value={tenantId}
-          onChange={(e) => setTenantId(e.target.value)}
+      <PlatformConnection />
+      <details className="rounded-xl border p-5">
+        <summary className="cursor-pointer font-semibold">
+          Practice membership &amp; claims setup — later
+        </summary>
+        <label className="mt-4 block text-sm">
+          Practice
+          <select
+            className={input}
+            value={tenantId}
+            onChange={(e) => setTenantId(e.target.value)}
+          >
+            <option value="">Select a practice</option>
+            {tenant.tenants.map((practice) => (
+              <option key={practice.id} value={practice.id}>
+                {practice.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {tenantId && tenant.tenants.some((p) => p.id === tenantId) ? (
+          <MedilinkSettings key={tenantId} tenantId={tenantId} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Select a practice only when setting up membership queries or claims.
+          </p>
+        )}
+      </details>
+    </section>
+  );
+}
+
+function PlatformConnection() {
+  const query = useQuery({
+    queryKey: ["admin-medilink-platform-status"],
+    queryFn: medilinkService.platformStatus,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(
+    null,
+  );
+  const [testing, setTesting] = useState(false);
+  if (query.isPending) return <p role="status">Checking platform setup…</p>;
+  if (query.isError)
+    return (
+      <div role="alert" className="space-y-3 text-sm">
+        <p>{getApiErrorMessage(query.error)}</p>
+        <ActionButton
+          type="button"
+          className="gp-button border"
+          onClick={async () => {
+            await query.refetch();
+          }}
         >
-          <option value="">Select a practice</option>
-          {tenant.tenants.map((practice) => (
-            <option key={practice.id} value={practice.id}>
-              {practice.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {tenantId && tenant.tenants.some((p) => p.id === tenantId) ? (
-        <MedilinkSettings key={tenantId} tenantId={tenantId} />
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Select a practice to manage its connection.
+          Retry setup check
+        </ActionButton>
+      </div>
+    );
+  const status = query.data;
+  const blocker =
+    status.serverIssue ||
+    (!status.credentialsPresent
+      ? "Add your development username and password to the backend environment."
+      : "") ||
+    (!status.authenticationEnabled
+      ? "Set MEDILINK_SANDBOX_AUTH_ENABLED=true on the backend and redeploy."
+      : "");
+  return (
+    <section className="rounded-xl border bg-surface p-5 space-y-4">
+      <div>
+        <div className="label-caps">Development only</div>
+        <h3 className="mt-1 text-lg font-semibold">Platform connection</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Click to request a development access token from Medilink. No practice
+          ID, BHF or routing code is needed.
+        </p>
+      </div>
+      {blocker && (
+        <p role="status" className="text-sm text-amber-800">
+          {blocker}
         </p>
       )}
+      <ActionButton
+        type="button"
+        className="gp-button gp-button-yellow"
+        disabled={Boolean(blocker) || testing}
+        onClick={async () => {
+          setTesting(true);
+          setResult(null);
+          try {
+            const response = await medilinkService.testPlatform();
+            setResult({ ok: true, message: response.message });
+            toast.success("Development token received.");
+          } catch (error) {
+            setResult({ ok: false, message: getApiErrorMessage(error) });
+            throw error;
+          } finally {
+            setTesting(false);
+          }
+        }}
+      >
+        {testing ? "Requesting token…" : "Test platform connection"}
+      </ActionButton>
+      {result && (
+        <div
+          role={result.ok ? "status" : "alert"}
+          className={`rounded-lg border p-4 text-sm ${result.ok ? "text-green-800" : "text-red-700"}`}
+        >
+          <p className="font-semibold">
+            {result.ok ? "Token received" : "Token request failed"}
+          </p>
+          <p className="mt-1">{result.message}</p>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        This tests authentication only. Tokens stay on the backend. No patient
+        data or claims are sent.
+      </p>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-muted-foreground">
+          Connection setup help
+        </summary>
+        <p className="mt-2">
+          If you already configured one development account in
+          MEDILINK_SANDBOX_CREDENTIALS_JSON, it can be tested here as-is. No
+          practice selection is required.
+        </p>
+        <p className="mt-2">
+          Alternatively, set MEDILINK_SANDBOX_USERNAME and
+          MEDILINK_SANDBOX_PASSWORD on the backend. These take priority for this
+          platform test. Enable MEDILINK_SANDBOX_AUTH_ENABLED=true and redeploy
+          after changing environment variables.
+        </p>
+      </details>
     </section>
   );
 }

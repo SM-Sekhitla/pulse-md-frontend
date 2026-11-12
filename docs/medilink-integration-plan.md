@@ -269,3 +269,17 @@ OAuth error code when returned as JSON. Vendor descriptions, unknown codes and
 raw bodies are discarded. HTTP 400 is identified as a request rejection, HTTP 415
 as a Content-Type rejection, and 401/403/501 as authentication/access rejection.
 These diagnostics distinguish failure classes without claiming a specific root cause.
+
+### Platform token test — 12 November 2026
+
+The first action in super-admin Integrations is now **Test platform connection**.
+No practice selection or billing setup is required. The backend requests a fresh
+development token with username/password and grant_type=password, retaining the
+token on the backend and returning only confirmation or sanitised diagnostics.
+`MEDILINK_SANDBOX_USERNAME` and `MEDILINK_SANDBOX_PASSWORD` optionally configure
+this account directly. To avoid repeating existing setup, a JSON credential map
+containing exactly one issued account can be reused for this platform test;
+multiple accounts require explicit platform credentials. No clinical practice
+operation falls back to this platform account. Practice-specific configuration
+remains in a collapsed section for later membership and claims work. Both new
+platform endpoints require super admin and perform no practice/database lookup.
