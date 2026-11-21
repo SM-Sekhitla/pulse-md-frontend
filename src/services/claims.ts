@@ -31,6 +31,42 @@ export type Claim = {
     actorId: string;
   }>;
   updatedAt: string;
+  switchStatus?: SwitchStatus;
+  switchEnvironment?: string;
+  switchReference?: string;
+  treatingProviderId?: string;
+  lastAssessment?: {
+    result?: string;
+    reason?: string;
+    dueByScheme?: string;
+    eligibility?: string;
+    messages?: Array<{ type: string; message: string }>;
+    at?: string;
+  };
+};
+export type SwitchStatus =
+  | "not_sent"
+  | "queued"
+  | "sending"
+  | "unknown_outcome"
+  | "accepted"
+  | "partially_accepted"
+  | "rejected"
+  | "reversal_pending"
+  | "reversed"
+  | "failed_to_send";
+export type SwitchInfo = {
+  available: boolean;
+  environment: "sandbox" | "live";
+  providers: Array<{ id: string; name: string }>;
+};
+export type SubmissionAttempt = {
+  id: string;
+  operation: string;
+  state: string;
+  httpStatus?: number;
+  outcome?: string;
+  createdAt: string;
 };
 export type ClaimsPage = {
   items: Claim[];
@@ -68,6 +104,18 @@ export const claimsService = {
         revision: claim.revision,
       })
     ).data,
+  switchInfo: async () =>
+    (await API.get<SwitchInfo>("/claims/switch/status")).data,
+  submit: async (claim: Claim, treatingProviderId?: string) =>
+    (
+      await API.post<Claim>(`/claims/${claim.id}/submit`, {
+        revision: claim.revision,
+        ...(treatingProviderId ? { treatingProviderId } : {}),
+      })
+    ).data,
+  attempts: async (id: string) =>
+    (await API.get<{ items: SubmissionAttempt[] }>(`/claims/${id}/attempts`))
+      .data.items,
   note: async (claim: Claim, text: string) =>
     (
       await API.post<Claim>(`/claims/${claim.id}/notes`, {

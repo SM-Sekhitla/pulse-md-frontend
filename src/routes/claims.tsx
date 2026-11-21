@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { ClaimDraftEditor } from "@/components/claim-draft-editor";
+import { ClaimSubmitPanel } from "@/components/claim-submit";
+import { switchLabels, switchStateOf } from "@/lib/claim-switch";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@/lib/router-compat";
@@ -84,6 +86,12 @@ function Claims() {
     enabled: allowed && Boolean(selected),
   });
   const claim = detail.data;
+  const switchInfo = useQuery({
+    queryKey: ["claims-switch", user?.tenantId],
+    queryFn: () => claimsService.switchInfo(),
+    enabled: allowed,
+    staleTime: 60_000,
+  });
   const eligible = invoice.invoices.filter(
     (item) =>
       item.billingType === "medical_aid" &&
@@ -123,13 +131,36 @@ function Claims() {
             <div className="claims-connection">
               <CircleAlert size={19} />
               <div>
-                <strong>Claim submission is not enabled yet</strong>
-                <p>
-                  Prepare and check claim drafts here. Contact platform support
-                  to enable electronic submission.
-                </p>
+                {switchInfo.data?.available ? (
+                  <>
+                    <strong>
+                      {switchInfo.data.environment === "live"
+                        ? "Electronic submission is live"
+                        : "Electronic submission is in test mode"}
+                    </strong>
+                    <p>
+                      {switchInfo.data.environment === "live"
+                        ? "Validated claims are sent to the medical aid switch."
+                        : "Claims are sent to the Medilink test environment. No real claims are created."}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <strong>Claim submission is not enabled yet</strong>
+                    <p>
+                      Prepare and check claim drafts here. Contact platform
+                      support to enable electronic submission.
+                    </p>
+                  </>
+                )}
               </div>
-              <span>PREPARATION ONLY</span>
+              <span>
+                {switchInfo.data?.available
+                  ? switchInfo.data.environment === "live"
+                    ? "LIVE"
+                    : "SANDBOX"
+                  : "PREPARATION ONLY"}
+              </span>
             </div>
             <section className="pulse-card">
               <div className="claims-toolbar">
@@ -242,7 +273,13 @@ function Claims() {
                                 {labels[item.status]}
                               </span>
                             </td>
-                            <td>Not sent</td>
+                            <td>
+                              <span
+                                className={`claims-delivery ${switchStateOf(item)}`}
+                              >
+                                {switchLabels[switchStateOf(item)]}
+                              </span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -396,7 +433,7 @@ function Claims() {
                         ) : (
                           <p>
                             {claim.status === "prepared"
-                              ? "Local checks passed. Provider setup and switch-specific checks are still required before live submission."
+                              ? "Local checks passed. Medilink may still reject the claim; its answer appears below."
                               : "Run validation to check the saved draft."}
                           </p>
                         )}
@@ -440,6 +477,15 @@ function Claims() {
                           </Link>
                         </div>
                       </div>
+                      <ClaimSubmitPanel
+                        key={claim.id}
+                        claim={claim}
+                        info={switchInfo.data}
+                        canSend={["owner", "manager"].includes(user?.role || "")}
+                        onChanged={async (saved) => {
+                          await refresh(saved);
+                        }}
+                      />
                       {editing && (
                         <ClaimDraftEditor
                           key={claim.id}
@@ -492,8 +538,8 @@ function Claims() {
                         <strong>{amount(claim.billedCents)}</strong>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Not submitted · Not assessed · No payment recorded by
-                        this module
+                        {switchLabels[switchStateOf(claim)]} · No payment
+                        recorded by this module
                       </p>
                       <h3 className="mt-7 font-semibold">Activity</h3>
                       <ol className="claims-timeline">
