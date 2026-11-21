@@ -53,6 +53,22 @@ export function ClaimSubmitPanel({ claim, info, canSend, onChanged }: Props) {
     enabled: state !== "not_sent",
   });
   const assessment = claim.lastAssessment;
+  const checkable =
+    canSend && ["unknown_outcome", "accepted", "partially_accepted"].includes(state);
+  const check = async () => {
+    try {
+      const saved = await claimsService.checkStatus(claim);
+      await onChanged(saved);
+      const next = switchStateOf(saved);
+      toast.success(
+        next === state
+          ? "Checked with Medilink. No change."
+          : `Medilink now shows this claim as ${switchLabels[next].toLowerCase()}`,
+      );
+    } catch (e: any) {
+      toast.error(getApiErrorMessage(e));
+    }
+  };
 
   const send = async () => {
     setIssues([]);
@@ -102,6 +118,22 @@ export function ClaimSubmitPanel({ claim, info, canSend, onChanged }: Props) {
           ))}
         </ul>
       ) : null}
+      {claim.needsHuman && (
+        <p className="claims-switch-error" role="alert">
+          This claim needs support to resolve with Medilink. Please contact
+          platform support and do not send it again.
+        </p>
+      )}
+      {checkable && !claim.needsHuman && (
+        <ActionButton className="gp-button" onClick={check}>
+          Check status with Medilink
+        </ActionButton>
+      )}
+      {assessment?.checkedAt && (
+        <p className="claims-switch-note">
+          Last checked {new Date(assessment.checkedAt).toLocaleString("en-ZA")}.
+        </p>
+      )}
       {canSubmit(claim) && canSend && (
         <ActionButton
           className="gp-button gp-button-yellow"

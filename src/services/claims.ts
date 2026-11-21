@@ -35,6 +35,9 @@ export type Claim = {
   switchEnvironment?: string;
   switchReference?: string;
   treatingProviderId?: string;
+  needsHuman?: boolean;
+  lastTracedAt?: string;
+  nextTraceAt?: string | null;
   lastAssessment?: {
     result?: string;
     reason?: string;
@@ -42,6 +45,8 @@ export type Claim = {
     eligibility?: string;
     messages?: Array<{ type: string; message: string }>;
     at?: string;
+    checkedAt?: string;
+    checkReason?: string;
   };
 };
 export type SwitchStatus =
@@ -113,6 +118,8 @@ export const claimsService = {
         ...(treatingProviderId ? { treatingProviderId } : {}),
       })
     ).data,
+  checkStatus: async (claim: Claim) =>
+    (await API.post<Claim>(`/claims/${claim.id}/trace`)).data,
   attempts: async (id: string) =>
     (await API.get<{ items: SubmissionAttempt[] }>(`/claims/${id}/attempts`))
       .data.items,
