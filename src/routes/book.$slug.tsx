@@ -197,7 +197,7 @@ function GPProfile() {
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
                   <h2 className="text-[18px] font-semibold text-navy">
-                    Availability — next 14 days
+                    Availability for the next 14 days
                   </h2>
                   <p className="mt-1 text-[13px] text-muted-foreground">
                     Select from available appointment days.
@@ -235,7 +235,7 @@ function GPProfile() {
                       <div
                         className={`mt-1 text-[11px] ${open ? "text-success" : "text-muted-foreground"}`}
                       >
-                        {open ? `${d.slots.length} slots` : "—"}
+                        {open ? `${d.slots.length} slots` : "-"}
                       </div>
                     </>
                   );

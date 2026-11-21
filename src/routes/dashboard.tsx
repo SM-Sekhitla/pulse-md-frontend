@@ -240,7 +240,7 @@ function Dashboard() {
             label="Today’s appointments"
             value={
               appointment.isLoading
-                ? "—"
+                ? "-"
                 : todays.filter((item) => item.status !== "Cancelled").length
             }
             note={`${completed} completed today`}
@@ -250,7 +250,7 @@ function Dashboard() {
         {canSchedule && (
           <KPI
             label="In the waiting room"
-            value={appointment.isLoading ? "—" : waiting}
+            value={appointment.isLoading ? "-" : waiting}
             note="Patients checked in today"
             icon={Clock}
             highlight={waiting > 0}
@@ -259,7 +259,7 @@ function Dashboard() {
         {enabled.has("patients") && (
           <KPI
             label="Patient records"
-            value={patient.isPatientLoading ? "—" : patients.length}
+            value={patient.isPatientLoading ? "-" : patients.length}
             note={`${patients.filter((item) => item.active).length} active patients`}
             icon={Users}
           />
@@ -267,7 +267,7 @@ function Dashboard() {
         {enabled.has("billing") && (
           <KPI
             label="Paid invoices this month"
-            value={invoice.isInvoiceLoading ? "—" : formatZAR(monthPaid)}
+            value={invoice.isInvoiceLoading ? "-" : formatZAR(monthPaid)}
             note="Grouped by invoice date"
             icon={Receipt}
           />
@@ -304,7 +304,7 @@ function Dashboard() {
                   <h2>
                     Today’s appointments{" "}
                     <span className="gp-count">
-                      {appointment.isLoading ? "—" : todays.length}
+                      {appointment.isLoading ? "-" : todays.length}
                     </span>
                   </h2>
                 </div>
@@ -620,7 +620,7 @@ function Dashboard() {
                     </span>
                     <span>
                       <Clock size={15} aria-hidden="true" />
-                      {format(parseISO(next.start), "HH:mm")} –{" "}
+                      {format(parseISO(next.start), "HH:mm")} -{" "}
                       {format(parseISO(next.end), "HH:mm")}
                     </span>
                   </div>

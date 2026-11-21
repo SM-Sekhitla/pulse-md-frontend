@@ -270,7 +270,7 @@ export function AddressAutocomplete({
                   </span>
                   {item.numberRetained && (
                     <span className="block mt-1 text-xs text-muted-foreground">
-                      Street number from your input — please confirm it is correct.
+                      Street number from your input. Please confirm it is correct.
                     </span>
                   )}
                 </li>

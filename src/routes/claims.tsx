@@ -457,7 +457,7 @@ function Claims() {
                       <h3 className="mt-6 font-semibold">Diagnosis codes</h3>
                       <p className="text-sm mt-2">
                         {claim.diagnoses
-                          .map((d) => `${d.code} — ${d.description}`)
+                          .map((d) => `${d.code} - ${d.description}`)
                           .join("; ") || "No diagnoses recorded"}
                       </p>
                       <div className="overflow-x-auto mt-5">

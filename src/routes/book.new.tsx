@@ -325,7 +325,7 @@ function BookingForm() {
                           {format(dt, "d")}
                         </div>
                         <div className="text-[10.5px] opacity-80">
-                          {open ? `${d.slots.length}` : "—"}
+                          {open ? `${d.slots.length}` : "-"}
                         </div>
                       </ActionButton>
                     );

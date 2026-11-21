@@ -112,7 +112,7 @@ function Pending() {
                   </Td>
                   <Td className="font-mono text-[12px]">{t.hpcsa}</Td>
                   <Td className="font-mono text-[12px]">
-                    {t.bhf || "Missing — review practice"}
+                    {t.bhf || "Missing, review practice"}
                   </Td>
                   <Td>
                     <Badge variant="blue">{t.plan}</Badge>

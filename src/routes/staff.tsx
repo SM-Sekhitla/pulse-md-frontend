@@ -311,7 +311,7 @@ function ManageModal({ u, onClose }: { u: User; onClose: () => void }) {
         ) : (
           <div className="rounded-md border border-border bg-surface p-4 text-[13px]">
             <Row label="Email" value={u.email} />
-            <Row label="Phone" value={u.phone || "—"} />
+            <Row label="Phone" value={u.phone || "-"} />
             <Row label="Status" value={u.status} />
           </div>
         )}

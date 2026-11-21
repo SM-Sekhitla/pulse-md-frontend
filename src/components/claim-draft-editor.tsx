@@ -101,7 +101,7 @@ export function ClaimDraftEditor({
         className="w-full"
         options={ICD10_CODES.map((d) => ({
           value: d.code,
-          label: `${d.code} — ${d.description}`,
+          label: `${d.code} - ${d.description}`,
         }))}
       />
       <ul className="claims-editor-diagnoses">
@@ -158,7 +158,7 @@ export function ClaimDraftEditor({
                     )
                   }
                 />
-                {d.code} — {d.description || "Manually entered code"}
+                {d.code} - {d.description || "Manually entered code"}
               </label>
             ))
           ) : (

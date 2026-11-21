@@ -105,7 +105,7 @@ export function useRouter() {
   };
 }
 
-// Route declarations become inert at runtime — App.tsx owns the real routing.
+// Route declarations become inert at runtime. App.tsx owns the real routing.
 // We still return useParams and a component handle so legacy
 // `Route.useParams({ from: "/x/$id" })` calls keep working.
 interface RouteHandle {

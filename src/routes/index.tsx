@@ -28,7 +28,7 @@ import "./landing.css";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PulseMD — Practice intelligence, delivered." },
+      { title: "PulseMD: Practice intelligence, delivered." },
       {
         name: "description",
         content:
@@ -54,7 +54,7 @@ const slides = [
     title: "Less paperwork.",
     accent: "More time for",
     ending: "what matters.",
-    body: "From the first booking to the final invoice, give your team the tools to keep your practice moving — and your attention where it belongs.",
+    body: "From the first booking to the final invoice, give your team the tools to keep your practice moving, and your attention where it belongs.",
     image: "/images/landing/medical-care.webp",
     alt: "A Black doctor warmly greeting a Black patient in a bright medical reception",
   },

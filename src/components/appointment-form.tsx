@@ -161,7 +161,7 @@ export function AppointmentForm({
           onChange={(e) => setPatientId(e.target.value)}
           className="mt-2 block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
         >
-          <option value="">— Select a patient —</option>
+          <option value="">Select a patient</option>
           {patientOptions.map((p) => (
             <option key={p.id} value={p.id}>
               {p.lastName}, {p.firstName} · {p.medicalAid}

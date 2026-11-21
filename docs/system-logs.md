@@ -3,7 +3,7 @@
 Open **Super Admin → System logs** (`/admin/logs`). This is an operational log-file browser, separate from the existing Audit log.
 
 - Browse folders, including `modules` (auth, patients, invoices, appointments and other modules) and `services` (email, image processing and scheduler).
-- Filter folder names, open a log or numbered rotation, and preview the newest 100–2000 lines.
+- Filter folder names, open a log or numbered rotation, and preview the newest 100-2000 lines.
 - Search and severity-filter the loaded preview; these filters do not search the full file. Continuation lines without a severity label are excluded when a specific severity is selected.
 - Refresh manually or enable five-second preview refresh while the page is active.
 - Download a redacted text file. Preview reads are capped at 256 KiB; downloads at 8 MiB. Oversized downloads return a useful error rather than loading an unbounded file.

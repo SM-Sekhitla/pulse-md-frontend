@@ -173,7 +173,7 @@ function CalendarPage() {
               ? format(anchor, "MMMM yyyy")
               : period === "day"
                 ? format(anchor, "EEE d MMM yyyy")
-                : `${format(weekStart, "d MMM")} — ${format(days[6], "d MMM yyyy")}`}
+                : `${format(weekStart, "d MMM")} to ${format(days[6], "d MMM yyyy")}`}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

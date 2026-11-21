@@ -280,7 +280,7 @@ function PatientDetail() {
                   to={`/sick-notes/${n.id}`}
                   className="block border-b border-border py-3 text-sm text-navy hover:underline"
                 >
-                  {format(parseISO(n.fromDate), "d MMM yyyy")} –{" "}
+                  {format(parseISO(n.fromDate), "d MMM yyyy")} -{" "}
                   {format(parseISO(n.toDate), "d MMM yyyy")} · View sick note
                 </Link>
               ))}

@@ -37,7 +37,7 @@ export function AdminMedilinkSettings() {
       <PlatformConnection />
       <details className="rounded-xl border p-5">
         <summary className="cursor-pointer font-semibold">
-          Practice membership &amp; claims setup — later
+          Practice membership &amp; claims setup (later)
         </summary>
         <label className="mt-4 block text-sm">
           Practice
@@ -418,7 +418,7 @@ function SettingsForm({
       </section>
       <details className="rounded-xl border p-5">
         <summary className="cursor-pointer font-semibold">
-          Membership &amp; claims settings — set up later
+          Membership &amp; claims settings (set up later)
         </summary>
         <p className="my-4 text-sm text-muted-foreground">
           Practice details are filled from registration where available. Use

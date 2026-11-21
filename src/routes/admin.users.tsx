@@ -97,7 +97,7 @@ function AdminUsers() {
                     {u.role.replace("_", " ")}
                   </td>
                   <td className="px-5 py-3 text-muted-foreground">
-                    {t?.name || "—"}
+                    {t?.name || "-"}
                   </td>
                   <td className="px-5 py-3">
                     <Badge

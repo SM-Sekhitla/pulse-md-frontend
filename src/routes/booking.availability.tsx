@@ -165,7 +165,7 @@ function AvailabilityPage() {
       return;
     }
     if (av.slotMinutes < 5 || av.slotMinutes > 120) {
-      toast.error("Slot duration must be 5–120 minutes");
+      toast.error("Slot duration must be 5 to 120 minutes");
       return;
     }
 

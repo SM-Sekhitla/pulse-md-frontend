@@ -210,7 +210,7 @@ export function NewPrescription({
                 }}
                 className="mt-2 block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
               >
-                <option value="">— Select a patient —</option>
+                <option value="">Select a patient</option>
                 {filtered.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.lastName}, {p.firstName} · {p.medicalAid}
@@ -244,7 +244,7 @@ export function NewPrescription({
                   onChange={(e) => setAppointmentId(e.target.value)}
                   className="block w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-blue"
                 >
-                  <option value="">— No linked appointment —</option>
+                  <option value="">No linked appointment</option>
                   {apptOptions.map((a) => (
                     <option key={a.id} value={a.id}>
                       {format(new Date(a.start), "d MMM yyyy, HH:mm")} ·{" "}
@@ -273,7 +273,7 @@ export function NewPrescription({
                   className="w-full"
                   options={ICD10_CODES.map((item) => ({
                     value: item.code,
-                    label: `${item.code} — ${item.description}`,
+                    label: `${item.code} - ${item.description}`,
                   }))}
                 />
               </Section>

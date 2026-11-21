@@ -110,17 +110,17 @@ The onboarding screenshot gives HTTPS benefit-check URLs for both development an
 
 | Source | Requirement/evidence | PulseMD implementation task |
 | --- | --- | --- |
-| Claim Send rows 8–21 | Provider discipline; unique ClaimNbr per supplier BHF; scheme Option; vendor/version; service location; item count; hospital indicator | Add a provider/venue profile and authoritative scheme routing map. Allocate claim numbers atomically per supplier, including across tenants if supplier identifiers can be shared. Preserve identifiers as strings. |
+| Claim Send rows 8-21 | Provider discipline; unique ClaimNbr per supplier BHF; scheme Option; vendor/version; service location; item count; hospital indicator | Add a provider/venue profile and authoritative scheme routing map. Allocate claim numbers atomically per supplier, including across tenants if supplier identifiers can be shared. Preserve identifiers as strings. |
 | Doctor types row 10; place appendix row 5 | General Medical Practice = 14; Consulting Room = 11 (12 means Home) | Offer labelled selections. Set values from the actual provider/venue profile, not copied example claims. |
-| Claim Send rows 24–36, 192–211 | Supplier and treating BHF/HPCSA, with conditional referring/prescribing identifiers | Distinguish billing practice from treating doctor; add conditional profile validation. |
-| Claim Send rows 50–65 | Member number/surname/initials; patient initials/name/surname/dependant/DOB | Split main-member name into usable fields; add reviewed membership/dependant selection. Preserve leading zeroes in dependant codes. Optional ID is not a universal submission prerequisite. |
-| Claim Send rows 69–75 | Address components are marked optional | Add structured fields where useful; do not block the GP MVP on optional address collection unless a scheme rule requires it. |
-| Claim Send rows 97–104 | Practice account/file reference, hospital setting and diagnoses | Reuse stable patient/account identity; map primary/other diagnosis levels; handle authorisation conditionally. |
-| Claim Send rows 109–119, 155–189 | Line type, payment advice, tariff/description/quantity/units/unit type, treatment times, line diagnoses | Extend invoice/claim snapshots with stable line IDs and missing service metadata. Validate requirements by line type. Do not require Medicine/Modifier blocks on every tariff line just because their child fields are marked Y. |
-| Claim Send rows 169–174, 219 | Medicine lines need NAPPI, dose/supply/type and applicable dispensing financials | Separate later dispensing profile; reject unsupported line types explicitly in the MVP. |
+| Claim Send rows 24-36, 192-211 | Supplier and treating BHF/HPCSA, with conditional referring/prescribing identifiers | Distinguish billing practice from treating doctor; add conditional profile validation. |
+| Claim Send rows 50-65 | Member number/surname/initials; patient initials/name/surname/dependant/DOB | Split main-member name into usable fields; add reviewed membership/dependant selection. Preserve leading zeroes in dependant codes. Optional ID is not a universal submission prerequisite. |
+| Claim Send rows 69-75 | Address components are marked optional | Add structured fields where useful; do not block the GP MVP on optional address collection unless a scheme rule requires it. |
+| Claim Send rows 97-104 | Practice account/file reference, hospital setting and diagnoses | Reuse stable patient/account identity; map primary/other diagnosis levels; handle authorisation conditionally. |
+| Claim Send rows 109-119, 155-189 | Line type, payment advice, tariff/description/quantity/units/unit type, treatment times, line diagnoses | Extend invoice/claim snapshots with stable line IDs and missing service metadata. Validate requirements by line type. Do not require Medicine/Modifier blocks on every tariff line just because their child fields are marked Y. |
+| Claim Send rows 169-174, 219 | Medicine lines need NAPPI, dose/supply/type and applicable dispensing financials | Separate later dispensing profile; reject unsupported line types explicitly in the MVP. |
 | Claim Send rows 45, 102, 107, 187 | Up to 10 Echo entries; 10 claim diagnoses; 100 items; 10 diagnoses per item | Compare limits with XSD cardinalities; return field-level errors, with no silent truncation. |
 | Claim Response row 9 | FA = Full Acceptance; PA = Partial Acceptance; RV = Reversed; RJ = Rejected | Normalize assessment results with retained raw codes/messages. Unknown codes remain unresolved. Acceptance does not mean cash collected. |
-| Claim Response rows 46–59 | DueByScheme, PaidToProvider/Patient, levy, exceeded benefit, rejected amount, tariff/payment advice | Store separate financial response fields. Workbook descriptions include amounts “to be paid”; reconcile with actual receipts before marking an invoice paid. Confirm contradictory PaymentDate description. |
+| Claim Response rows 46-59 | DueByScheme, PaidToProvider/Patient, levy, exceeded benefit, rejected amount, tariff/payment advice | Store separate financial response fields. Workbook descriptions include amounts “to be paid”; reconcile with actual receipts before marking an invoice paid. Confirm contradictory PaymentDate description. |
 | Patient Query / Response | MQ supported; PQ/IQ/BQ marked not yet available in query sheet; MF/NM are match/no match | Start with MQ. The newly supplied benefit endpoint is a separate operation, not permission to use BQ. Handle optional response contact/address/status fields when present without promising they will be supplied. |
 
 The workbook is a field guide, not executable XML. It contains malformed-looking closing tags, inconsistent length/type notes and conditional fields. Schema validation plus vendor-accepted examples must decide serialization; record unresolved disagreements rather than silently choosing whichever document is convenient.
@@ -253,7 +253,7 @@ enablement and vendor-issued synthetic test membership. Authentication success a
 does not confirm membership lookup, benefit checking, claim acceptance or payment.
 
 
-### Authentication compatibility correction — 12 November 2026
+### Authentication compatibility correction: 12 November 2026
 
 The token request now uses the literal Content-Type in Comms Spec v2.1:
 `application/www-form-url-encoded; version=1.0b`. This vendor-documented spelling
@@ -270,7 +270,7 @@ raw bodies are discarded. HTTP 400 is identified as a request rejection, HTTP 41
 as a Content-Type rejection, and 401/403/501 as authentication/access rejection.
 These diagnostics distinguish failure classes without claiming a specific root cause.
 
-### Platform token test — 12 November 2026
+### Platform token test: 12 November 2026
 
 The first action in super-admin Integrations is now **Test platform connection**.
 No practice selection or billing setup is required. The backend requests a fresh

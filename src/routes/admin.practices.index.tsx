@@ -151,7 +151,7 @@ function AllPractices() {
                   <Td className="text-muted-foreground">
                     {t.approvedAt
                       ? format(parseISO(t.approvedAt), "d MMM yyyy")
-                      : "—"}
+                      : "-"}
                   </Td>
                   <Td className="text-right font-mono">
                     {

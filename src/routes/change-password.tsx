@@ -74,7 +74,7 @@ function ChangePassword() {
           <p className="mt-4 text-[13px] text-muted-foreground">
             Signed in as{" "}
             <span className="font-medium text-navy">{user.email}</span>. Choose
-            a password you'll remember — your temporary password will no longer
+            a password you'll remember. Your temporary password will no longer
             work.
           </p>
 

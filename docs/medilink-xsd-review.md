@@ -29,7 +29,7 @@ There is no separately named benefit-check or trace-response schema, token schem
 - Claim line practitioner block is `HpcNumberItem`, not the Word JSON example's `HpcItem`.
 - Claim requests use header financial `CoPay` and item financial `Copay`; response member financials use `ReferenceSurcharge`. Preserve exact case/spelling per operation.
 - Request EchoType is up to 30 characters on claim headers/lines, but only four on membership/reversal requests. Use operation-specific identifiers; do not apply one global length rule.
-- Claim and reversal requests allow 1–99 documents/reversals; claim lines 1–100; claim diagnoses 1–10; line diagnoses 0–10. MVP should dispatch one claim per attempt while preserving future batch parsing.
+- Claim and reversal requests allow 1-99 documents/reversals; claim lines 1-100; claim diagnoses 1-10; line diagnoses 0-10. MVP should dispatch one claim per attempt while preserving future batch parsing.
 - Claim results are restricted to FA, PA, RV and RJ. Claim response types include NW, RS, BA, SF, SR, DA and ER. Retain the raw type; get authoritative meanings and transition rules before assigning finality.
 
 ## GP profile: what is actually required
@@ -49,7 +49,7 @@ Notable differences from the workbook:
 
 ## Membership lookup scope
 
-`request-patqry.xsd` requires Version, integer ClientId, Query RequestType/RequestId, exactly seven-character BHF, MemberNumber and a 1–4 character Option. **There is no IdNumber request element.** Start with membership-number plus scheme lookup. Do not offer ID-only lookup through this XML serializer until Medilink supplies a compatible schema or confirms a separate JSON operation/version.
+`request-patqry.xsd` requires Version, integer ClientId, Query RequestType/RequestId, exactly seven-character BHF, MemberNumber and a 1-4 character Option. **There is no IdNumber request element.** Start with membership-number plus scheme lookup. Do not offer ID-only lookup through this XML serializer until Medilink supplies a compatible schema or confirms a separate JSON operation/version.
 
 The XSD enumerates MQ/IQ/PQ/BQ, but the workbook says only MQ is available. Schema enumeration is not evidence that the other operations are enabled. Use MQ for the first release; benefit checking remains the separately supplied endpoint.
 

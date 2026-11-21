@@ -151,7 +151,7 @@ function PracticeDetail() {
                   {t.name}
                 </h2>
                 <div className="text-[12.5px] text-muted-foreground">
-                  {t.address || "—"}
+                  {t.address || "-"}
                 </div>
               </div>
               <Badge variant={STATUS_VARIANT(t.status)}>
@@ -163,11 +163,11 @@ function PracticeDetail() {
               <Row label="Plan" value={t.plan} />
               <Row
                 label="BHF"
-                value={t.bhf || "Missing — correction required"}
+                value={t.bhf || "Missing, correction required"}
                 mono
               />
-              <Row label="HPCSA" value={t.hpcsa || "—"} mono />
-              <Row label="VAT" value={t.vat || "—"} mono />
+              <Row label="HPCSA" value={t.hpcsa || "-"} mono />
+              <Row label="VAT" value={t.vat || "-"} mono />
               <Row
                 label="Registered"
                 value={
@@ -181,7 +181,7 @@ function PracticeDetail() {
                 value={
                   t.approvedAt
                     ? format(parseISO(t.approvedAt), "d MMM yyyy HH:mm")
-                    : "—"
+                    : "-"
                 }
               />
             </div>
@@ -193,9 +193,9 @@ function PracticeDetail() {
               {owner?.title} {owner?.firstName} {owner?.lastName}
             </h3>
             <div className="mt-3 grid gap-3 md:grid-cols-2 text-[13px]">
-              <Row label="Email" value={owner?.email || "—"} />
-              <Row label="Phone" value={owner?.phone || "—"} mono />
-              <Row label="HPCSA" value={owner?.hpcsa || "—"} mono />
+              <Row label="Email" value={owner?.email || "-"} />
+              <Row label="Phone" value={owner?.phone || "-"} mono />
+              <Row label="HPCSA" value={owner?.hpcsa || "-"} mono />
               <Row
                 label="Last login"
                 value={
@@ -263,7 +263,7 @@ function PracticeDetail() {
             )}
             {t.status === "rejected" && (
               <div className="text-[12.5px] text-muted-foreground">
-                Application rejected. Reason: {t.rejectionReason || "—"}
+                Application rejected. Reason: {t.rejectionReason || "-"}
               </div>
             )}
             <div className="mt-4 border-t border-border pt-4">

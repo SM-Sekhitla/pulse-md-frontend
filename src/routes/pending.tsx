@@ -90,7 +90,7 @@ function Row({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex justify-between py-1">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-navy">{value || "—"}</span>
+      <span className="font-medium text-navy">{value || "-"}</span>
     </div>
   );
 }

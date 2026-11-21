@@ -888,9 +888,9 @@ function InvoiceDetailModal({
             </div>
             <div className="text-right text-[12.5px] text-navy">
               <div className="font-semibold">HPCSA Practice Number</div>
-              <div className="font-mono">{tenant?.hpcsa ?? "—"}</div>
+              <div className="font-mono">{tenant?.hpcsa ?? "-"}</div>
               <div className="mt-1 text-muted-foreground">
-                VAT {tenant?.vat ?? "—"}
+                VAT {tenant?.vat ?? "-"}
               </div>
             </div>
           </div>

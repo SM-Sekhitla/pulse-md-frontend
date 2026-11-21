@@ -216,7 +216,7 @@ export function VoiceNotes({
           {starting
             ? "Connecting to speech service…"
             : active
-              ? "● Listening — speak now"
+              ? "● Listening, speak now"
               : "Microphone off"}
         </span>
       </div>

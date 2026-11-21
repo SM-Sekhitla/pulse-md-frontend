@@ -29,7 +29,7 @@ function AdminDashboard() {
   const recentEvents = [...audit.audits]
     .sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))
     .slice(0, 6);
-  const loadingValue = tenant.isLoading ? "—" : undefined;
+  const loadingValue = tenant.isLoading ? "-" : undefined;
 
   return (
     <AdminShell title="Platform overview">
@@ -85,7 +85,7 @@ function AdminDashboard() {
         <KPI
           icon={Users}
           label="Patient records"
-          value={patient.isPatientLoading ? "—" : patient.patients.length}
+          value={patient.isPatientLoading ? "-" : patient.patients.length}
           note="Across the platform"
         />
         <KPI
@@ -105,7 +105,7 @@ function AdminDashboard() {
               <h2>
                 Practice approvals{" "}
                 <span className="admin-count">
-                  {tenant.isLoading ? "—" : pending.length}
+                  {tenant.isLoading ? "-" : pending.length}
                 </span>
               </h2>
             </div>
@@ -202,7 +202,7 @@ function AdminDashboard() {
                         {plan}
                       </span>
                       <span>
-                        {tenant.isLoading ? "—" : count}
+                        {tenant.isLoading ? "-" : count}
                         <small>{percentage}%</small>
                       </span>
                     </div>
