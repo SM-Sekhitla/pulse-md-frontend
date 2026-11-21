@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { execSync } from "child_process";
+import { readFileSync } from "node:fs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
@@ -10,17 +11,33 @@ export default defineConfig(({ mode }) => {
   const allowedHost = env.VITE_ALLOWED_HOSTS;
   const apiTarget = env.VITE_API_TARGET;
 
+  // Version priority: explicit env var (CI/Docker), then the latest release in
+  // CHANGELOG.md (written by semantic-release, works on Render without tags),
+  // then git describe, then "dev".
   let gitVersion = "dev";
 
-  // Docker builds have no .git, so CI passes the version in via VITE_GIT_VERSION.
+  const changelogVersion = (() => {
+    try {
+      const log = readFileSync(path.resolve(__dirname, "CHANGELOG.md"), "utf-8");
+      const m = log.match(/^#{1,2} \[?(\d+\.\d+\.\d+)/m);
+      return m ? `v${m[1]}` : null;
+    } catch {
+      return null;
+    }
+  })();
+
   if (env.VITE_GIT_VERSION && env.VITE_GIT_VERSION !== "dev") {
     gitVersion = env.VITE_GIT_VERSION;
-  } else try {
-    gitVersion = execSync("git describe --tags --always", {
-      encoding: "utf-8",
-    }).trim();
-  } catch {
-    console.warn("Git not found or not a git repo, using dev version");
+  } else if (changelogVersion) {
+    gitVersion = changelogVersion;
+  } else {
+    try {
+      gitVersion = execSync("git describe --tags --always", {
+        encoding: "utf-8",
+      }).trim();
+    } catch {
+      console.warn("Git not found or not a git repo, using dev version");
+    }
   }
 
   return {
