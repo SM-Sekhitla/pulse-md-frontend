@@ -12,7 +12,10 @@ export default defineConfig(({ mode }) => {
 
   let gitVersion = "dev";
 
-  try {
+  // Docker builds have no .git, so CI passes the version in via VITE_GIT_VERSION.
+  if (env.VITE_GIT_VERSION && env.VITE_GIT_VERSION !== "dev") {
+    gitVersion = env.VITE_GIT_VERSION;
+  } else try {
     gitVersion = execSync("git describe --tags --always", {
       encoding: "utf-8",
     }).trim();
