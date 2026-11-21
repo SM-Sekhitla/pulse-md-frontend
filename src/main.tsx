@@ -4,6 +4,10 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./styles.css";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { installClientErrorReporting } from "@/services/client-errors";
+
+installClientErrorReporting();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,7 +30,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

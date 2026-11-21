@@ -27,3 +27,26 @@ Run offline tests from the backend repository:
 ```sh
 PYTHONPATH=src src/venv/bin/python tests/test_system_logs.py -v
 ```
+
+## What gets logged
+
+Every backend log line has the form `[time] [LEVEL] [logger] [request id] [actor=.. tenant=.. role=.. src=..] message`. The bracketed context is filled from the request's bearer token and is empty for start-up and background work.
+
+| File | Contents |
+|---|---|
+| `errors.log` | Every WARNING and above from every logger, in one place |
+| `modules/activity.log` | Every create, update and delete made through the API: who, which route, the status, and whether it was done, refused or failed. Request bodies are never logged |
+| `modules/client_errors.log` | Errors thrown in the browser, reported by the web app (`POST /api/v1/client-errors`) |
+| `modules/claims.log`, `consultation.log`, `medilink.log`, `public_booking.log`, `signature.log` | Domain events and Medilink calls: tenant, ids, timing and outcome. Never member numbers, XML or clinical text |
+| `services/lifecycle.log` | Start-up facts (version, environment, integrations), shutdown, and a health line every 5 minutes: uptime, memory, database latency, event-loop lag and request counts |
+| `services/database.log` | Database commands slower than 0.5 s, and failed commands |
+| `services/security.log` | Rate limits and brute-force blocks |
+| `services/upload.log` | Image uploads and rejections |
+
+Slow requests (2 s or more) are logged at WARNING, 5xx at ERROR, 401/403/429 at WARNING, and health probes at DEBUG.
+
+Environment: `LOG_LEVEL` (default INFO), `LOG_LEVELS` for per-logger overrides (`auth=DEBUG,email=WARNING`), `LOG_BACKUP_COUNT` (default 20 rotations of 10 MB), `SYSTEM_HEARTBEAT_SECONDS`, `SLOW_COMMAND_SECONDS`.
+
+## Using the viewer
+
+Each entry is split into time, level, logger, request id and context. Click a request id to filter to every line for that request. Level chips show counts and toggle levels; "Problems only" keeps warnings and errors. Stack traces stay attached to the error that produced them when you filter. The view can be copied or downloaded as filtered. The empty state links straight to the errors, start-up, activity, security and browser-error logs.
