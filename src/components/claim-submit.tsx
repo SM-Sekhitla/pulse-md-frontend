@@ -28,6 +28,10 @@ const notes: Partial<Record<string, string>> = {
     "Medilink accepted the claim. This is not a payment. Record payment when the scheme pays.",
   partially_accepted:
     "Medilink accepted part of the claim. This is not a payment. Review the messages below.",
+  reversal_pending:
+    "A reversal was requested but Medilink has not confirmed it yet. Do not request it again; its status is being checked.",
+  reversed:
+    "Medilink reversed this claim. The invoice is free to be claimed again.",
   rejected:
     "Medilink rejected the claim. Review the messages below. Rejected claims cannot be resent from here yet.",
 };
@@ -44,6 +48,9 @@ export function ClaimSubmitPanel({ claim, info, canSend, onChanged }: Props) {
   const [provider, setProvider] = useState("");
   const [issues, setIssues] = useState<SubmitIssue[]>([]);
   const [error, setError] = useState("");
+  const [reverseOpen, setReverseOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [reverseError, setReverseError] = useState("");
   const state = switchStateOf(claim);
   const sandbox = info?.environment !== "live";
   const needsDoctor = (info?.providers.length || 0) > 1;
@@ -54,7 +61,30 @@ export function ClaimSubmitPanel({ claim, info, canSend, onChanged }: Props) {
   });
   const assessment = claim.lastAssessment;
   const checkable =
-    canSend && ["unknown_outcome", "accepted", "partially_accepted"].includes(state);
+    canSend && [
+      "unknown_outcome",
+      "accepted",
+      "partially_accepted",
+      "reversal_pending",
+    ].includes(state);
+  const canReverse =
+    canSend && ["accepted", "partially_accepted"].includes(state);
+  const reverse = async () => {
+    setReverseError("");
+    try {
+      const saved = await claimsService.reverse(claim, reason.trim());
+      await onChanged(saved);
+      setReverseOpen(false);
+      setReason("");
+      const next = switchStateOf(saved);
+      if (next === "reversed") toast.success("Medilink reversed the claim");
+      else if (next === "reversal_pending")
+        toast.warning("Medilink did not confirm the reversal yet. Do not request it again.");
+      else toast.error("The reversal did not go through. The claim is unchanged.");
+    } catch (e: any) {
+      setReverseError(getApiErrorMessage(e));
+    }
+  };
   const check = async () => {
     try {
       const saved = await claimsService.checkStatus(claim);
@@ -129,6 +159,11 @@ export function ClaimSubmitPanel({ claim, info, canSend, onChanged }: Props) {
           Check status with Medilink
         </ActionButton>
       )}
+      {canReverse && (
+        <ActionButton className="gp-button" onClick={() => setReverseOpen(true)}>
+          Reverse claim
+        </ActionButton>
+      )}
       {assessment?.checkedAt && (
         <p className="claims-switch-note">
           Last checked {new Date(assessment.checkedAt).toLocaleString("en-ZA")}.
@@ -173,6 +208,49 @@ export function ClaimSubmitPanel({ claim, info, canSend, onChanged }: Props) {
           </ul>
         </details>
       ) : null}
+      <Dialog
+        open={reverseOpen}
+        onOpenChange={(o) => !o && setReverseOpen(false)}
+      >
+        <DialogContent>
+          <DialogTitle>Reverse this claim?</DialogTitle>
+          <DialogDescription>
+            {sandbox
+              ? "This is the Medilink test environment. "
+              : "This asks the medical aid switch to reverse a real claim. "}
+            The reversal is requested once. If Medilink does not confirm it,
+            it is checked later and never sent twice. The invoice is freed only
+            after Medilink confirms.
+          </DialogDescription>
+          <label className="block text-sm">
+            Reason (kept for the record, not sent to Medilink)
+            <textarea
+              className="mt-1 w-full rounded-md border p-2"
+              rows={3}
+              maxLength={500}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </label>
+          {reverseError && (
+            <div role="alert" className="claims-switch-error">
+              <p>{reverseError}</p>
+            </div>
+          )}
+          <div className="flex gap-3">
+            <ActionButton className="gp-button" onClick={() => setReverseOpen(false)}>
+              Cancel
+            </ActionButton>
+            <ActionButton
+              className="gp-button gp-button-yellow"
+              disabled={reason.trim().length < 5}
+              onClick={reverse}
+            >
+              Reverse claim
+            </ActionButton>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={open} onOpenChange={(o) => !o && setOpen(false)}>
         <DialogContent>
           <DialogTitle>Send claim to Medilink?</DialogTitle>

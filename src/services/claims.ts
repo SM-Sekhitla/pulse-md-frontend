@@ -118,6 +118,13 @@ export const claimsService = {
         ...(treatingProviderId ? { treatingProviderId } : {}),
       })
     ).data,
+  reverse: async (claim: Claim, reason: string) =>
+    (
+      await API.post<Claim>(`/claims/${claim.id}/reverse`, {
+        revision: claim.revision,
+        reason,
+      })
+    ).data,
   checkStatus: async (claim: Claim) =>
     (await API.post<Claim>(`/claims/${claim.id}/trace`)).data,
   attempts: async (id: string) =>
