@@ -39,9 +39,10 @@ function Pending() {
         );
 
       reload();
-      alert(
-        `${name} approved. The approval email with the temporary password is in the Email outbox.`,
-      );
+      toast.success(`${name} approved`, {
+        description:
+          "The approval email with the temporary password is in the Email outbox.",
+      });
     }
   };
   const reject = async (id: string, name: string) => {
