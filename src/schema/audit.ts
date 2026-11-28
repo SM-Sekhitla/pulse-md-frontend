@@ -10,6 +10,7 @@ export const auditTypeEnum = z.enum([
   "export",
   "role",
   "delete",
+  "impersonation",
 ]);
 
 export const auditSchema = z.object({
@@ -19,6 +20,8 @@ export const auditSchema = z.object({
   type: auditTypeEnum,
   tenantId: z.string().nullish(),
   actorEmail: z.string().email().nullish(),
+  impersonatedBy: z.string().email().nullish(),
+  impersonationId: z.string().nullish(),
   createdAt: apiDateTimeSchema.nullish(),
   updatedAt: apiDateTimeSchema.nullish(),
 });

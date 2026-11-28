@@ -19,6 +19,7 @@ import { Badge } from "@/components/badge-pill";
 import type { TenantStatus } from "@/types/tenant";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
+import { ImpersonatePracticeButton } from "@/components/impersonate-practice-dialog";
 import { planPrice, formatZAR } from "@/lib/pricing";
 import {
   Sheet,
@@ -398,7 +399,11 @@ function PracticeDrawer({
         </DrawerCard>
       </div>
 
-      <footer className="sticky bottom-0 border-t border-border bg-white/95 px-6 py-4 backdrop-blur">
+      <footer className="sticky bottom-0 space-y-2 border-t border-border bg-white/95 px-6 py-4 backdrop-blur">
+        <ImpersonatePracticeButton
+          practice={t}
+          className="gp-button border inline-flex w-full items-center justify-center gap-2"
+        />
         <Link
           to="/admin/practices/$id"
           params={{ id: t.id }}

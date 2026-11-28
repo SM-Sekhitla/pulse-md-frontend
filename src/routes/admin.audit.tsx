@@ -39,6 +39,7 @@ function Audit() {
               <div className="mt-0.5 text-[11.5px] text-muted-foreground">
                 {e.type}
                 {e.actorEmail ? ` · ${e.actorEmail}` : ""}
+                {e.impersonatedBy ? ` · support session by ${e.impersonatedBy}` : ""}
               </div>
             </div>
           ))}

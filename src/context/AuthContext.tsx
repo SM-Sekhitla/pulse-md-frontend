@@ -5,6 +5,7 @@ import { auditSchema } from '@/schema/audit';
 import { patientSchema } from '@/schema/patient';
 import { userSchema } from '@/schema/user';
 import API, { refreshSession } from '@/utils/api';
+import { impersonationService } from '@/services/impersonation';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -58,8 +59,18 @@ const prefetchSuperAdminData = async (
   ]);
 };
 
+export type ImpersonationState = {
+  active: boolean;
+  actorEmail: string;
+  expiresAt: string;
+  practiceName?: string | null;
+};
+
 interface AuthContextType {
   user: User | null;
+  impersonation: ImpersonationState | null;
+  startImpersonation: (tenantId: string, reason: string, landing?: string) => Promise<void>;
+  endImpersonation: () => Promise<void>;
   isAuthenticated: boolean;
   loading: boolean;
   isAdmin: boolean;
@@ -80,6 +91,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
+  const [impersonation, setImpersonation] = useState<ImpersonationState | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const isAdmin = isSuperAdminRole(user?.role);
@@ -206,6 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const user = await res.json();
       setUser(user);
+      setImpersonation(user.impersonation?.active ? user.impersonation : null);
       setIsAuthenticated(true);
       rememberTenantSlug(user);
     } catch {
@@ -244,6 +257,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { success: data.success, message: data.message };
   };
 
+  // A support session replaces the page state completely: a hard navigation
+  // guarantees no admin or practice data lingers in memory or the query cache.
+  const startImpersonation = async (tenantId: string, reason: string, landing = "/dashboard") => {
+    const started = await impersonationService.start(tenantId, reason);
+    queryClient.clear();
+    if (started.practiceSlug) {
+      window.sessionStorage.setItem(TENANT_SLUG_STORAGE_KEY, started.practiceSlug);
+    }
+    window.location.assign(landing);
+  };
+
+  const endImpersonation = async () => {
+    try {
+      await impersonationService.end();
+    } catch {
+      // The session also ends on its own after 15 minutes.
+    }
+    queryClient.clear();
+    window.sessionStorage.removeItem(TENANT_SLUG_STORAGE_KEY);
+    window.location.assign("/admin/practices");
+  };
+
   const logout = async () => {
     const tenants = queryClient.getQueryData<Array<{ id: string; slug: string; gpUserId?: string }>>(tenantKeys.lists()) ?? [];
     const practice = tenants.find((tenant) => tenant.id === user?.tenantId)
@@ -269,6 +304,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{
       user, isAuthenticated, loading, isAdmin,
+      impersonation, startImpersonation, endImpersonation,
       login, acceptInvite, logout, register, changePassword,
       requestResetWeb, requestResetMobile, verifyOtp,
       resetPasswordWeb, resetPasswordMobile,

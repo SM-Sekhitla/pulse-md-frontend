@@ -1,4 +1,5 @@
 import { usePortalMotion } from "@/hooks/use-portal-motion";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import "./portal-motion.css";
 import { matchesPatient } from "@/lib/patient-search";
 import { getLoginRoute } from "@/lib/auth-routing";
@@ -78,7 +79,7 @@ export function AppShell({
   title: string;
 }) {
   const navigate = useNavigate();
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, impersonation } = useAuth();
   const { tenant: tenantData, patient, appointment } = useData();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -259,7 +260,10 @@ export function AppShell({
   );
 
   return (
-    <div className={`gp-portal ${collapsed ? "gp-is-collapsed" : ""}`}>
+    <div
+      className={`gp-portal ${collapsed ? "gp-is-collapsed" : ""} ${impersonation ? "gp-has-support-banner" : ""}`}
+    >
+      <ImpersonationBanner />
       <a href="#gp-main" className="gp-skip">
         Skip to content
       </a>

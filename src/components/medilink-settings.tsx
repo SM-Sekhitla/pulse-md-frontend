@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, Link2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ActionButton, ActionForm } from "@/components/action-feedback";
 import { useAuth } from "@/context/AuthContext";
+import { ImpersonatePracticeButton } from "@/components/impersonate-practice-dialog";
 import { useData } from "@/context/AppDataProvider";
 import { useSearchParams } from "react-router-dom";
 import type { MedicalAidScheme } from "@/lib/medical-aid";
@@ -55,7 +56,16 @@ export function AdminMedilinkSettings() {
           </select>
         </label>
         {tenantId && tenant.tenants.some((p) => p.id === tenantId) ? (
-          <MedilinkSettings key={tenantId} tenantId={tenantId} />
+          <>
+            <div className="mt-3">
+              <ImpersonatePracticeButton
+                practice={tenant.tenants.find((p) => p.id === tenantId)!}
+                landing="/claims"
+                label="Open Claims as this practice's owner"
+              />
+            </div>
+            <MedilinkSettings key={tenantId} tenantId={tenantId} />
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">
             Select a practice only when setting up membership queries or claims.

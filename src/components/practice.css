@@ -1511,3 +1511,28 @@
 @media (max-width: 767px) {
   .gp-visit > .gp-button { flex-basis: 100%; }
 }
+
+/* Support session banner: fixed bar that the portal layout makes room for. */
+.gp-has-support-banner {
+  --gp-banner-height: 44px;
+  padding-top: var(--gp-banner-height);
+}
+.gp-support-banner {
+  height: 44px;
+}
+.gp-has-support-banner .gp-sidebar {
+  top: var(--gp-banner-height);
+  height: calc(100dvh - var(--gp-banner-height));
+}
+.gp-has-support-banner .gp-topbar {
+  top: var(--gp-banner-height);
+}
+@media (max-width: 640px) {
+  .gp-has-support-banner {
+    --gp-banner-height: 64px;
+  }
+  .gp-support-banner {
+    height: 64px;
+    font-size: 12px;
+  }
+}

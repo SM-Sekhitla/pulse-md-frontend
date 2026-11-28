@@ -16,6 +16,7 @@ import { Copy, Check, KeyRound, NotebookPen, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
 import { useAuth } from "@/context/AuthContext";
+import { ImpersonatePracticeButton } from "@/components/impersonate-practice-dialog";
 
 export const Route = createFileRoute("/admin/practices/$id")({
   component: PracticeDetail,
@@ -137,12 +138,20 @@ function PracticeDetail() {
               );
             }}
           />
-          <Link
-            to={`/admin/settings?practiceId=${encodeURIComponent(t.id)}`}
-            className="gp-button border"
-          >
-            Manage integration setup
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/admin/settings?practiceId=${encodeURIComponent(t.id)}`}
+              className="gp-button border"
+            >
+              Manage integration setup
+            </Link>
+            <ImpersonatePracticeButton practice={t} />
+            <ImpersonatePracticeButton
+              practice={t}
+              landing="/claims"
+              label="Open Claims as this practice's owner"
+            />
+          </div>
           <div className="pulse-card p-6">
             <div className="flex items-start justify-between">
               <div>
