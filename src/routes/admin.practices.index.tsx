@@ -1,6 +1,18 @@
 import { createFileRoute, Link } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import {
+  ArrowUpRight,
+  Building2,
+  Check,
+  Copy,
+  CreditCard,
+  LayoutGrid,
+  MapPin,
+  Search,
+  Stethoscope,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { AdminPagination } from "@/components/admin-pagination";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/badge-pill";
@@ -203,7 +215,7 @@ function AllPractices() {
       >
         <SheetContent
           side="left"
-          className="w-full overflow-y-auto sm:max-w-[520px]"
+          className="w-full overflow-y-auto bg-surface p-0 sm:max-w-[520px]"
         >
           {selected && (
             <PracticeDrawer
@@ -251,80 +263,195 @@ function PracticeDrawer({
 }) {
   const owner = t.owner;
   const modules = t.enabledModules ?? [];
+  const [copied, setCopied] = useState(false);
+  const initials = t.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+  const practitioner =
+    [owner?.title, owner?.firstName, owner?.lastName]
+      .filter(Boolean)
+      .join(" ") || "No practitioner recorded";
+
+  const copyId = async () => {
+    try {
+      await navigator.clipboard.writeText(t.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="label-caps">Practice</div>
-        <SheetTitle className="text-[20px] font-semibold text-navy">
-          {t.name}
-        </SheetTitle>
-        <SheetDescription>{t.address || "No address recorded"}</SheetDescription>
-        <div className="mt-2">
+    <div className="flex min-h-full flex-col">
+      <header className="border-b border-border bg-gradient-to-b from-white to-surface px-6 pb-5 pt-6">
+        <div className="flex items-start gap-4 pr-8">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-navy text-[18px] font-semibold tracking-wide text-white shadow-sm">
+            {initials || "P"}
+          </div>
+          <div className="min-w-0">
+            <SheetTitle className="truncate text-[20px] font-semibold leading-tight text-navy">
+              {t.name}
+            </SheetTitle>
+            <SheetDescription className="mt-1 flex items-start gap-1.5 text-[12.5px] leading-snug">
+              <MapPin size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <span>{t.address || "No address recorded"}</span>
+            </SheetDescription>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <Badge variant={STATUS_VARIANT(t.status)}>
             {t.status.replace("_", " ")}
           </Badge>
+          <span className="rounded-full border border-border bg-white px-2.5 py-0.5 text-[11.5px] font-medium text-navy">
+            {t.plan} plan
+          </span>
+          {t.bookingEnabled && (
+            <span className="rounded-full border border-border bg-white px-2.5 py-0.5 text-[11.5px] font-medium text-navy">
+              Online booking
+            </span>
+          )}
         </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-white px-3 py-2">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Tenant ID
+            </div>
+            <div className="truncate font-mono text-[12px] text-navy" title={t.id}>
+              {t.id}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={copyId}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-navy hover:bg-surface"
+            aria-label="Copy tenant ID"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 space-y-5 px-6 py-5">
+        <div className="grid grid-cols-3 gap-3">
+          <StatTile icon={<Users size={16} />} label="Staff" value={String(staffCount)} />
+          <StatTile
+            icon={<UserRound size={16} />}
+            label="Patients"
+            value={String(patientCount)}
+          />
+          <StatTile
+            icon={<CreditCard size={16} />}
+            label="Per month"
+            value={formatZAR(planPrice(t.plan))}
+          />
+        </div>
+
+        <DrawerCard icon={<Building2 size={15} />} title="Practice details">
+          <DrawerRow label="Slug" value={t.slug} mono />
+          <DrawerRow label="BHF number" value={t.bhf || "Missing"} mono />
+          <DrawerRow label="HPCSA" value={t.hpcsa || "-"} mono />
+          <DrawerRow label="VAT" value={t.vat || "-"} mono />
+          <DrawerRow label="Registered" value={fmt(t.createdAt, true)} />
+          <DrawerRow label="Approved" value={fmt(t.approvedAt, true)} />
+          {t.status === "rejected" && (
+            <DrawerRow label="Rejection reason" value={t.rejectionReason || "-"} />
+          )}
+        </DrawerCard>
+
+        <DrawerCard icon={<Stethoscope size={15} />} title="Practitioner">
+          <div className="mb-2 text-[15px] font-semibold text-navy">
+            {practitioner}
+          </div>
+          <DrawerRow label="Email" value={owner?.email || "-"} />
+          <DrawerRow label="Phone" value={owner?.phone || "-"} mono />
+          <DrawerRow label="HPCSA" value={owner?.hpcsa || "-"} mono />
+          <DrawerRow
+            label="Last login"
+            value={owner?.lastLogin ? fmt(owner.lastLogin, true) : "Never"}
+          />
+        </DrawerCard>
+
+        <DrawerCard icon={<LayoutGrid size={15} />} title="Enabled modules">
+          {modules.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {modules.map((m) => (
+                <span
+                  key={m}
+                  className="rounded-full bg-surface px-2.5 py-1 text-[11.5px] font-medium capitalize text-navy"
+                >
+                  {m.replace("_", " ")}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[13px] text-muted-foreground">
+              Using the defaults for the {t.plan} plan.
+            </div>
+          )}
+        </DrawerCard>
       </div>
 
-      <section>
-        <div className="label-caps mb-2">Details</div>
-        <DrawerRow label="Slug" value={t.slug} mono />
-        <DrawerRow label="Plan" value={t.plan} />
-        <DrawerRow
-          label="Plan price"
-          value={`${formatZAR(planPrice(t.plan))}/mo`}
-        />
-        <DrawerRow label="BHF" value={t.bhf || "Missing"} mono />
-        <DrawerRow label="HPCSA" value={t.hpcsa || "-"} mono />
-        <DrawerRow label="VAT" value={t.vat || "-"} mono />
-        <DrawerRow label="Registered" value={fmt(t.createdAt, true)} />
-        <DrawerRow label="Approved" value={fmt(t.approvedAt, true)} />
-        {t.status === "rejected" && (
-          <DrawerRow label="Rejection reason" value={t.rejectionReason || "-"} />
-        )}
-      </section>
-
-      <section>
-        <div className="label-caps mb-2">Practitioner</div>
-        <DrawerRow
-          label="Name"
-          value={
-            [owner?.title, owner?.firstName, owner?.lastName]
-              .filter(Boolean)
-              .join(" ") || "-"
-          }
-        />
-        <DrawerRow label="Email" value={owner?.email || "-"} />
-        <DrawerRow label="Phone" value={owner?.phone || "-"} mono />
-        <DrawerRow label="HPCSA" value={owner?.hpcsa || "-"} mono />
-        <DrawerRow
-          label="Last login"
-          value={owner?.lastLogin ? fmt(owner.lastLogin, true) : "Never"}
-        />
-      </section>
-
-      <section>
-        <div className="label-caps mb-2">At a glance</div>
-        <DrawerRow label="Staff" value={String(staffCount)} />
-        <DrawerRow label="Patients" value={String(patientCount)} />
-        <DrawerRow
-          label="Public booking"
-          value={t.bookingEnabled ? "Enabled" : "Disabled"}
-        />
-        <DrawerRow
-          label="Modules"
-          value={modules.length ? modules.join(", ") : "Plan defaults"}
-        />
-      </section>
-
-      <Link
-        to="/admin/practices/$id"
-        params={{ id: t.id }}
-        className="gp-button border inline-flex"
-      >
-        Open full page to manage this practice
-      </Link>
+      <footer className="sticky bottom-0 border-t border-border bg-white/95 px-6 py-4 backdrop-blur">
+        <Link
+          to="/admin/practices/$id"
+          params={{ id: t.id }}
+          className="gp-button inline-flex w-full items-center justify-center gap-2"
+        >
+          Manage practice <ArrowUpRight size={15} aria-hidden="true" />
+        </Link>
+      </footer>
     </div>
+  );
+}
+
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-white p-3 shadow-sm">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        {icon}
+        <span className="text-[11px] font-medium uppercase tracking-wider">
+          {label}
+        </span>
+      </div>
+      <div className="mt-1.5 truncate text-[18px] font-semibold text-navy">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function DrawerCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-white p-4 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-blue">{icon}</span>
+        {title}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -338,10 +465,10 @@ function DrawerRow({
   mono?: boolean;
 }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-border/60 py-1.5 text-[13px]">
-      <span className="text-muted-foreground">{label}</span>
+    <div className="flex items-baseline justify-between gap-4 border-b border-border/50 py-2 text-[13px] last:border-b-0">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
       <span
-        className={`text-right font-medium text-navy ${mono ? "font-mono text-[12px]" : ""}`}
+        className={`break-all text-right font-medium text-navy ${mono ? "font-mono text-[12px]" : ""}`}
       >
         {value}
       </span>
