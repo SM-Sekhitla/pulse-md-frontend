@@ -7,6 +7,13 @@ import { Badge } from "@/components/badge-pill";
 import type { TenantStatus } from "@/types/tenant";
 import { format, parseISO } from "date-fns";
 import { useData } from "@/context/AppDataProvider";
+import { planPrice, formatZAR } from "@/lib/pricing";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/admin/practices/")({
   component: AllPractices,
@@ -24,7 +31,9 @@ const STATUS_VARIANT = (s: TenantStatus) =>
         : "neutral";
 
 function AllPractices() {
-  const { tenant, patient } = useData();
+  const { tenant, patient, user } = useData();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = tenant.tenants.find((t) => t.id === selectedId) ?? null;
 
   const [statusFilter, setStatusFilter] = useState<TenantStatus | "all">("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
@@ -125,15 +134,19 @@ function AllPractices() {
                 <tr
                   key={t.id}
                   className="border-t border-border hover:bg-surface cursor-pointer"
+                  onClick={() => setSelectedId(t.id)}
                 >
                   <Td>
-                    <Link
-                      to="/admin/practices/$id"
-                      params={{ id: t.id }}
-                      className="font-semibold text-navy hover:text-blue"
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedId(t.id);
+                      }}
+                      className="text-left font-semibold text-navy hover:text-blue"
                     >
                       {t.name}
-                    </Link>
+                    </button>
                   </Td>
                   <Td>
                     {owner?.title} {owner?.firstName} {owner?.lastName}
@@ -182,7 +195,157 @@ function AllPractices() {
           onPageChange={setPage}
         />
       </div>
+      <Sheet
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
+      >
+        <SheetContent
+          side="left"
+          className="w-full overflow-y-auto sm:max-w-[520px]"
+        >
+          {selected && (
+            <PracticeDrawer
+              t={selected}
+              staffCount={
+                user.users.filter(
+                  (u) =>
+                    u.tenantId === selected.id &&
+                    u.role === "receptionist" &&
+                    !u.deletedAt,
+                ).length
+              }
+              patientCount={
+                patient.patients.filter(
+                  (p) => !p.tenantId || p.tenantId === selected.id,
+                ).length
+              }
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </AdminShell>
+  );
+}
+
+type PracticeRow = ReturnType<typeof useData>["tenant"]["tenants"][number];
+
+function fmt(value?: string | null, withTime = false) {
+  if (!value) return "-";
+  try {
+    return format(parseISO(value), withTime ? "d MMM yyyy HH:mm" : "d MMM yyyy");
+  } catch {
+    return "-";
+  }
+}
+
+function PracticeDrawer({
+  t,
+  staffCount,
+  patientCount,
+}: {
+  t: PracticeRow;
+  staffCount: number;
+  patientCount: number;
+}) {
+  const owner = t.owner;
+  const modules = t.enabledModules ?? [];
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="label-caps">Practice</div>
+        <SheetTitle className="text-[20px] font-semibold text-navy">
+          {t.name}
+        </SheetTitle>
+        <SheetDescription>{t.address || "No address recorded"}</SheetDescription>
+        <div className="mt-2">
+          <Badge variant={STATUS_VARIANT(t.status)}>
+            {t.status.replace("_", " ")}
+          </Badge>
+        </div>
+      </div>
+
+      <section>
+        <div className="label-caps mb-2">Details</div>
+        <DrawerRow label="Slug" value={t.slug} mono />
+        <DrawerRow label="Plan" value={t.plan} />
+        <DrawerRow
+          label="Plan price"
+          value={`${formatZAR(planPrice(t.plan))}/mo`}
+        />
+        <DrawerRow label="BHF" value={t.bhf || "Missing"} mono />
+        <DrawerRow label="HPCSA" value={t.hpcsa || "-"} mono />
+        <DrawerRow label="VAT" value={t.vat || "-"} mono />
+        <DrawerRow label="Registered" value={fmt(t.createdAt, true)} />
+        <DrawerRow label="Approved" value={fmt(t.approvedAt, true)} />
+        {t.status === "rejected" && (
+          <DrawerRow label="Rejection reason" value={t.rejectionReason || "-"} />
+        )}
+      </section>
+
+      <section>
+        <div className="label-caps mb-2">Practitioner</div>
+        <DrawerRow
+          label="Name"
+          value={
+            [owner?.title, owner?.firstName, owner?.lastName]
+              .filter(Boolean)
+              .join(" ") || "-"
+          }
+        />
+        <DrawerRow label="Email" value={owner?.email || "-"} />
+        <DrawerRow label="Phone" value={owner?.phone || "-"} mono />
+        <DrawerRow label="HPCSA" value={owner?.hpcsa || "-"} mono />
+        <DrawerRow
+          label="Last login"
+          value={owner?.lastLogin ? fmt(owner.lastLogin, true) : "Never"}
+        />
+      </section>
+
+      <section>
+        <div className="label-caps mb-2">At a glance</div>
+        <DrawerRow label="Staff" value={String(staffCount)} />
+        <DrawerRow label="Patients" value={String(patientCount)} />
+        <DrawerRow
+          label="Public booking"
+          value={t.bookingEnabled ? "Enabled" : "Disabled"}
+        />
+        <DrawerRow
+          label="Modules"
+          value={modules.length ? modules.join(", ") : "Plan defaults"}
+        />
+      </section>
+
+      <Link
+        to="/admin/practices/$id"
+        params={{ id: t.id }}
+        className="gp-button border inline-flex"
+      >
+        Open full page to manage this practice
+      </Link>
+    </div>
+  );
+}
+
+function DrawerRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-border/60 py-1.5 text-[13px]">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={`text-right font-medium text-navy ${mono ? "font-mono text-[12px]" : ""}`}
+      >
+        {value}
+      </span>
+    </div>
   );
 }
 
